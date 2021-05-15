@@ -1,3 +1,4 @@
+/* Treat byte_string as w-bit integers and return index. */
 pub fn coef(byte_string: &[u8], i: u64, w: u64) -> u64 {
     debug_assert!([1, 2, 4, 8].contains(&w));
 

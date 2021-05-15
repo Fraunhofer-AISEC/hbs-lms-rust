@@ -11,3 +11,26 @@ pub fn coef(byte_string: &[u8], i: u64, w: u64) -> u64 {
     
     (byte_string[index] as u64 >> shift) & mask
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn coef_test1() {
+        let value = coef(&[0x12, 0x34], 7, 1);
+        assert_eq!(value, 0);
+    }
+
+    #[test]
+    fn coef_test2() {
+        let value = coef(&[0x12, 0x34], 0, 4);
+        assert_eq!(value, 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn coef_test_panic() {
+        coef(&[0x12, 0x34], 2, 8);
+    }
+}

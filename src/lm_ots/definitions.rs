@@ -1,5 +1,8 @@
 use paste::paste;
 
+use crate::util::coef::coef;
+
+#[derive(Debug, Clone, Copy)]
 pub enum lmots_algorithm_type {
     lmots_reserved       = 0,
     lmots_sha256_n32_w1  = 1,
@@ -17,6 +20,8 @@ pub trait lmots_algorithm {
     const w: usize;
     const ls: usize;
     const _type: lmots_algorithm_type;
+
+    fn checksum(byte_string: &[u8]) -> u16;
 }
 
 pub trait lmots_private_key {
@@ -44,6 +49,18 @@ macro_rules! create_algorithm_impl {
             const w: usize = $w;
             const ls: usize = $ls;
             const _type: lmots_algorithm_type = $type;
+
+            fn checksum(byte_string: &[u8]) -> u16 {
+                let mut sum = 0_u16;
+                const max: usize = $n * 8 / $w;
+                const max_word_size: usize = (1 << $w) - 1;
+
+                for i in 0..max {
+                    sum += (max_word_size - coef(byte_string, i as u64, $w) as usize) as u16;
+                }
+
+                sum
+            }
         }
 
         // Generate private key implementation

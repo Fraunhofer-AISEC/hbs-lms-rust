@@ -49,7 +49,7 @@ macro_rules! generate_public_key_gen_impl {
                     const w: usize = $name::w;
                     const n: usize = $name::n;
             
-                    let max_word_index = (1 << w) - 1;
+                    const max_word_index: usize = (1 << w) - 1;
             
                     let key = private_key.key.get_private_key(); 
                     let mut hasher = Sha256::default();

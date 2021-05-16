@@ -15,6 +15,7 @@ pub trait lmots_algorithm {
     const n: usize;
     const p: usize;
     const w: usize;
+    const ls: usize;
     const _type: lmots_algorithm_type;
 }
 
@@ -32,7 +33,7 @@ pub trait lmots_public_key {
 }
 
 macro_rules! create_algorithm_impl {
-    ($name:ident, $type:expr, $n:literal, $p:literal, $w:literal) => {
+    ($name:ident, $type:expr, $n:literal, $p:literal, $w:literal, $ls:literal) => {
         // Empty struct per algorithm type to hold values for n, w, p and ls
         pub struct $name { }
 
@@ -41,6 +42,7 @@ macro_rules! create_algorithm_impl {
             const n: usize = $n;
             const p: usize = $p;
             const w: usize = $w;
+            const ls: usize = $ls;
             const _type: lmots_algorithm_type = $type;
         }
 
@@ -87,7 +89,7 @@ macro_rules! create_algorithm_impl {
     };
 }
 
-create_algorithm_impl!(LMOTS_SHA256_N32_W1, lmots_algorithm_type::lmots_sha256_n32_w1, 32, 265, 1);
-create_algorithm_impl!(LMOTS_SHA256_N32_W2, lmots_algorithm_type::lmots_sha256_n32_w2, 32, 133, 2);
-create_algorithm_impl!(LMOTS_SHA256_N32_W4, lmots_algorithm_type::lmots_sha256_n32_w4, 32, 67, 4);
-create_algorithm_impl!(LMOTS_SHA256_N32_W8, lmots_algorithm_type::lmots_sha256_n32_w8, 32, 34, 8);
+create_algorithm_impl!(LMOTS_SHA256_N32_W1, lmots_algorithm_type::lmots_sha256_n32_w1, 32, 265, 1, 7);
+create_algorithm_impl!(LMOTS_SHA256_N32_W2, lmots_algorithm_type::lmots_sha256_n32_w2, 32, 133, 2, 6);
+create_algorithm_impl!(LMOTS_SHA256_N32_W4, lmots_algorithm_type::lmots_sha256_n32_w4, 32, 67, 4, 4);
+create_algorithm_impl!(LMOTS_SHA256_N32_W8, lmots_algorithm_type::lmots_sha256_n32_w8, 32, 34, 8, 0);

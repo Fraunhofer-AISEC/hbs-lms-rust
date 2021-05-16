@@ -2,7 +2,7 @@ use paste::paste;
 use sha2::{Digest, Sha256};
 
 use super::definitions::*;
-use crate::{definitions::D_PBLC, random::get_random, util::ustr::*};
+use crate::{definitions::D_PBLC, util::ustr::*, util::random::*};
 
 #[allow(non_snake_case)]
 pub struct PrivateKey<T: lmots_private_key> {    

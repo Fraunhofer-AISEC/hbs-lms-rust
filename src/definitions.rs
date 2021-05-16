@@ -1,0 +1,1 @@
+pub type ByteString = [u8];

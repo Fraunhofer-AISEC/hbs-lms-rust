@@ -4,6 +4,6 @@
 #![allow(non_upper_case_globals)]
 
 mod random;
-mod definitions;
 mod util;
+mod definitions;
 mod lm_ots;

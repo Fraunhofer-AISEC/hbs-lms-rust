@@ -2,18 +2,18 @@ use super::definitions::*;
 use crate::{definitions::D_PBLC, util::ustr::*, util::random::*};
 
 
-pub fn GeneratePrivateKey(I: I_Type, q: q_Type, _type: lmots_algorithm_type) -> LmotsPrivateKey {
-    let parameter = lmots_algorithm_parameter::get(_type);
+pub fn generate_private_key(i: IType, q: QType, _type: LmotsAlgorithmType) -> LmotsPrivateKey {
+    let parameter = LmotsAlgorithmParameter::get(_type);
     let mut key = vec![vec![0u8; parameter.n as usize]; parameter.p as usize];
 
     for item in key.iter_mut() {
         get_random(item);
     }
 
-    LmotsPrivateKey::new(I, q, parameter, key)
+    LmotsPrivateKey::new(i, q, parameter, key)
 }
 
-pub fn GeneratePublicKey(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
+pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
     let parameter = &private_key.parameter;
 
     let max_word_index: usize = (1 << parameter.w) - 1;
@@ -27,7 +27,7 @@ pub fn GeneratePublicKey(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
         let mut tmp = key[i].clone();
     
         for j in 0..max_word_index {
-            hasher.update(&private_key.I);
+            hasher.update(&private_key.i);
             hasher.update(&private_key.q);
             hasher.update(&u16str(i as u16));
             hasher.update(&u8str(j as u8));
@@ -41,7 +41,7 @@ pub fn GeneratePublicKey(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
         y[i] = tmp;
     }
 
-    hasher.update(&private_key.I);
+    hasher.update(&private_key.i);
     hasher.update(&private_key.q);
     hasher.update(&D_PBLC);
 
@@ -49,10 +49,10 @@ pub fn GeneratePublicKey(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
         hasher.update(item);
     }
 
-    let mut K = vec![0u8; parameter.n as usize];
+    let mut public_key = vec![0u8; parameter.n as usize];
     for (index, value) in hasher.finalize().iter().enumerate() {
-        K[index] = *value;
+        public_key[index] = *value;
     }
 
-    LmotsPublicKey::new(private_key.I, private_key.q, *parameter, K)
+    LmotsPublicKey::new(private_key.i, private_key.q, *parameter, public_key)
 }

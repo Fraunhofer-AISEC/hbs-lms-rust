@@ -1,6 +1,6 @@
 use crate::util::{coef::coef, hash::{Hasher, Sha256Hasher}};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LmotsAlgorithmType {
     LmotsReserved       = 0,
     LmotsSha256N32W1  = 1,
@@ -90,4 +90,28 @@ impl LmotsPublicKey {
     pub fn new(i: IType, q: QType, parameter: LmotsAlgorithmParameter, key: Vec<u8>) -> Self {
         LmotsPublicKey { parameter, i, q, key, }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! generate_parameter_test {
+        ($name:ident, $type:expr, $n:literal, $w:literal, $p:literal, $ls:literal) => {
+            #[test]
+            fn $name() {
+                let parameter = LmotsAlgorithmParameter::get($type);
+                assert_eq!(parameter._type, $type);
+                assert_eq!(parameter.n, $n);
+                assert_eq!(parameter.w, $w);
+                assert_eq!(parameter.p, $p);
+                assert_eq!(parameter.ls, $ls);
+            }
+        };
+    }
+
+    generate_parameter_test!(lmots_sha256_n32_w1_parameter_test, LmotsAlgorithmType::LmotsSha256N32W1, 32, 1, 265, 7);
+    generate_parameter_test!(lmots_sha256_n32_w2_parameter_test, LmotsAlgorithmType::LmotsSha256N32W2, 32, 2, 133, 6);
+    generate_parameter_test!(lmots_sha256_n32_w4_parameter_test, LmotsAlgorithmType::LmotsSha256N32W4, 32, 4, 67, 4);
+    generate_parameter_test!(lmots_sha256_n32_w8_parameter_test, LmotsAlgorithmType::LmotsSha256N32W8, 32, 8, 34, 0);
 }

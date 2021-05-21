@@ -1,5 +1,3 @@
-use paste::paste;
-
 use crate::util::coef::coef;
 
 #[derive(Debug, Clone, Copy)]
@@ -14,99 +12,55 @@ pub enum lmots_algorithm_type {
 pub type I_Type = [u8; 16];
 pub type q_Type = [u8; 4];
 
-pub trait lmots_algorithm {
-    const n: usize;
-    const p: usize;
-    const w: usize;
-    const ls: usize;
-    const _type: lmots_algorithm_type;
-
-    fn checksum(byte_string: &[u8]) -> u16;
+pub struct lmots_algorithm_parameter {
+    n: u16,
+    w: u8,
+    p: u16,
+    ls: u8,
+    _type: lmots_algorithm_type
 }
 
-pub trait lmots_private_key {
-    type PRIVATE_KEY;
-    const _type: lmots_algorithm_type;
-    fn create(private_key: Self::PRIVATE_KEY) -> Self;
-    fn get_private_key(&self) -> Self::PRIVATE_KEY;
-}
+impl lmots_algorithm_parameter {
+    pub fn get(_type: lmots_algorithm_type) -> Self {
+        match _type {
+            lmots_algorithm_type::lmots_reserved => panic!("Reserved parameter type."),
+            lmots_algorithm_type::lmots_sha256_n32_w1 => lmots_algorithm_parameter::internal_get(32, 1, lmots_algorithm_type::lmots_sha256_n32_w1),
+            lmots_algorithm_type::lmots_sha256_n32_w2 => lmots_algorithm_parameter::internal_get(32, 2, lmots_algorithm_type::lmots_sha256_n32_w2),
+            lmots_algorithm_type::lmots_sha256_n32_w4 => lmots_algorithm_parameter::internal_get(32, 4, lmots_algorithm_type::lmots_sha256_n32_w4),
+            lmots_algorithm_type::lmots_sha256_n32_w8 => lmots_algorithm_parameter::internal_get(32, 8, lmots_algorithm_type::lmots_sha256_n32_w8),
+        }
+    }
 
-pub trait lmots_public_key {
-    type PUBLIC_KEY;
-    const _type: lmots_algorithm_type;
-    fn create(public_key: Self::PUBLIC_KEY) -> Self;
-}
+    fn internal_get(n: u16, w: u8, _type: lmots_algorithm_type) -> Self {
+        // Compute p and ls depending on n and w (see RFC8554 Appendix B.)
+        let u = ((8.0 * n as f64) / w as f64).ceil();
+        let v = ((((2usize.pow(w as u32) - 1) as f64 * u).log2() + 1.0f64).floor() / w as f64).ceil();
+        let ls: u8 = (16 - (v as usize * w as usize)) as u8;
+        let p: u16 = (u as u64 + v as u64) as u16;
 
-macro_rules! create_algorithm_impl {
-    ($name:ident, $type:expr, $n:literal, $p:literal, $w:literal, $ls:literal) => {
-        // Empty struct per algorithm type to hold values for n, w, p and ls
-        pub struct $name { }
+        lmots_algorithm_parameter {
+            n,
+            w,
+            p,
+            ls,
+            _type
+        }
+    }
 
-        // Implement lmots_algorithm trait to save constants
-        impl lmots_algorithm for $name {
-            const n: usize = $n;
-            const p: usize = $p;
-            const w: usize = $w;
-            const ls: usize = $ls;
-            const _type: lmots_algorithm_type = $type;
+    pub fn checksum(&self, byte_string: &[u8]) -> u16 {
+        let mut sum = 0_u16;
+        let max: u64 = ((self.n * 8) as f64 / self.w as f64) as u64;
+        let max_word_size: u64 = (1 << self.w) - 1;
 
-            fn checksum(byte_string: &[u8]) -> u16 {
-                let mut sum = 0_u16;
-                const max: usize = $n * 8 / $w;
-                const max_word_size: usize = (1 << $w) - 1;
-
-                for i in 0..max {
-                    sum += (max_word_size - coef(byte_string, i as u64, $w) as usize) as u16;
-                }
-
-                sum
-            }
+        for i in 0..max {
+            sum += (max_word_size - coef(byte_string, i, self.w as u64)) as u16;
         }
 
-        // Generate private key implementation
-        paste! {
-            pub struct [<$name _PRIVATE_KEY>] {
-                private_key: [[u8; $n]; $p],
-            }
-        
-            impl lmots_private_key for [<$name _PRIVATE_KEY>] {
-                type PRIVATE_KEY = [[u8; $n]; $p];
-
-                const _type: lmots_algorithm_type = $type;
-
-                fn create(private_key: Self::PRIVATE_KEY) -> Self {
-                    [<$name _PRIVATE_KEY>] {
-                        private_key,
-                    }
-                }
-
-                fn get_private_key(&self) -> Self::PRIVATE_KEY {
-                    self.private_key
-                }
-            }           
-        }
-
-        // Generate public key implementation
-        paste! {
-            pub struct [<$name _PUBLIC_KEY>] {
-                public_key: [u8; $n],
-            }
-
-            impl lmots_public_key for [<$name _PUBLIC_KEY>] {
-                type PUBLIC_KEY = [u8; $n];
-                const _type: lmots_algorithm_type = $type;
-
-                fn create(public_key: Self::PUBLIC_KEY) -> Self {
-                    [<$name _PUBLIC_KEY>] {
-                        public_key
-                    }
-                }
-            }
-        }
-    };
+        sum
+    }
 }
 
-create_algorithm_impl!(LMOTS_SHA256_N32_W1, lmots_algorithm_type::lmots_sha256_n32_w1, 32, 265, 1, 7);
-create_algorithm_impl!(LMOTS_SHA256_N32_W2, lmots_algorithm_type::lmots_sha256_n32_w2, 32, 133, 2, 6);
-create_algorithm_impl!(LMOTS_SHA256_N32_W4, lmots_algorithm_type::lmots_sha256_n32_w4, 32, 67, 4, 4);
-create_algorithm_impl!(LMOTS_SHA256_N32_W8, lmots_algorithm_type::lmots_sha256_n32_w8, 32, 34, 8, 0);
+pub struct LmotsKey {
+    parameter: lmots_algorithm_parameter,
+    key: Box<[u8]>,
+}

@@ -1,4 +1,4 @@
-use crate::util::coef::coef;
+use crate::util::{coef::coef, hash::{Hasher, Sha256Hasher}};
 
 #[derive(Debug, Clone, Copy)]
 pub enum lmots_algorithm_type {
@@ -18,7 +18,7 @@ pub struct lmots_algorithm_parameter {
     pub w: u8,
     pub p: u16,
     pub ls: u8,
-    pub _type: lmots_algorithm_type
+    pub _type: lmots_algorithm_type,
 }
 
 impl lmots_algorithm_parameter {
@@ -40,13 +40,7 @@ impl lmots_algorithm_parameter {
         let ls: u8 = (16 - (v as usize * w as usize)) as u8;
         let p: u16 = (u as u64 + v as u64) as u16;
 
-        lmots_algorithm_parameter {
-            n,
-            w,
-            p,
-            ls,
-            _type
-        }
+        lmots_algorithm_parameter { n, w, p, ls, _type, }
     }
 
     pub fn checksum(&self, byte_string: &[u8]) -> u16 {
@@ -59,6 +53,16 @@ impl lmots_algorithm_parameter {
         }
 
         sum
+    }
+
+    pub fn get_hasher(&self) -> Box<dyn Hasher> {
+        match self._type {
+            lmots_algorithm_type::lmots_reserved => panic!("Reserved parameter type."),
+            lmots_algorithm_type::lmots_sha256_n32_w1 => Box::new(Sha256Hasher::new()),
+            lmots_algorithm_type::lmots_sha256_n32_w2 => Box::new(Sha256Hasher::new()),
+            lmots_algorithm_type::lmots_sha256_n32_w4 => Box::new(Sha256Hasher::new()),
+            lmots_algorithm_type::lmots_sha256_n32_w8 => Box::new(Sha256Hasher::new()),
+        }   
     }
 }
 

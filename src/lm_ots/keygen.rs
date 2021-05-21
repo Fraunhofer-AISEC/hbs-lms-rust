@@ -1,5 +1,3 @@
-use sha2::{Digest, Sha256};
-
 use super::definitions::*;
 use crate::{definitions::D_PBLC, util::ustr::*, util::random::*};
 
@@ -21,7 +19,7 @@ pub fn GeneratePublicKey(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
     let max_word_index: usize = (1 << parameter.w) - 1;
     let key = &private_key.key;
 
-    let mut hasher = Sha256::default();
+    let mut hasher = parameter.get_hasher();
 
     let mut y = vec![vec![0_u8; parameter.n as usize]; parameter.p as usize];    
 

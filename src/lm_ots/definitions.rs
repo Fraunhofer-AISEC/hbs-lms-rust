@@ -12,12 +12,13 @@ pub enum lmots_algorithm_type {
 pub type I_Type = [u8; 16];
 pub type q_Type = [u8; 4];
 
+#[derive(Debug, Clone, Copy)]
 pub struct lmots_algorithm_parameter {
-    n: u16,
-    w: u8,
-    p: u16,
-    ls: u8,
-    _type: lmots_algorithm_type
+    pub n: u16,
+    pub w: u8,
+    pub p: u16,
+    pub ls: u8,
+    pub _type: lmots_algorithm_type
 }
 
 impl lmots_algorithm_parameter {
@@ -31,6 +32,7 @@ impl lmots_algorithm_parameter {
         }
     }
 
+    #[allow(clippy::clippy::many_single_char_names)]
     fn internal_get(n: u16, w: u8, _type: lmots_algorithm_type) -> Self {
         // Compute p and ls depending on n and w (see RFC8554 Appendix B.)
         let u = ((8.0 * n as f64) / w as f64).ceil();
@@ -60,7 +62,28 @@ impl lmots_algorithm_parameter {
     }
 }
 
-pub struct LmotsKey {
-    parameter: lmots_algorithm_parameter,
-    key: Box<[u8]>,
+pub struct LmotsPrivateKey {
+    pub parameter: lmots_algorithm_parameter,
+    pub I: I_Type,
+    pub q: q_Type,
+    pub key: Vec<Vec<u8>>,
+}
+
+impl LmotsPrivateKey {
+    pub fn new(I: I_Type, q: q_Type, parameter: lmots_algorithm_parameter, key: Vec<Vec<u8>>) -> Self {
+        LmotsPrivateKey { parameter, I, q, key }
+    }
+}
+
+pub struct LmotsPublicKey {
+    pub parameter: lmots_algorithm_parameter,
+    pub I: I_Type,
+    pub q: q_Type,
+    pub key: Vec<u8>,
+}
+
+impl LmotsPublicKey {
+    pub fn new(I: I_Type, q: q_Type, parameter: lmots_algorithm_parameter, key: Vec<u8>) -> Self {
+        LmotsPublicKey { parameter, I, q, key, }
+    }
 }

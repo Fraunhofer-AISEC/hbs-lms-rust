@@ -66,29 +66,33 @@ impl LmotsAlgorithmParameter {
     }
 }
 
+#[allow(non_snake_case)]
 pub struct LmotsPrivateKey {
     pub parameter: LmotsAlgorithmParameter,
-    pub i: IType,
+    pub I: IType,
     pub q: QType,
     pub key: Vec<Vec<u8>>,
 }
 
+#[allow(non_snake_case)]
 impl LmotsPrivateKey {
-    pub fn new(i: IType, q: QType, parameter: LmotsAlgorithmParameter, key: Vec<Vec<u8>>) -> Self {
-        LmotsPrivateKey { parameter, i, q, key }
+    pub fn new(I: IType, q: QType, parameter: LmotsAlgorithmParameter, key: Vec<Vec<u8>>) -> Self {
+        LmotsPrivateKey { parameter, I, q, key }
     }
 }
 
+#[allow(non_snake_case)]
 pub struct LmotsPublicKey {
     pub parameter: LmotsAlgorithmParameter,
-    pub i: IType,
+    pub I: IType,
     pub q: QType,
     pub key: Vec<u8>,
 }
 
+#[allow(non_snake_case)]
 impl LmotsPublicKey {
-    pub fn new(i: IType, q: QType, parameter: LmotsAlgorithmParameter, key: Vec<u8>) -> Self {
-        LmotsPublicKey { parameter, i, q, key, }
+    pub fn new(I: IType, q: QType, parameter: LmotsAlgorithmParameter, key: Vec<u8>) -> Self {
+        LmotsPublicKey { parameter, I, q, key, }
     }
 }
 

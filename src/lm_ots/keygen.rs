@@ -26,7 +26,7 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
         let mut tmp = key[i].clone();
     
         for j in 0..max_word_index {
-            hasher.update(&private_key.i);
+            hasher.update(&private_key.I);
             hasher.update(&private_key.q);
             hasher.update(&u16str(i as u16));
             hasher.update(&u8str(j as u8));
@@ -40,7 +40,7 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
         y[i] = tmp;
     }
 
-    hasher.update(&private_key.i);
+    hasher.update(&private_key.I);
     hasher.update(&private_key.q);
     hasher.update(&D_PBLC);
 
@@ -53,7 +53,7 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
         public_key[index] = *value;
     }
 
-    LmotsPublicKey::new(private_key.i, private_key.q, *parameter, public_key)
+    LmotsPublicKey::new(private_key.I, private_key.q, *parameter, public_key)
 }
 
 #[cfg(test)]

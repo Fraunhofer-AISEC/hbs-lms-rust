@@ -6,9 +6,10 @@ use super::definitions::{LmotsAlgorithmParameter, LmotsPrivateKey};
 
 #[allow(non_snake_case)]
 pub struct LmotsSignature {
-    _type: LmotsAlgorithmParameter,
-    C: Vec<u8>,
-    y: Vec<Vec<u8>>,
+    pub parameter: LmotsAlgorithmParameter,
+    pub C: Vec<u8>,
+    pub y: Vec<Vec<u8>>,
+    pub message: Vec<u8>,
 }
 
 impl LmotsSignature {
@@ -50,9 +51,10 @@ impl LmotsSignature {
         }
 
         LmotsSignature {
-            _type: private_key.parameter,
+            parameter: private_key.parameter,
             C,
             y,
+            message: message.to_vec(),
         }
     }
 }

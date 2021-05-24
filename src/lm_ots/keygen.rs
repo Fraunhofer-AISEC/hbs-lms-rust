@@ -55,19 +55,3 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
 
     LmotsPublicKey::new(private_key.I, private_key.q, *parameter, public_key)
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::lm_ots::definitions::{IType, QType};
-
-    use super::*;
-
-    #[test]
-    fn public_key_generation() {
-        let i: IType = [2u8; 16];
-        let q: QType = [2u8; 4];
-
-        let private_key = generate_private_key(i, q, LmotsAlgorithmType::LmotsSha256N32W1);
-        let public_key = generate_public_key(&private_key);
-    }    
-}

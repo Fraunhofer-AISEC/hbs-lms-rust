@@ -58,21 +58,29 @@ fn generate_public_key_canditate(signature: &LmotsSignature, I: &IType, q: &QTyp
 mod tests {
     use crate::lm_ots::{definitions::{IType, QType}, keygen::{generate_private_key, generate_public_key}, signing::LmotsSignature, verify::verify_signature};
 
-
-    #[test]
-    fn signing() {
-        let i: IType = [2u8; 16];
-        let q: QType = [2u8; 4];
-
-        let private_key = generate_private_key(i, q, crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W1);
-        let public_key = generate_public_key(&private_key);
+    macro_rules! generate_test {
+        ($name:ident, $type:expr) => {
+            #[test]
+            fn $name() {
+                let i: IType = [2u8; 16];
+                let q: QType = [2u8; 4];
         
-        let msg: Vec<u8> = vec![1, 3, 5, 9, 0];
+                let private_key = generate_private_key(i, q, $type);
+                let public_key = generate_public_key(&private_key);
+                
+                let msg: Vec<u8> = vec![1, 3, 5, 9, 0];
+        
+                let mut signature = LmotsSignature::sign(&private_key, &msg);
+        
+                assert!(verify_signature(&signature, &public_key) == true);
+                signature.message[0] = 5;
+                assert!(verify_signature(&signature, &public_key) == false);   
+            }
+        };
+    }
 
-        let mut signature = LmotsSignature::sign(&private_key, &msg);
-
-        signature.message[4] = 9;
-
-        assert!(verify_signature(&signature, &public_key) == true);
-    }    
+    generate_test!(lmots_sha256_n32_w1_verify_test, crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W1);
+    generate_test!(lmots_sha256_n32_w2_verify_test, crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W2);
+    generate_test!(lmots_sha256_n32_w4_verify_test, crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W4);
+    generate_test!(lmots_sha256_n32_w8_verify_test, crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W8);
 }

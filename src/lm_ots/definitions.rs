@@ -9,6 +9,12 @@ pub enum LmotsAlgorithmType {
     LmotsSha256N32W8  = 4
 }
 
+impl LmotsAlgorithmType {
+    pub fn get_parameter(self) -> LmotsAlgorithmParameter {
+        LmotsAlgorithmParameter::get(self)
+    }
+}
+
 pub type IType = [u8; 16];
 pub type QType = [u8; 4];
 

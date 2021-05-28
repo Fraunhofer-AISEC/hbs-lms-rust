@@ -2,7 +2,7 @@ use super::definitions::*;
 use crate::{definitions::D_PBLC, util::ustr::*, util::random::*};
 
 pub fn generate_private_key(i: IType, q: QType, _type: LmotsAlgorithmType) -> LmotsPrivateKey {
-    let parameter = LmotsAlgorithmParameter::get(_type);
+    let parameter = _type.get_parameter();
     let mut key = vec![vec![0u8; parameter.n as usize]; parameter.p as usize];
 
     for item in key.iter_mut() {

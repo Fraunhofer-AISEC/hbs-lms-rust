@@ -3,3 +3,4 @@
 mod util;
 mod definitions;
 mod lm_ots;
+mod lms;

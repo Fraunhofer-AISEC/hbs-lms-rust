@@ -4,7 +4,7 @@ use crate::util::hash::Hasher;
 use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum LmsAlgorithmType {
     LmsReserved = 0,
     LmsSha256M32H5 = 5,
@@ -55,21 +55,23 @@ impl LmsAlgorithmParameter {
     }
 }
 
+#[allow(non_snake_case)]
 pub struct LmsPrivateKey {
     pub lms_type: LmsAlgorithmType,
     pub lmots_type: LmotsAlgorithmType,
     pub key: Vec<LmotsPrivateKey>,
-    pub i: IType,
+    pub I: IType,
     pub q: usize,
 }
 
+#[allow(non_snake_case)]
 impl LmsPrivateKey {
-    pub fn new(lms_type: LmsAlgorithmType, lmots_type: LmotsAlgorithmType, key: Vec<LmotsPrivateKey>, i: IType) -> Self {
+    pub fn new(lms_type: LmsAlgorithmType, lmots_type: LmotsAlgorithmType, key: Vec<LmotsPrivateKey>, I: IType) -> Self {
         LmsPrivateKey {
             lms_type,
             lmots_type,
             key,
-            i,
+            I,
             q: 0
         }
     }
@@ -83,16 +85,24 @@ impl LmsPrivateKey {
     }
 }
 
+#[allow(non_snake_case)]
 pub struct LmsPublicKey {
+    pub lm_ots_type: LmotsAlgorithmType,
+    pub lms_type: LmsAlgorithmType,
     pub key: Vec<u8>,
     pub tree: Vec<Vec<u8>>,
+    pub I: IType,
 }
 
+#[allow(non_snake_case)]
 impl LmsPublicKey {
-    pub fn new(public_key: Vec<u8>, tree: Vec<Vec<u8>>) -> Self {
+    pub fn new(public_key: Vec<u8>, tree: Vec<Vec<u8>>, lm_ots_type: LmotsAlgorithmType, lms_type: LmsAlgorithmType, I: IType) -> Self {
         LmsPublicKey {
+            lm_ots_type,
+            lms_type,
             key: public_key,
-            tree
+            tree,
+            I
          }
     }
 }

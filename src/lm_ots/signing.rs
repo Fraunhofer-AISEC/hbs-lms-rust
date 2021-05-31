@@ -9,7 +9,6 @@ pub struct LmotsSignature {
     pub parameter: LmotsAlgorithmParameter,
     pub C: Vec<u8>,
     pub y: Vec<Vec<u8>>,
-    pub message: Vec<u8>,
 }
 
 impl LmotsSignature {
@@ -54,7 +53,6 @@ impl LmotsSignature {
             parameter: private_key.parameter,
             C,
             y,
-            message: message.to_vec(),
         }
     }
 }

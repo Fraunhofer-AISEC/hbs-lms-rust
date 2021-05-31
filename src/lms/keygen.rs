@@ -46,7 +46,7 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
 
     for i in 0..max_private_keys {
         let mut r = i + num_lmots_keys;
-        hasher.update(&private_key.i);
+        hasher.update(&private_key.I);
         hasher.update(&u32str(r as u32));
         hasher.update(&D_LEAF);
         
@@ -65,7 +65,7 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
 
             let left_side = hash_stack.pop().expect("Stack should have a value.");
 
-            hasher.update(&private_key.i);
+            hasher.update(&private_key.I);
             hasher.update(&u32str(r as u32));
             hasher.update(&D_INTR);
             hasher.update(&left_side);
@@ -78,7 +78,7 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
     }
     let public_key = hash_stack.pop().expect("Stack should have a value.");
 
-    LmsPublicKey::new(public_key, hash_tree)
+    LmsPublicKey::new(public_key, hash_tree, private_key.lmots_type, private_key.lms_type, private_key.I)
 }
 
 #[cfg(test)]

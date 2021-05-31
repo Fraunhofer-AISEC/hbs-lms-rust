@@ -3,21 +3,21 @@ use crate::{definitions::{D_MESG, D_PBLC}, util::{coef::coef, ustr::{u16str, u8s
 use super::{definitions::{IType, LmotsPublicKey, QType}, signing::LmotsSignature};
 
 #[allow(non_snake_case)]
-pub fn verify_signature(signature: &LmotsSignature, public_key: &LmotsPublicKey) -> bool {
-    let public_key_candiatte = generate_public_key_canditate(signature, &public_key.I, &public_key.q);
+pub fn verify_signature(signature: &LmotsSignature, public_key: &LmotsPublicKey, message: &[u8]) -> bool {
+    let public_key_candiatte = generate_public_key_canditate(signature, &public_key.I, &public_key.q, message);
     
     public_key_candiatte == public_key.key
 }
 
 #[allow(non_snake_case)]
-fn generate_public_key_canditate(signature: &LmotsSignature, I: &IType, q: &QType) -> Vec<u8> {
+pub fn generate_public_key_canditate(signature: &LmotsSignature, I: &IType, q: &QType, message: &[u8]) -> Vec<u8> {
     let mut hasher = signature.parameter.get_hasher();
 
     hasher.update(I);
     hasher.update(q);
     hasher.update(&D_MESG);
     hasher.update(&signature.C);
-    hasher.update(&signature.message);
+    hasher.update(message);
 
     let Q = hasher.finalize_reset();
     let Q_checksum = signature.parameter.checksum(&Q);
@@ -68,13 +68,14 @@ mod tests {
                 let private_key = generate_private_key(i, q, $type);
                 let public_key = generate_public_key(&private_key);
                 
-                let msg: Vec<u8> = vec![1, 3, 5, 9, 0];
+                let mut message: Vec<u8> = vec![1, 3, 5, 9, 0];
         
-                let mut signature = LmotsSignature::sign(&private_key, &msg);
+                let signature = LmotsSignature::sign(&private_key, &message);
         
-                assert!(verify_signature(&signature, &public_key) == true);
-                signature.message[0] = 5;
-                assert!(verify_signature(&signature, &public_key) == false);   
+                assert!(verify_signature(&signature, &public_key, &message) == true);
+
+                message[0] = 5;
+                assert!(verify_signature(&signature, &public_key, &message) == false);   
             }
         };
     }

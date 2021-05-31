@@ -5,11 +5,11 @@ use crate::lms::definitions::LmsAlgorithmParameter;
 use crate::lm_ots::signing::LmotsSignature;
 use crate::lm_ots::definitions::QType;
 
-struct LmsSignature {
-    lms_parameter: LmsAlgorithmParameter,
-    q: QType,
-    lmots_signature: LmotsSignature,
-    path: Vec<Vec<u8>>
+pub struct LmsSignature {
+    pub lms_parameter: LmsAlgorithmParameter,
+    pub q: QType,
+    pub lmots_signature: LmotsSignature,
+    pub path: Vec<Vec<u8>>
 }
 
 impl LmsSignature {

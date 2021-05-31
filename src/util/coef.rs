@@ -8,9 +8,9 @@ pub fn coef(byte_string: &ByteString, i: u64, w: u64) -> u64 {
     assert!(index < byte_string.len());
 
     let digits_per_byte = 8 / w;
-    let shift = w as u64 * (!i & (digits_per_byte-1) as u64);
-    let mask: u64 = (1<<w) - 1;
-    
+    let shift = w as u64 * (!i & (digits_per_byte - 1) as u64);
+    let mask: u64 = (1 << w) - 1;
+
     (byte_string[index] as u64 >> shift) & mask
 }
 

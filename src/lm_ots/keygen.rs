@@ -1,5 +1,5 @@
 use super::definitions::*;
-use crate::{definitions::D_PBLC, util::ustr::*, util::random::*};
+use crate::{definitions::D_PBLC, util::random::*, util::ustr::*};
 
 pub fn generate_private_key(i: IType, q: QType, _type: LmotsAlgorithmType) -> LmotsPrivateKey {
     let parameter = _type.get_parameter();
@@ -20,11 +20,11 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
 
     let mut hasher = parameter.get_hasher();
 
-    let mut y = vec![vec![0_u8; parameter.n as usize]; parameter.p as usize];    
+    let mut y = vec![vec![0_u8; parameter.n as usize]; parameter.p as usize];
 
     for i in 0..parameter.p as usize {
         let mut tmp = key[i].clone();
-    
+
         for j in 0..max_word_index {
             hasher.update(&private_key.I);
             hasher.update(&private_key.q);

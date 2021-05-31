@@ -1,8 +1,8 @@
 use crate::lm_ots::definitions::IType;
-use crate::util::hash::Sha256Hasher;
-use crate::util::hash::Hasher;
 use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
+use crate::util::hash::Hasher;
+use crate::util::hash::Sha256Hasher;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum LmsAlgorithmType {
@@ -30,12 +30,21 @@ impl LmsAlgorithmParameter {
     pub fn get(_type: LmsAlgorithmType) -> Self {
         match _type {
             LmsAlgorithmType::LmsReserved => panic!("Reserved parameter."),
-            LmsAlgorithmType::LmsSha256M32H5 => LmsAlgorithmParameter::internal_get(5, 32, LmsAlgorithmType::LmsSha256M32H5),
-            LmsAlgorithmType::LmsSha256M32H10 => LmsAlgorithmParameter::internal_get(10, 32, LmsAlgorithmType::LmsSha256M32H10),
-            LmsAlgorithmType::LmsSha256M32H15 => LmsAlgorithmParameter::internal_get(15, 32, LmsAlgorithmType::LmsSha256M32H15),
-            LmsAlgorithmType::LmsSha256M32H20 => LmsAlgorithmParameter::internal_get(20, 32, LmsAlgorithmType::LmsSha256M32H20),
-            LmsAlgorithmType::LmsSha256M32H25 => LmsAlgorithmParameter::internal_get(25, 32, LmsAlgorithmType::LmsSha256M32H25),
-
+            LmsAlgorithmType::LmsSha256M32H5 => {
+                LmsAlgorithmParameter::internal_get(5, 32, LmsAlgorithmType::LmsSha256M32H5)
+            }
+            LmsAlgorithmType::LmsSha256M32H10 => {
+                LmsAlgorithmParameter::internal_get(10, 32, LmsAlgorithmType::LmsSha256M32H10)
+            }
+            LmsAlgorithmType::LmsSha256M32H15 => {
+                LmsAlgorithmParameter::internal_get(15, 32, LmsAlgorithmType::LmsSha256M32H15)
+            }
+            LmsAlgorithmType::LmsSha256M32H20 => {
+                LmsAlgorithmParameter::internal_get(20, 32, LmsAlgorithmType::LmsSha256M32H20)
+            }
+            LmsAlgorithmType::LmsSha256M32H25 => {
+                LmsAlgorithmParameter::internal_get(25, 32, LmsAlgorithmType::LmsSha256M32H25)
+            }
         }
     }
 
@@ -51,7 +60,7 @@ impl LmsAlgorithmParameter {
             LmsAlgorithmType::LmsSha256M32H15 => Box::new(Sha256Hasher::new()),
             LmsAlgorithmType::LmsSha256M32H20 => Box::new(Sha256Hasher::new()),
             LmsAlgorithmType::LmsSha256M32H25 => Box::new(Sha256Hasher::new()),
-        }   
+        }
     }
 }
 
@@ -66,19 +75,24 @@ pub struct LmsPrivateKey {
 
 #[allow(non_snake_case)]
 impl LmsPrivateKey {
-    pub fn new(lms_type: LmsAlgorithmType, lmots_type: LmotsAlgorithmType, key: Vec<LmotsPrivateKey>, I: IType) -> Self {
+    pub fn new(
+        lms_type: LmsAlgorithmType,
+        lmots_type: LmotsAlgorithmType,
+        key: Vec<LmotsPrivateKey>,
+        I: IType,
+    ) -> Self {
         LmsPrivateKey {
             lms_type,
             lmots_type,
             key,
             I,
-            q: 0
+            q: 0,
         }
     }
 
     pub fn use_lmots_private_key(&mut self) -> Result<&LmotsPrivateKey, &'static str> {
         if self.q > self.key.len() {
-            return Err("All private keys already used.")
+            return Err("All private keys already used.");
         }
         self.q += 1;
         Ok(&self.key[self.q - 1])
@@ -96,13 +110,19 @@ pub struct LmsPublicKey {
 
 #[allow(non_snake_case)]
 impl LmsPublicKey {
-    pub fn new(public_key: Vec<u8>, tree: Vec<Vec<u8>>, lm_ots_type: LmotsAlgorithmType, lms_type: LmsAlgorithmType, I: IType) -> Self {
+    pub fn new(
+        public_key: Vec<u8>,
+        tree: Vec<Vec<u8>>,
+        lm_ots_type: LmotsAlgorithmType,
+        lms_type: LmsAlgorithmType,
+        I: IType,
+    ) -> Self {
         LmsPublicKey {
             lm_ots_type,
             lms_type,
             key: public_key,
             tree,
-            I
-         }
+            I,
+        }
     }
 }

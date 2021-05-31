@@ -1,3 +1,4 @@
+use crate::util::helper::is_power_of_two;
 use crate::lms::definitions::LmsPublicKey;
 use crate::definitions::D_INTR;
 use crate::definitions::D_LEAF;
@@ -28,13 +29,18 @@ pub fn generate_private_key(lms_type: LmsAlgorithmType, lmots_type: LmotsAlgorit
 }
 
 
-pub fn generate_public_key(lms_type: LmsAlgorithmType, private_key: &LmsPrivateKey) -> LmsPublicKey {
-    let lms_parameter = lms_type.get_parameter();
+pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
+    let lms_parameter = private_key.lms_type.get_parameter();
     let num_lmots_keys = private_key.key.len();
+
+    // num_lmots_keys must be a power of two
+    assert!(is_power_of_two(num_lmots_keys));
 
     let max_private_keys = 2_usize.pow(lms_parameter.h.into());
 
     let mut hasher = lms_parameter.get_hasher();
+
+    let mut hash_tree: Vec<Vec<u8>> = vec![vec![0u8; lms_parameter.m as usize]; 2_usize.pow((lms_parameter.h + 1).into())]; // Use index + 1 to start accessing at 1
 
     let mut hash_stack: Vec<Vec<u8>> = Vec::new();
 
@@ -48,6 +54,9 @@ pub fn generate_public_key(lms_type: LmsAlgorithmType, private_key: &LmsPrivateK
         hasher.update(&lm_ots_public_key.key);
 
         let mut temp = hasher.finalize_reset();
+
+        hash_tree[r] = temp.clone();
+
         let mut j = i;
 
         while j % 2 == 1 {
@@ -62,12 +71,26 @@ pub fn generate_public_key(lms_type: LmsAlgorithmType, private_key: &LmsPrivateK
             hasher.update(&left_side);
             hasher.update(&temp);
 
-            temp = hasher.finalize_reset();
+            temp = hasher.finalize_reset();            
+            hash_tree[r] = temp.clone();
         }
         hash_stack.push(temp);
     }
-
     let public_key = hash_stack.pop().expect("Stack should have a value.");
 
-    LmsPublicKey::new(public_key)
+    LmsPublicKey::new(public_key, hash_tree)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::lms::keygen::*;
+    use crate::lm_ots::definitions::LmotsAlgorithmType;
+    use crate::lms::definitions::LmsAlgorithmType;
+
+    #[test]
+    fn test_key_generation() {
+        let private = generate_private_key(LmsAlgorithmType::LmsSha256M32H5, LmotsAlgorithmType::LmotsSha256N32W1);
+        let public = generate_public_key(&private);
+    }
+
 }

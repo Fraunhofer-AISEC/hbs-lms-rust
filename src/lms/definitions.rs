@@ -84,13 +84,15 @@ impl LmsPrivateKey {
 }
 
 pub struct LmsPublicKey {
-    key: Vec<u8>,
+    pub key: Vec<u8>,
+    pub tree: Vec<Vec<u8>>,
 }
 
 impl LmsPublicKey {
-    pub fn new(public_key: Vec<u8>) -> Self {
+    pub fn new(public_key: Vec<u8>, tree: Vec<Vec<u8>>) -> Self {
         LmsPublicKey {
-            key: public_key
+            key: public_key,
+            tree
          }
     }
 }

@@ -3,6 +3,8 @@ use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::util::hash::Hasher;
 use crate::util::hash::Sha256Hasher;
+use crate::util::helper::insert;
+use crate::util::ustr::u32str;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum LmsAlgorithmType {
@@ -124,5 +126,16 @@ impl LmsPublicKey {
             tree,
             I,
         }
+    }
+
+    pub fn to_binary_representation(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+
+        insert(&u32str(self.lms_type as u32), &mut result);
+        insert(&u32str(self.lm_ots_type as u32), &mut result);
+        insert(&self.I, &mut result);
+        insert(&self.tree[1], &mut result);
+
+        result
     }
 }

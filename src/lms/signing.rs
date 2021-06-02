@@ -25,7 +25,7 @@ impl LmsSignature {
 
         let h = lms_parameter.h;
         let mut i = 0usize;
-        let r = 2usize.pow(h as u32 + str32u(&lm_ots_private_key.q));
+        let r = 2usize.pow(h as u32) + str32u(&lm_ots_private_key.q) as usize;
 
         let mut path: Vec<Vec<u8>> = Vec::new();
 

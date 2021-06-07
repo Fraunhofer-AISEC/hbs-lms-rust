@@ -4,7 +4,12 @@ use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::util::hash::Hasher;
 use crate::util::hash::Sha256Hasher;
 use crate::util::helper::insert;
+use crate::util::helper::read_from_file;
+use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
+use std::fs::File;
+use std::io::Read;
+use std::io::Write;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum LmsAlgorithmType {
@@ -19,6 +24,18 @@ pub enum LmsAlgorithmType {
 impl LmsAlgorithmType {
     pub fn get_parameter(self) -> LmsAlgorithmParameter {
         LmsAlgorithmParameter::get(self)
+    }
+
+    pub fn from_u32(x: u32) -> Option<LmsAlgorithmType> {
+        match x {
+            0 => Some(LmsAlgorithmType::LmsReserved),
+            5 => Some(LmsAlgorithmType::LmsSha256M32H5),
+            6 => Some(LmsAlgorithmType::LmsSha256M32H10),
+            7 => Some(LmsAlgorithmType::LmsSha256M32H15),
+            8 => Some(LmsAlgorithmType::LmsSha256M32H20),
+            9 => Some(LmsAlgorithmType::LmsSha256M32H25),
+            _ => None,
+        }
     }
 }
 
@@ -63,6 +80,10 @@ impl LmsAlgorithmParameter {
             LmsAlgorithmType::LmsSha256M32H20 => Box::new(Sha256Hasher::new()),
             LmsAlgorithmType::LmsSha256M32H25 => Box::new(Sha256Hasher::new()),
         }
+    }
+
+    pub fn number_of_lm_ots_keys(&self) -> usize {
+        2usize.pow(self.h as u32)
     }
 }
 
@@ -118,6 +139,67 @@ impl LmsPrivateKey {
         insert(&keys, &mut result);
 
         result
+    }
+
+    pub fn to_file(&self, file: &mut File) -> Result<(), std::io::Error> {
+        let binary_representation = self.to_binary_representation();
+
+        file.write_all(&binary_representation)?;
+        Ok(())
+    }
+
+    pub fn from_file(data: &mut File) -> Self {
+        let mut buf = [0u8; 4];
+
+        read_from_file(data, &mut buf);
+        let lms_type = str32u(&buf);
+        let lms_type = LmsAlgorithmType::from_u32(lms_type).expect("Valid Lmots Type");
+        let lms_parameter = lms_type.get_parameter();
+
+        read_from_file(data, &mut buf);
+        let lm_ots_type = str32u(&buf);
+        let lm_ots_type = LmotsAlgorithmType::from_u32(lm_ots_type).expect("Valid LM OTS Type");
+        let lm_ots_parameter = lm_ots_type.get_parameter();
+
+        let mut initial_buf = [0u8; 16];
+        read_from_file(data, &mut initial_buf);
+
+        read_from_file(data, &mut buf);
+        let q = str32u(&buf);
+
+        let mut data_to_end: Vec<u8> = Vec::new();
+        data.read_to_end(&mut data_to_end)
+            .expect("Could not read file.");
+
+        let mut keys: Vec<LmotsPrivateKey> = Vec::new();
+
+        for _ in 0..lms_parameter.number_of_lm_ots_keys() {
+            let mut current_key: Vec<Vec<u8>> = Vec::new();
+
+            // vec![vec![0u8; parameter.n as usize]; parameter.p as usize];
+
+            for _ in 0..lm_ots_parameter.p {
+                let mut x = Vec::new();
+                for _ in 0..lm_ots_parameter.n {
+                    x.push(data_to_end[0]);
+                    data_to_end.remove(0);
+                }
+                current_key.push(x);
+            }
+
+            // Append key
+            let lmots_private_key =
+                LmotsPrivateKey::new(initial_buf, u32str(q), lm_ots_parameter, current_key);
+            keys.push(lmots_private_key);
+        }
+
+        LmsPrivateKey {
+            lms_type,
+            lm_ots_type,
+            key: keys,
+            I: initial_buf,
+            q,
+        }
     }
 }
 

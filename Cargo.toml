@@ -8,6 +8,5 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33.3"
-paste = "1.0.5"
 rand = "0.8.3"
 sha2 = "0.9.3"

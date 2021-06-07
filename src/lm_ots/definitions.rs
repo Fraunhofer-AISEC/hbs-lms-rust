@@ -16,6 +16,17 @@ impl LmotsAlgorithmType {
     pub fn get_parameter(self) -> LmotsAlgorithmParameter {
         LmotsAlgorithmParameter::get(self)
     }
+
+    pub fn from_u32(x: u32) -> Option<Self> {
+        match x {
+            0 => Some(LmotsAlgorithmType::LmotsReserved),
+            1 => Some(LmotsAlgorithmType::LmotsSha256N32W1),
+            2 => Some(LmotsAlgorithmType::LmotsSha256N32W2),
+            3 => Some(LmotsAlgorithmType::LmotsSha256N32W4),
+            4 => Some(LmotsAlgorithmType::LmotsSha256N32W8),
+            _ => None,
+        }
+    }
 }
 
 pub type IType = [u8; 16];

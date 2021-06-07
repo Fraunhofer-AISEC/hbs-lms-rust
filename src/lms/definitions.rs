@@ -69,10 +69,10 @@ impl LmsAlgorithmParameter {
 #[allow(non_snake_case)]
 pub struct LmsPrivateKey {
     pub lms_type: LmsAlgorithmType,
-    pub lmots_type: LmotsAlgorithmType,
+    pub lm_ots_type: LmotsAlgorithmType,
     pub key: Vec<LmotsPrivateKey>,
     pub I: IType,
-    pub q: usize,
+    pub q: u32,
 }
 
 #[allow(non_snake_case)]
@@ -85,7 +85,7 @@ impl LmsPrivateKey {
     ) -> Self {
         LmsPrivateKey {
             lms_type,
-            lmots_type,
+            lm_ots_type: lmots_type,
             key,
             I,
             q: 0,
@@ -93,11 +93,31 @@ impl LmsPrivateKey {
     }
 
     pub fn use_lmots_private_key(&mut self) -> Result<&LmotsPrivateKey, &'static str> {
-        if self.q > self.key.len() {
+        if self.q as usize > self.key.len() {
             return Err("All private keys already used.");
         }
         self.q += 1;
-        Ok(&self.key[self.q - 1])
+        Ok(&self.key[self.q as usize - 1])
+    }
+
+    pub fn to_binary_representation(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+
+        insert(&u32str(self.lms_type as u32), &mut result);
+        insert(&u32str(self.lm_ots_type as u32), &mut result);
+        insert(&self.I, &mut result);
+        insert(&u32str(self.q), &mut result);
+
+        let keys = self
+            .key
+            .iter()
+            .map(|key| key.get_flat_key())
+            .flatten()
+            .collect::<Vec<u8>>();
+
+        insert(&keys, &mut result);
+
+        result
     }
 }
 

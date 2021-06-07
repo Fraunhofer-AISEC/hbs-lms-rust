@@ -102,6 +102,11 @@ impl LmotsPrivateKey {
             key,
         }
     }
+
+    pub fn get_flat_key(&self) -> Vec<u8> {
+        let copy = self.key.clone();
+        copy.into_iter().flatten().collect()
+    }
 }
 
 #[allow(non_snake_case)]

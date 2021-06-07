@@ -1,36 +1,40 @@
 extern crate lms;
 
+use clap::{App, Arg, ArgMatches, SubCommand};
 use lms::*;
-use std::{env, fs::File, io::Write};
-
-const DEFAULT_LM_OTS_PARAMETER: LmotsAlgorithmType = LmotsAlgorithmType::LmotsSha256N32W1;
-const DEFAULT_LMS_PARAMETER: LmsAlgorithmType = LmsAlgorithmType::LmsSha256M32H5;
+use std::{fs::File, io::Write};
 
 type LmsParameterSet = (LmotsAlgorithmType, LmsAlgorithmType);
 
 fn main() {
-    let args = env::args();
+    let matches = App::new("LMS Demo")
+        .about("Generates a LMS key pair")
+        .subcommand(
+            SubCommand::with_name("genkey")
+                .arg(Arg::with_name("keyname").required(true))
+                .arg(Arg::with_name("parameter").required(false).help(
+                    "Specify LMS parameters (e.g. 15/4 (Treeheight 15 and Winternitz parameter 4))",
+                ).default_value("5/1")),
+        )
+        .get_matches();
 
-    if args.len() == 1 {
-        usage();
-        return;
-    }
+    let args = matches.subcommand_matches("genkey");
 
-    let operation = env::args().skip(1).next().expect("Expect a operation");    
-
-    match operation.as_str() {
-        "genkey" => genkey(
-            env::args().next().expect("Keyname must be present."),
-            parse_genkey_parameter(env::args().next()),
-        ),
-        _ => {
-            usage();
-            return;
-        }
+    if let Some(args) = args {
+        genkey(args).expect("Could not generate key pair.");
     }
 }
 
-fn genkey(keyname: String, parameter: LmsParameterSet) {
+fn genkey(args: &ArgMatches) -> Result<(), std::io::Error> {
+    let keyname: String = args
+        .value_of("keyname")
+        .expect("Keyname must be present")
+        .into();
+    let parameter = parse_genkey_parameter(
+        args.value_of("parameter")
+            .expect("Default parameter must be specified."),
+    );
+
     let lm_ots_parameter_type = parameter.0;
     let lms_parameter_type = parameter.1;
 
@@ -38,16 +42,18 @@ fn genkey(keyname: String, parameter: LmsParameterSet) {
     let public_key = lms::generate_public_key(&private_key);
 
     let public_key_binary = public_key.to_binary_representation();
+    let public_key_filename = keyname.clone() + ".pub";
 
-    let mut file = File::create(keyname + ".pub").expect("Could not create public key file.");
-    file.write(&public_key_binary).expect("Public key could not be written");
+    let private_key_binary = private_key.to_binary_representation();
+    let private_key_filename = keyname.clone() + ".priv";
+
+    write(public_key_filename.as_str(), &public_key_binary)?;
+    write(private_key_filename.as_str(), &private_key_binary)?;
+
+    Ok(())
 }
 
-fn parse_genkey_parameter(parameter: Option<String>) -> LmsParameterSet {
-    if parameter.is_none() {
-        return (DEFAULT_LM_OTS_PARAMETER, DEFAULT_LMS_PARAMETER);
-    }
-    let parameter = parameter.unwrap();
+fn parse_genkey_parameter(parameter: &str) -> LmsParameterSet {
     let mut splitted = parameter.split('/');
 
     let height = splitted
@@ -84,8 +90,8 @@ fn parse_genkey_parameter(parameter: Option<String>) -> LmsParameterSet {
     (lm_ots, lms)
 }
 
-fn usage() {
-    println!("Usage: ");
-    println!("demo genkey keyname \t\t// Generate a new key with the name 'keyname' and default parameter: merkle tree height 5 and Winternitz parameter 1");
-    println!("demo genkey keyname 15/4 \t// Generate a new key with the name 'keyname' and merkle tree height 15 and Winternitz parameter 4");
+fn write(filename: &str, content: &[u8]) -> Result<(), std::io::Error> {
+    let mut file = File::create(filename)?;
+    file.write(content)?;
+    Ok(())
 }

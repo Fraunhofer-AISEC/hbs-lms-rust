@@ -84,7 +84,7 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
     LmsPublicKey::new(
         public_key,
         hash_tree,
-        private_key.lmots_type,
+        private_key.lm_ots_type,
         private_key.lms_type,
         private_key.I,
     )

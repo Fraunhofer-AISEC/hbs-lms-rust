@@ -7,6 +7,7 @@ use crate::util::helper::insert;
 use crate::util::helper::read_from_file;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
+use std::convert::TryInto;
 use std::io::Read;
 use std::io::Write;
 
@@ -212,7 +213,7 @@ pub struct LmsPublicKey {
     pub lm_ots_type: LmotsAlgorithmType,
     pub lms_type: LmsAlgorithmType,
     pub key: Vec<u8>,
-    pub tree: Vec<Vec<u8>>,
+    pub tree: Option<Vec<Vec<u8>>>,
     pub I: IType,
 }
 
@@ -229,7 +230,7 @@ impl LmsPublicKey {
             lm_ots_type,
             lms_type,
             key: public_key,
-            tree,
+            tree: Some(tree),
             I,
         }
     }
@@ -240,9 +241,60 @@ impl LmsPublicKey {
         insert(&u32str(self.lms_type as u32), &mut result);
         insert(&u32str(self.lm_ots_type as u32), &mut result);
         insert(&self.I, &mut result);
-        insert(&self.tree[1], &mut result);
+        insert(&self.key, &mut result);
 
         result
+    }
+
+    pub fn from_binary_representation(data: Vec<u8>) -> Option<Self> {
+        // Parsing like desribed in 5.4.2
+        if data.len() < 8 {
+            return None;
+        }
+
+        let mut data_index = 0;
+
+        let pubtype = str32u(data[data_index..data_index + 4].try_into().unwrap());
+        data_index += 4;
+
+        let lms_type = match LmsAlgorithmType::from_u32(pubtype) {
+            None => return None,
+            Some(x) => x,
+        };
+
+        let ots_typecode = str32u(data[data_index..data_index + 4].try_into().unwrap());
+        data_index += 4;
+
+        let lm_ots_type = match LmotsAlgorithmType::from_u32(ots_typecode) {
+            None => return None,
+            Some(x) => x,
+        };
+
+        let lm_parameter = lms_type.get_parameter();
+
+        if data.len() - data_index == 24 + lm_parameter.m as usize {
+            return None;
+        }
+
+        let mut initial: IType = [0u8; 16];
+        initial.clone_from_slice(&data[data_index..data_index + 16]);
+        data_index += 16;
+
+        let mut key: Vec<u8> = Vec::new();
+
+        for i in 0..lm_parameter.m {
+            key.push(data[data_index + i as usize]);
+        }
+
+        let public_key = LmsPublicKey {
+            lms_type,
+            lm_ots_type,
+            I: initial,
+            key,
+            tree: None,
+        };
+
+        Some(public_key)
     }
 }
 

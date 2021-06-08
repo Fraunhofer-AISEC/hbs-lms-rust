@@ -7,11 +7,10 @@ use crate::util::helper::insert;
 use crate::util::helper::read_from_file;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
-use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LmsAlgorithmType {
     LmsReserved = 0,
     LmsSha256M32H5 = 5,
@@ -88,6 +87,7 @@ impl LmsAlgorithmParameter {
 }
 
 #[allow(non_snake_case)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct LmsPrivateKey {
     pub lms_type: LmsAlgorithmType,
     pub lm_ots_type: LmotsAlgorithmType,
@@ -141,30 +141,34 @@ impl LmsPrivateKey {
         result
     }
 
-    pub fn to_file(&self, file: &mut File) -> Result<(), std::io::Error> {
+    pub fn to_file(&self, filename: &str) -> Result<(), std::io::Error> {
         let binary_representation = self.to_binary_representation();
+
+        let mut file = std::fs::File::open(filename)?;
 
         file.write_all(&binary_representation)?;
         Ok(())
     }
 
-    pub fn from_file(data: &mut File) -> Self {
+    pub fn from_file(filename: &str) -> Self {
+        let mut data = std::fs::File::open(filename).expect("Can not open file.");
+
         let mut buf = [0u8; 4];
 
-        read_from_file(data, &mut buf);
+        read_from_file(&mut data, &mut buf);
         let lms_type = str32u(&buf);
         let lms_type = LmsAlgorithmType::from_u32(lms_type).expect("Valid Lmots Type");
         let lms_parameter = lms_type.get_parameter();
 
-        read_from_file(data, &mut buf);
+        read_from_file(&mut data, &mut buf);
         let lm_ots_type = str32u(&buf);
         let lm_ots_type = LmotsAlgorithmType::from_u32(lm_ots_type).expect("Valid LM OTS Type");
         let lm_ots_parameter = lm_ots_type.get_parameter();
 
         let mut initial_buf = [0u8; 16];
-        read_from_file(data, &mut initial_buf);
+        read_from_file(&mut data, &mut initial_buf);
 
-        read_from_file(data, &mut buf);
+        read_from_file(&mut data, &mut buf);
         let q = str32u(&buf);
 
         let mut data_to_end: Vec<u8> = Vec::new();
@@ -239,5 +243,28 @@ impl LmsPublicKey {
         insert(&self.tree[1], &mut result);
 
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::lms::keygen::generate_private_key;
+
+    use super::LmsPrivateKey;
+
+    #[test]
+    fn private_key_serialization_deserialisation() {
+        let private_key = generate_private_key(
+            crate::LmsAlgorithmType::LmsSha256M32H5,
+            crate::LmotsAlgorithmType::LmotsSha256N32W1,
+        );
+
+        let temp_filename = "temp.priv";
+
+        private_key.to_file(temp_filename).unwrap();
+
+        let private_key_from_file = LmsPrivateKey::from_file(temp_filename);
+
+        assert!(private_key == private_key_from_file);
     }
 }

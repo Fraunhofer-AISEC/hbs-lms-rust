@@ -32,7 +32,7 @@ impl LmotsAlgorithmType {
 pub type IType = [u8; 16];
 pub type QType = [u8; 4];
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LmotsAlgorithmParameter {
     pub n: u16,
     pub w: u8,
@@ -96,6 +96,7 @@ impl LmotsAlgorithmParameter {
 }
 
 #[allow(non_snake_case)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct LmotsPrivateKey {
     pub parameter: LmotsAlgorithmParameter,
     pub I: IType,

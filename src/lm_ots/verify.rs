@@ -47,7 +47,7 @@ pub fn generate_public_key_canditate(
 
     let mut z = vec![vec![0u8; signature.parameter.n as usize]; signature.parameter.p as usize];
     for i in 0..signature.parameter.p {
-        let a = coef(&&Q_and_checksum, i as u64, signature.parameter.w as u64);
+        let a = coef(&Q_and_checksum, i as u64, signature.parameter.w as u64);
         let mut tmp = signature.y[i as usize].clone();
         let max_w = 2u64.pow(signature.parameter.w as u32) - 1;
 

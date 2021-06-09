@@ -11,6 +11,14 @@ pub fn verify(
     public_key: &LmsPublicKey,
     message: &[u8],
 ) -> Result<(), &'static str> {
+    if signature.lms_parameter._type != public_key.lms_type {
+        return Err("Signature LMS Type does not match public key LMS type");
+    }
+
+    if signature.lmots_signature.parameter._type != public_key.lm_ots_type {
+        return Err("Signature LM OTS Type does not match public key LM OTS type");
+    }
+
     let public_key_canditate = generate_public_key_candiate(signature, public_key, message)?;
     // let public_key = public_key.tree[1].clone();
 
@@ -35,7 +43,8 @@ fn generate_public_key_candiate(
     }
 
     let leafs = 2u32.pow(signature.lms_parameter.h.into());
-    if str32u(&signature.q) >= leafs {
+    let curr = str32u(&signature.q);
+    if curr >= leafs {
         return Err("q is larger than the maximum number of private keys.");
     }
 

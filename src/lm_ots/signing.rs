@@ -90,7 +90,7 @@ impl LmotsSignature {
 
         let mut consumed_data = data;
 
-        let lm_ots_type = str32u(consumed_data);
+        let lm_ots_type = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
         let lm_ots_type = match LmotsAlgorithmType::from_u32(lm_ots_type) {

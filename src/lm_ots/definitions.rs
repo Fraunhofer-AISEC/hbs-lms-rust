@@ -81,7 +81,7 @@ impl LmotsAlgorithmParameter {
             sum += (max_word_size - coef(byte_string, i, self.w as u64)) as u16;
         }
 
-        sum
+        sum << self.ls
     }
 
     pub fn get_hasher(&self) -> Box<dyn Hasher> {

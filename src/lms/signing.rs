@@ -95,12 +95,12 @@ impl LmsSignature {
 
         let lm_ots_parameter = ots_type.get_parameter();
 
-        if data.len() != 12 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1) {
+        if data.len() < 12 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1) {
             return None;
         }
 
         let lmots_signature = match lm_ots::signing::LmotsSignature::from_binary_representation(
-            &data[4..(7 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1))],
+            &data[4..=(7 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1))],
         ) {
             None => return None,
             Some(x) => x,
@@ -109,7 +109,7 @@ impl LmsSignature {
         let lms_type_start = 8 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1);
         let lms_type_end = 11 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1);
 
-        let lms_type = str32u(&data[lms_type_start..lms_type_end]);
+        let lms_type = str32u(&data[lms_type_start..=lms_type_end]);
 
         let lms_type = match LmsAlgorithmType::from_u32(lms_type) {
             None => return None,
@@ -139,7 +139,7 @@ impl LmsSignature {
 
         for _ in 0..lms_parameter.h {
             let mut path = vec![0u8; lms_parameter.m as usize];
-            path.copy_from_slice(tree_slice);
+            path.copy_from_slice(&tree_slice[..lms_parameter.m as usize]);
             trees.push(path);
 
             tree_slice = &tree_slice[lms_parameter.m as usize..];

@@ -9,7 +9,6 @@ use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 use crate::LmotsAlgorithmType;
 use crate::LmsAlgorithmType;
-use std::convert::TryInto;
 
 pub struct LmsSignature {
     pub lms_parameter: LmsAlgorithmParameter,
@@ -80,13 +79,14 @@ impl LmsSignature {
             return None;
         }
 
-        let mut data_index = 0;
+        let data = data.as_slice();
+        let mut consumed_data = data;
 
-        let q = str32u(data[data_index..data_index + 4].try_into().unwrap());
-        data_index += 4;
+        let q = str32u(&consumed_data[..4]);
+        consumed_data = &consumed_data[4..];
 
-        let ots_type = str32u(data[data_index..data_index + 4].try_into().unwrap());
-        data_index += 4;
+        let ots_type = str32u(&consumed_data[..4]);
+        // consumed_data = &consumed_data[4..];
 
         let ots_type = match LmotsAlgorithmType::from_u32(ots_type) {
             None => return None,
@@ -95,15 +95,12 @@ impl LmsSignature {
 
         let lm_ots_parameter = ots_type.get_parameter();
 
-        if data.len() - data_index
-            < 12 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1)
-        {
+        if data.len() != 12 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1) {
             return None;
         }
 
         let lmots_signature = match lm_ots::signing::LmotsSignature::from_binary_representation(
-            &data.as_slice()
-                [4..(7 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1))],
+            &data[4..(7 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1))],
         ) {
             None => return None,
             Some(x) => x,
@@ -112,7 +109,7 @@ impl LmsSignature {
         let lms_type_start = 8 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1);
         let lms_type_end = 11 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1);
 
-        let lms_type = str32u(&data.as_slice()[lms_type_start..lms_type_end]);
+        let lms_type = str32u(&data[lms_type_start..lms_type_end]);
 
         let lms_type = match LmsAlgorithmType::from_u32(lms_type) {
             None => return None,
@@ -133,7 +130,7 @@ impl LmsSignature {
             return None;
         }
 
-        let mut tree_slice = data.as_slice();
+        let mut tree_slice = data;
         let tree_start = 12 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1);
 
         tree_slice = &tree_slice[tree_start..];

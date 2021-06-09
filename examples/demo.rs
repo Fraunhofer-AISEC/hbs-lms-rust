@@ -72,7 +72,7 @@ fn read_file(file_name: &str) -> Vec<u8> {
         .expect(format!("Could not open file: {}", file_name).as_str());
 
     let mut data: Vec<u8> = Vec::new();
-    file.read(&mut data)
+    file.read_to_end(&mut data)
         .expect(format!("Could not read data from: {}", file_name).as_str());
 
     data

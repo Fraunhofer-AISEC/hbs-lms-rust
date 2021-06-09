@@ -1,6 +1,6 @@
 use crate::util::ustr::str32u;
 
-pub fn verify(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
+pub fn hss_verify(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
     // Todo: Check if HSS Levels = 1 and then forward data;
 
     assert!(public_key.len() > 4);

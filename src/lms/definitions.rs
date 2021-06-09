@@ -303,20 +303,4 @@ mod tests {
     use crate::lms::keygen::generate_private_key;
 
     use super::LmsPrivateKey;
-
-    #[test]
-    fn private_key_serialization_deserialisation() {
-        let private_key = generate_private_key(
-            crate::LmsAlgorithmType::LmsSha256M32H5,
-            crate::LmotsAlgorithmType::LmotsSha256N32W1,
-        );
-
-        let temp_filename = "temp.priv";
-
-        private_key.to_file(temp_filename).unwrap();
-
-        let private_key_from_file = LmsPrivateKey::from_file(temp_filename);
-
-        assert!(private_key == private_key_from_file);
-    }
 }

@@ -6,8 +6,9 @@ use crate::{
         coef::coef,
         helper::insert,
         random::get_random,
-        ustr::{u16str, u32str, u8str},
+        ustr::{str32u, u16str, u32str, u8str},
     },
+    LmotsAlgorithmType,
 };
 
 use super::definitions::{LmotsAlgorithmParameter, LmotsPrivateKey};
@@ -81,7 +82,46 @@ impl LmotsSignature {
         result
     }
 
-    pub fn from_binary_representation(_data: &[u8]) -> Option<Self> {
-        todo!()
+    #[allow(non_snake_case)]
+    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
+        if data.len() < 4 {
+            return None;
+        }
+
+        let mut consumed_data = data;
+
+        let lm_ots_type = str32u(consumed_data);
+        consumed_data = &consumed_data[4..];
+
+        let lm_ots_type = match LmotsAlgorithmType::from_u32(lm_ots_type) {
+            None => return None,
+            Some(x) => x,
+        };
+
+        let lm_ots_parameter = lm_ots_type.get_parameter();
+
+        if data.len() != 4 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1) {
+            return None;
+        }
+
+        let C = consumed_data[..lm_ots_parameter.n as usize].to_vec();
+        consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
+
+        let mut y: Vec<Vec<u8>> = Vec::new();
+
+        for _ in 0..lm_ots_parameter.p {
+            let temp = consumed_data[..lm_ots_parameter.n as usize].to_vec();
+            y.push(temp);
+
+            consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
+        }
+
+        let signature = Self {
+            parameter: lm_ots_parameter,
+            C,
+            y,
+        };
+
+        Some(signature)
     }
 }

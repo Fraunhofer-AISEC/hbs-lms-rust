@@ -1,7 +1,5 @@
-extern crate lms;
-
 use clap::{App, Arg, ArgMatches, SubCommand};
-use lms::*;
+use lms::{hss_verify, LmotsAlgorithmType, LmsAlgorithmType};
 use std::{
     fs::File,
     io::{Read, Write},
@@ -66,7 +64,7 @@ fn verify(args: &ArgMatches) -> bool {
     let message_data = read_file(&message_name);
     let public_key_data = read_file(&public_key_name);
 
-    lms::verify(&message_data, &signature_data, &public_key_data)
+    hss_verify(&message_data, &signature_data, &public_key_data)
 }
 
 fn read_file(file_name: &str) -> Vec<u8> {

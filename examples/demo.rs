@@ -2,36 +2,91 @@ extern crate lms;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use lms::*;
-use std::{fs::File, io::Write};
+use std::{
+    fs::File,
+    io::{Read, Write},
+};
 
 type LmsParameterSet = (LmotsAlgorithmType, LmsAlgorithmType);
+
+const GENKEY_COMMAND: &str = "genkey";
+const VERIFY_COMMAND: &str = "verify";
+
+const KEYNAME_PARAMETER: &str = "keyname";
+const MESSAGE_PARAMETER: &str = "file";
+const PARAMETER_PARAMETER: &str = "parameter";
 
 fn main() {
     let matches = App::new("LMS Demo")
         .about("Generates a LMS key pair")
         .subcommand(
-            SubCommand::with_name("genkey")
-                .arg(Arg::with_name("keyname").required(true))
-                .arg(Arg::with_name("parameter").required(false).help(
+            SubCommand::with_name(GENKEY_COMMAND)
+                .arg(Arg::with_name(KEYNAME_PARAMETER).required(true))
+                .arg(Arg::with_name(PARAMETER_PARAMETER).required(false).help(
                     "Specify LMS parameters (e.g. 15/4 (Treeheight 15 and Winternitz parameter 4))",
                 ).default_value("5/1")),
         )
+        .subcommand(
+            SubCommand::with_name(VERIFY_COMMAND)
+            .arg(Arg::with_name(KEYNAME_PARAMETER).required(true))
+            .arg(Arg::with_name(MESSAGE_PARAMETER).required(true).help("File to verify")))
         .get_matches();
 
-    let args = matches.subcommand_matches("genkey");
-
-    if let Some(args) = args {
+    if let Some(args) = matches.subcommand_matches(GENKEY_COMMAND) {
         genkey(args).expect("Could not generate key pair.");
+        return;
     }
+
+    if let Some(args) = matches.subcommand_matches(VERIFY_COMMAND) {
+        let result = verify(args);
+        if result == true {
+            print!("Successful!");
+        } else {
+            print!("Wrong signature");
+        }
+        return;
+    }
+}
+
+fn verify(args: &ArgMatches) -> bool {
+    let keyname: String = args
+        .value_of(KEYNAME_PARAMETER)
+        .expect("Keyname must be present.")
+        .into();
+
+    let message_name: String = args
+        .value_of(MESSAGE_PARAMETER)
+        .expect("Message must be present")
+        .into();
+
+    let public_key_name = keyname.clone() + ".pub";
+    let signature_name = message_name.clone() + ".sig";
+
+    let signature_data = read_file(&signature_name);
+    let message_data = read_file(&message_name);
+    let public_key_data = read_file(&public_key_name);
+
+    lms::verify(&message_data, &signature_data, &public_key_data)
+}
+
+fn read_file(file_name: &str) -> Vec<u8> {
+    let mut file = std::fs::File::open(file_name)
+        .expect(format!("Could not open file: {}", file_name).as_str());
+
+    let mut data: Vec<u8> = Vec::new();
+    file.read(&mut data)
+        .expect(format!("Could not read data from: {}", file_name).as_str());
+
+    data
 }
 
 fn genkey(args: &ArgMatches) -> Result<(), std::io::Error> {
     let keyname: String = args
-        .value_of("keyname")
+        .value_of(KEYNAME_PARAMETER)
         .expect("Keyname must be present")
         .into();
     let parameter = parse_genkey_parameter(
-        args.value_of("parameter")
+        args.value_of(PARAMETER_PARAMETER)
             .expect("Default parameter must be specified."),
     );
 

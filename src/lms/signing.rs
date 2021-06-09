@@ -1,5 +1,4 @@
-use std::iter::FromIterator;
-
+use crate::lm_ots;
 use crate::lm_ots::definitions::QType;
 use crate::lm_ots::signing::LmotsSignature;
 use crate::lms::definitions::LmsAlgorithmParameter;
@@ -9,6 +8,7 @@ use crate::util::helper::insert;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 use crate::LmotsAlgorithmType;
+use crate::LmsAlgorithmType;
 use std::convert::TryInto;
 
 pub struct LmsSignature {
@@ -66,8 +66,7 @@ impl LmsSignature {
 
         insert(&u32str(self.lms_parameter._type as u32), &mut result);
 
-        let flattened_path = self.path.iter().flatten().map(|x| x.clone());
-        let flattened_path = Vec::from_iter(flattened_path);
+        let flattened_path: Vec<u8> = self.path.iter().flatten().copied().collect::<Vec<_>>();
 
         insert(&flattened_path, &mut result);
 
@@ -94,13 +93,68 @@ impl LmsSignature {
             Some(x) => x,
         };
 
-        let ots_parameter = ots_type.get_parameter();
+        let lm_ots_parameter = ots_type.get_parameter();
 
-        if data.len() - data_index < 12 + ots_parameter.n as usize * (ots_parameter.p as usize + 1)
+        if data.len() - data_index
+            < 12 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1)
         {
             return None;
         }
 
-        todo!()
+        let lmots_signature = match lm_ots::signing::LmotsSignature::from_binary_representation(
+            &data.as_slice()
+                [4..(7 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1))],
+        ) {
+            None => return None,
+            Some(x) => x,
+        };
+
+        let lms_type_start = 8 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1);
+        let lms_type_end = 11 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1);
+
+        let lms_type = str32u(&data.as_slice()[lms_type_start..lms_type_end]);
+
+        let lms_type = match LmsAlgorithmType::from_u32(lms_type) {
+            None => return None,
+            Some(x) => x,
+        };
+
+        let lms_parameter = lms_type.get_parameter();
+
+        if q >= 2u32.pow(lms_parameter.h as u32) {
+            return None;
+        }
+
+        if data.len()
+            != 12
+                + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1)
+                + lms_parameter.m as usize * lms_parameter.h as usize
+        {
+            return None;
+        }
+
+        let mut tree_slice = data.as_slice();
+        let tree_start = 12 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1);
+
+        tree_slice = &tree_slice[tree_start..];
+
+        let mut trees: Vec<Vec<u8>> = Vec::new();
+
+        for _ in 0..lms_parameter.h {
+            let mut path = vec![0u8; lms_parameter.m as usize];
+            path.copy_from_slice(tree_slice);
+            trees.push(path);
+
+            tree_slice = &tree_slice[lms_parameter.m as usize..];
+        }
+
+        let signature = Self {
+            lms_parameter,
+            lmots_signature,
+            q: u32str(q),
+            path: trees,
+        };
+
+        Some(signature)
     }
 }

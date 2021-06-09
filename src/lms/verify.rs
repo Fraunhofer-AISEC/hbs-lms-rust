@@ -81,7 +81,6 @@ fn generate_public_key_candiate(
 mod tests {
 
     use super::*;
-    use crate::lms::signing::*;
     use crate::lms::*;
 
     #[test]
@@ -100,12 +99,12 @@ mod tests {
         let second_signature =
             LmsSignature::sign(&mut private_key, &public_key, &second_message).unwrap();
 
-        assert!(verify(&first_signature, &public_key, &first_message).is_ok());
+        assert!(super::verify(&first_signature, &public_key, &first_message).is_ok());
         first_message[5] = 13;
-        assert!(verify(&first_signature, &public_key, &first_message).is_err());
+        assert!(super::verify(&first_signature, &public_key, &first_message).is_err());
 
-        assert!(verify(&second_signature, &public_key, &second_message).is_ok());
+        assert!(super::verify(&second_signature, &public_key, &second_message).is_ok());
         second_message[4] = 13;
-        assert!(verify(&second_signature, &public_key, &second_message).is_err());
+        assert!(super::verify(&second_signature, &public_key, &second_message).is_err());
     }
 }

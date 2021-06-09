@@ -1,4 +1,4 @@
-use std::{iter::FromIterator, usize};
+use std::usize;
 
 use crate::{
     definitions::D_MESG,
@@ -74,11 +74,14 @@ impl LmotsSignature {
         insert(&u32str(self.parameter._type as u32), &mut result);
         insert(&self.C, &mut result);
 
-        let keys = self.y.iter().flatten().map(|x| x.clone());
-        let keys = Vec::from_iter(keys);
+        let keys = self.y.iter().flatten().cloned().collect::<Vec<_>>();
 
         insert(&keys, &mut result);
 
         result
+    }
+
+    pub fn from_binary_representation(_data: &[u8]) -> Option<Self> {
+        todo!()
     }
 }

@@ -112,7 +112,7 @@ impl LmsPrivateKey {
     }
 
     pub fn use_lmots_private_key(&mut self) -> Result<&LmotsPrivateKey, &'static str> {
-        if self.q as usize > self.key.len() {
+        if self.q as usize >= self.key.len() {
             return Err("All private keys already used.");
         }
         self.q += 1;

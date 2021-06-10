@@ -38,7 +38,8 @@ fn main() -> Result<(), std::io::Error> {
         .get_matches();
 
     if let Some(args) = matches.subcommand_matches(GENKEY_COMMAND) {
-        genkey(args).expect("Could not generate key pair.");
+        genkey(args)?;
+        print!("Keys successful generated!");
         return Ok(());
     }
 

@@ -47,10 +47,11 @@ fn main() -> Result<(), std::io::Error> {
         let result = verify(args);
         if result == true {
             print!("Successful!");
+            exit(0);
         } else {
             print!("Wrong signature");
+            exit(-1);
         }
-        return Ok(());
     }
 
     if let Some(args) = matches.subcommand_matches(SIGN_COMMAND) {

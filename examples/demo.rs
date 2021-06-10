@@ -1,20 +1,22 @@
 use clap::{App, Arg, ArgMatches, SubCommand};
-use lms::{hss_verify, LmotsAlgorithmType, LmsAlgorithmType};
+use lms::{hss_keygen, hss_sign, hss_verify, LmotsAlgorithmType, LmsAlgorithmType};
 use std::{
     fs::File,
     io::{Read, Write},
+    process::exit,
 };
 
 type LmsParameterSet = (LmotsAlgorithmType, LmsAlgorithmType);
 
 const GENKEY_COMMAND: &str = "genkey";
 const VERIFY_COMMAND: &str = "verify";
+const SIGN_COMMAND: &str = "sign";
 
 const KEYNAME_PARAMETER: &str = "keyname";
 const MESSAGE_PARAMETER: &str = "file";
 const PARAMETER_PARAMETER: &str = "parameter";
 
-fn main() {
+fn main() -> Result<(), std::io::Error> {
     let matches = App::new("LMS Demo")
         .about("Generates a LMS key pair")
         .subcommand(
@@ -28,11 +30,16 @@ fn main() {
             SubCommand::with_name(VERIFY_COMMAND)
             .arg(Arg::with_name(KEYNAME_PARAMETER).required(true))
             .arg(Arg::with_name(MESSAGE_PARAMETER).required(true).help("File to verify")))
+        .subcommand(
+            SubCommand::with_name(SIGN_COMMAND)
+            .arg(Arg::with_name(KEYNAME_PARAMETER).required(true))
+            .arg(Arg::with_name(MESSAGE_PARAMETER).required(true))
+        )
         .get_matches();
 
     if let Some(args) = matches.subcommand_matches(GENKEY_COMMAND) {
         genkey(args).expect("Could not generate key pair.");
-        return;
+        return Ok(());
     }
 
     if let Some(args) = matches.subcommand_matches(VERIFY_COMMAND) {
@@ -42,29 +49,72 @@ fn main() {
         } else {
             print!("Wrong signature");
         }
-        return;
+        return Ok(());
     }
+
+    if let Some(args) = matches.subcommand_matches(SIGN_COMMAND) {
+        sign(args)?;
+        print!("Signature successful generated!");
+        return Ok(());
+    }
+
+    Ok(())
+}
+
+fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
+    let keyname = get_parameter(KEYNAME_PARAMETER, args);
+    let message_name = get_parameter(MESSAGE_PARAMETER, args);
+
+    let private_key_name = get_private_key_name(&keyname);
+    let signature_name = get_signature_name(&message_name);
+
+    let private_key_data = read_file(&&private_key_name);
+    let message_data = read_file(&message_name);
+
+    let result = match hss_sign(&message_data, &private_key_data) {
+        None => {
+            print!("Could not sign message.");
+            exit(-1)
+        }
+        Some(x) => x,
+    };
+
+    write(&private_key_name, &result.advanced_private_key)?;
+    write(&signature_name, &result.signature)?;
+
+    Ok(())
 }
 
 fn verify(args: &ArgMatches) -> bool {
-    let keyname: String = args
-        .value_of(KEYNAME_PARAMETER)
-        .expect("Keyname must be present.")
-        .into();
+    let keyname: String = get_parameter(KEYNAME_PARAMETER, args);
+    let message_name: String = get_parameter(MESSAGE_PARAMETER, args);
 
-    let message_name: String = args
-        .value_of(MESSAGE_PARAMETER)
-        .expect("Message must be present")
-        .into();
-
-    let public_key_name = keyname.clone() + ".pub";
-    let signature_name = message_name.clone() + ".sig";
+    let public_key_name = get_public_key_name(&keyname);
+    let signature_name = get_signature_name(&message_name);
 
     let signature_data = read_file(&signature_name);
     let message_data = read_file(&message_name);
     let public_key_data = read_file(&public_key_name);
 
     hss_verify(&message_data, &signature_data, &public_key_data)
+}
+
+fn get_public_key_name(keyname: &String) -> String {
+    keyname.clone() + ".pub"
+}
+
+fn get_signature_name(message_name: &String) -> String {
+    message_name.clone() + ".sig"
+}
+
+fn get_private_key_name(private_key: &String) -> String {
+    private_key.clone() + ".priv"
+}
+
+fn get_parameter(name: &str, args: &ArgMatches) -> String {
+    args.value_of(name)
+        .expect("Parameter must be present.")
+        .into()
 }
 
 fn read_file(file_name: &str) -> Vec<u8> {
@@ -79,26 +129,20 @@ fn read_file(file_name: &str) -> Vec<u8> {
 }
 
 fn genkey(args: &ArgMatches) -> Result<(), std::io::Error> {
-    let keyname: String = args
-        .value_of(KEYNAME_PARAMETER)
-        .expect("Keyname must be present")
-        .into();
-    let parameter = parse_genkey_parameter(
-        args.value_of(PARAMETER_PARAMETER)
-            .expect("Default parameter must be specified."),
-    );
+    let keyname: String = get_parameter(KEYNAME_PARAMETER, args);
+
+    let parameter = parse_genkey_parameter(&get_parameter(PARAMETER_PARAMETER, args));
 
     let lm_ots_parameter_type = parameter.0;
     let lms_parameter_type = parameter.1;
 
-    let private_key = lms::generate_private_key(lms_parameter_type, lm_ots_parameter_type);
-    let public_key = lms::generate_public_key(&private_key);
+    let keys = hss_keygen(lms_parameter_type, lm_ots_parameter_type);
 
-    let public_key_binary = public_key.to_binary_representation();
-    let public_key_filename = keyname.clone() + ".pub";
+    let public_key_binary = keys.public_key;
+    let public_key_filename = get_public_key_name(&keyname);
 
-    let private_key_binary = private_key.to_binary_representation();
-    let private_key_filename = keyname.clone() + ".priv";
+    let private_key_binary = keys.private_key;
+    let private_key_filename = get_private_key_name(&keyname);
 
     write(public_key_filename.as_str(), &public_key_binary)?;
     write(private_key_filename.as_str(), &private_key_binary)?;
@@ -145,6 +189,6 @@ fn parse_genkey_parameter(parameter: &str) -> LmsParameterSet {
 
 fn write(filename: &str, content: &[u8]) -> Result<(), std::io::Error> {
     let mut file = File::create(filename)?;
-    file.write(content)?;
+    file.write_all(content)?;
     Ok(())
 }

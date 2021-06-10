@@ -26,7 +26,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug example 'demo'",
+            "name": "Debug verify",
             "cargo": {
                 "args": [
                     "build",
@@ -40,10 +40,54 @@
             },
             "args": [
                 "verify",
-                "key10-2",
-                "license.txt"
+                "mykey",
+                "message.txt"
             ],
-            "cwd": "${workspaceFolder}/test_data"
+            "cwd": "${workspaceFolder}/tmp"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug sign",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=demo",
+                    "--package=lms"
+                ],
+                "filter": {
+                    "name": "demo",
+                    "kind": "example"
+                }
+            },
+            "args": [
+                "sign",
+                "mykey",
+                "message.txt"
+            ],
+            "cwd": "${workspaceFolder}/tmp"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug keygen",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=demo",
+                    "--package=lms"
+                ],
+                "filter": {
+                    "name": "demo",
+                    "kind": "example"
+                }
+            },
+            "args": [
+                "genkey",
+                "mykey",
+                "10/2"
+            ],
+            "cwd": "${workspaceFolder}/tmp"
         },
         {
             "type": "lldb",

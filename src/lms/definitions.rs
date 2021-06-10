@@ -4,12 +4,9 @@ use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::util::hash::Hasher;
 use crate::util::hash::Sha256Hasher;
 use crate::util::helper::insert;
-use crate::util::helper::read_from_file;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 use std::convert::TryInto;
-use std::io::Read;
-use std::io::Write;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LmsAlgorithmType {
@@ -142,69 +139,63 @@ impl LmsPrivateKey {
         result
     }
 
-    pub fn to_file(&self, filename: &str) -> Result<(), std::io::Error> {
-        let binary_representation = self.to_binary_representation();
+    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
+        let mut consumed_data = data;
 
-        let mut file = std::fs::File::open(filename)?;
+        let lms_type = str32u(&consumed_data[..4]);
+        consumed_data = &consumed_data[4..];
 
-        file.write_all(&binary_representation)?;
-        Ok(())
-    }
+        let lms_type = match LmsAlgorithmType::from_u32(lms_type) {
+            None => return None,
+            Some(x) => x,
+        };
 
-    pub fn from_file(filename: &str) -> Self {
-        let mut data = std::fs::File::open(filename).expect("Can not open file.");
-
-        let mut buf = [0u8; 4];
-
-        read_from_file(&mut data, &mut buf);
-        let lms_type = str32u(&buf);
-        let lms_type = LmsAlgorithmType::from_u32(lms_type).expect("Valid Lmots Type");
         let lms_parameter = lms_type.get_parameter();
 
-        read_from_file(&mut data, &mut buf);
-        let lm_ots_type = str32u(&buf);
-        let lm_ots_type = LmotsAlgorithmType::from_u32(lm_ots_type).expect("Valid LM OTS Type");
+        let lm_ots_type = str32u(&consumed_data[..4]);
+        consumed_data = &consumed_data[4..];
+
+        let lm_ots_type = match LmotsAlgorithmType::from_u32(lm_ots_type) {
+            None => return None,
+            Some(x) => x,
+        };
+
         let lm_ots_parameter = lm_ots_type.get_parameter();
 
-        let mut initial_buf = [0u8; 16];
-        read_from_file(&mut data, &mut initial_buf);
+        let mut initial: IType = [0u8; 16];
+        initial.copy_from_slice(&consumed_data[..16]);
+        consumed_data = &consumed_data[16..];
 
-        read_from_file(&mut data, &mut buf);
-        let q = str32u(&buf);
-
-        let mut data_to_end: Vec<u8> = Vec::new();
-        data.read_to_end(&mut data_to_end)
-            .expect("Could not read file.");
+        let q = str32u(&consumed_data[..4]);
+        consumed_data = &consumed_data[4..];
 
         let mut keys: Vec<LmotsPrivateKey> = Vec::new();
 
-        for _ in 0..lms_parameter.number_of_lm_ots_keys() {
+        for i in 0..lms_parameter.number_of_lm_ots_keys() {
             let mut current_key: Vec<Vec<u8>> = Vec::new();
 
-            // vec![vec![0u8; parameter.n as usize]; parameter.p as usize];
-
             for _ in 0..lm_ots_parameter.p {
-                let mut x = Vec::new();
-                for _ in 0..lm_ots_parameter.n {
-                    x.push(data_to_end[0]);
-                    data_to_end.remove(0);
-                }
+                let mut x: Vec<u8> = vec![0u8; lm_ots_parameter.n as usize];
+                x.copy_from_slice(&consumed_data[..lm_ots_parameter.n as usize]);
+                consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
                 current_key.push(x);
             }
 
             // Append key
             let lmots_private_key =
-                LmotsPrivateKey::new(initial_buf, u32str(q), lm_ots_parameter, current_key);
+                LmotsPrivateKey::new(initial, u32str(i as u32), lm_ots_parameter, current_key);
             keys.push(lmots_private_key);
         }
 
-        LmsPrivateKey {
+        let key = LmsPrivateKey {
             lms_type,
             lm_ots_type,
             key: keys,
-            I: initial_buf,
+            I: initial,
             q,
-        }
+        };
+
+        Some(key)
     }
 }
 
@@ -303,4 +294,17 @@ mod tests {
     use crate::lms::keygen::generate_private_key;
 
     use super::LmsPrivateKey;
+
+    #[test]
+    fn test_private_key_binary_representation() {
+        let lms_type = crate::LmsAlgorithmType::LmsSha256M32H10;
+        let lmots_type = crate::LmotsAlgorithmType::LmotsSha256N32W2;
+
+        let private_key = generate_private_key(lms_type, lmots_type);
+
+        let serialized = private_key.to_binary_representation();
+        let deserialized = LmsPrivateKey::from_binary_representation(&serialized).unwrap();
+
+        assert!(private_key == deserialized);
+    }
 }

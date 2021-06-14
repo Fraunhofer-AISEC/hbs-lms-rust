@@ -79,3 +79,27 @@ pub fn hss_keygen(lms_type: LmsAlgorithmType, lmots_type: LmotsAlgorithmType) ->
         public_key: hss_public_key,
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_signing() {
+        let keys = hss_keygen(LmsAlgorithmType::LmsSha256M32H5, LmotsAlgorithmType::LmotsSha256N32W2);
+
+        let message = String::from("This is message will be signed soon!");
+        let message_bytes = message.as_bytes();
+
+        let signature = hss_sign(message_bytes, &keys.private_key).expect("Signing should complete without error.").signature;
+        
+        assert!(hss_verify(message_bytes, &signature, &keys.public_key));
+
+        let wrong_message = String::from("this is message will be signed soon!");
+        let wrong_message_bytes = wrong_message.as_bytes();
+
+        assert!(hss_verify(wrong_message_bytes, &signature, &keys.public_key) == false);
+    }
+}

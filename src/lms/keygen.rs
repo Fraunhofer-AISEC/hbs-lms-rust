@@ -89,19 +89,3 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
         private_key.I,
     )
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::lm_ots::definitions::LmotsAlgorithmType;
-    use crate::lms::definitions::LmsAlgorithmType;
-    use crate::lms::keygen::*;
-
-    #[test]
-    fn test_key_generation() {
-        let private = generate_private_key(
-            LmsAlgorithmType::LmsSha256M32H5,
-            LmotsAlgorithmType::LmotsSha256N32W1,
-        );
-        let public = generate_public_key(&private);
-    }
-}

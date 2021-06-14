@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use core::convert::TryInto;
 
 pub fn u32str(x: u32) -> [u8; 4] {
     x.to_be_bytes()

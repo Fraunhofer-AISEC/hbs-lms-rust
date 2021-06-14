@@ -1,6 +1,9 @@
-use crate::util::{
-    coef::coef,
-    hash::{Hasher, Sha256Hasher},
+use crate::{
+    definitions::{MAX_N, MAX_P},
+    util::{
+        coef::coef,
+        hash::{Hasher, Sha256Hasher},
+    },
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -84,14 +87,31 @@ impl LmotsAlgorithmParameter {
         sum << self.ls
     }
 
-    pub fn get_hasher(&self) -> Box<dyn Hasher> {
-        match self._type {
-            LmotsAlgorithmType::LmotsReserved => panic!("Reserved parameter type."),
-            LmotsAlgorithmType::LmotsSha256N32W1 => Box::new(Sha256Hasher::new()),
-            LmotsAlgorithmType::LmotsSha256N32W2 => Box::new(Sha256Hasher::new()),
-            LmotsAlgorithmType::LmotsSha256N32W4 => Box::new(Sha256Hasher::new()),
-            LmotsAlgorithmType::LmotsSha256N32W8 => Box::new(Sha256Hasher::new()),
+    pub fn get_appended_with_checksum(&self, byte_string: &[u8]) -> [u8; MAX_N + 2] {
+        let mut result = [0u8; MAX_N + 2];
+
+        let checksum = self.checksum(byte_string);
+
+        for (place, data) in result.iter_mut().zip(byte_string.iter()) {
+            *place = *data;
         }
+
+        result[result.len() - 2] = (checksum >> 8 & 0xff) as u8;
+        result[result.len() - 1] = (checksum & 0xff) as u8;
+
+        result
+    }
+
+    // TODO: Make it dynamic again
+    pub fn get_hasher(&self) -> Sha256Hasher {
+        Sha256Hasher::new()
+        // match self._type {
+        //     LmotsAlgorithmType::LmotsReserved => panic!("Reserved parameter type."),
+        //     LmotsAlgorithmType::LmotsSha256N32W1 => Box::new(Sha256Hasher::new()),
+        //     LmotsAlgorithmType::LmotsSha256N32W2 => Box::new(Sha256Hasher::new()),
+        //     LmotsAlgorithmType::LmotsSha256N32W4 => Box::new(Sha256Hasher::new()),
+        //     LmotsAlgorithmType::LmotsSha256N32W8 => Box::new(Sha256Hasher::new()),
+        // }
     }
 }
 
@@ -101,12 +121,17 @@ pub struct LmotsPrivateKey {
     pub parameter: LmotsAlgorithmParameter,
     pub I: IType,
     pub q: QType,
-    pub key: Vec<Vec<u8>>,
+    pub key: [[u8; MAX_N]; MAX_P], // [[0u8; n]; p];
 }
 
 #[allow(non_snake_case)]
 impl LmotsPrivateKey {
-    pub fn new(I: IType, q: QType, parameter: LmotsAlgorithmParameter, key: Vec<Vec<u8>>) -> Self {
+    pub fn new(
+        I: IType,
+        q: QType,
+        parameter: LmotsAlgorithmParameter,
+        key: [[u8; MAX_N]; MAX_P],
+    ) -> Self {
         LmotsPrivateKey {
             parameter,
             I,
@@ -115,9 +140,8 @@ impl LmotsPrivateKey {
         }
     }
 
-    pub fn get_flat_key(&self) -> Vec<u8> {
-        let copy = self.key.clone();
-        copy.into_iter().flatten().collect()
+    pub fn get_flat_key(&self) -> impl Iterator<Item = &u8> {
+        self.key.iter().flatten()
     }
 }
 
@@ -126,12 +150,12 @@ pub struct LmotsPublicKey {
     pub parameter: LmotsAlgorithmParameter,
     pub I: IType,
     pub q: QType,
-    pub key: Vec<u8>,
+    pub key: [u8; MAX_N],
 }
 
 #[allow(non_snake_case)]
 impl LmotsPublicKey {
-    pub fn new(I: IType, q: QType, parameter: LmotsAlgorithmParameter, key: Vec<u8>) -> Self {
+    pub fn new(I: IType, q: QType, parameter: LmotsAlgorithmParameter, key: [u8; MAX_N]) -> Self {
         LmotsPublicKey {
             parameter,
             I,

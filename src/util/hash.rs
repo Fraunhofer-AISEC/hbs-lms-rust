@@ -1,9 +1,13 @@
+use core::convert::TryInto;
+
 use sha2::{Digest, Sha256};
+
+use crate::definitions::MAX_N;
 
 pub trait Hasher {
     fn update(&mut self, data: &[u8]);
-    fn finalize(self: Box<Self>) -> Vec<u8>;
-    fn finalize_reset(&mut self) -> Vec<u8>;
+    fn finalize(self) -> [u8; MAX_N];
+    fn finalize_reset(&mut self) -> [u8; MAX_N];
 }
 
 pub struct Sha256Hasher {
@@ -23,23 +27,19 @@ impl Hasher for Sha256Hasher {
         self.hasher.update(data);
     }
 
-    fn finalize(self: Box<Self>) -> Vec<u8> {
-        let mut hash = Vec::new();
-
-        for value in self.hasher.finalize().into_iter() {
-            hash.push(value);
-        }
-
-        hash
+    fn finalize(self) -> [u8; MAX_N] {
+        self.finalize()
+            .iter()
+            .as_slice()
+            .try_into()
+            .expect("Wrong length")
     }
 
-    fn finalize_reset(&mut self) -> Vec<u8> {
-        let mut hash = Vec::new();
-
-        for value in self.hasher.finalize_reset().into_iter() {
-            hash.push(value);
-        }
-
-        hash
+    fn finalize_reset(&mut self) -> [u8; MAX_N] {
+        self.finalize_reset()
+            .iter()
+            .as_slice()
+            .try_into()
+            .expect("Wrong length")
     }
 }

@@ -80,7 +80,6 @@ pub fn hss_keygen(lms_type: LmsAlgorithmType, lmots_type: LmotsAlgorithmType) ->
     }
 }
 
-
 #[cfg(test)]
 mod tests {
 
@@ -88,13 +87,18 @@ mod tests {
 
     #[test]
     fn test_signing() {
-        let keys = hss_keygen(LmsAlgorithmType::LmsSha256M32H5, LmotsAlgorithmType::LmotsSha256N32W2);
+        let keys = hss_keygen(
+            LmsAlgorithmType::LmsSha256M32H5,
+            LmotsAlgorithmType::LmotsSha256N32W2,
+        );
 
         let message = String::from("This is message will be signed soon!");
         let message_bytes = message.as_bytes();
 
-        let signature = hss_sign(message_bytes, &keys.private_key).expect("Signing should complete without error.").signature;
-        
+        let signature = hss_sign(message_bytes, &keys.private_key)
+            .expect("Signing should complete without error.")
+            .signature;
+
         assert!(hss_verify(message_bytes, &signature, &keys.public_key));
 
         let wrong_message = String::from("this is message will be signed soon!");

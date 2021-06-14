@@ -1,5 +1,5 @@
 use crate::{
-    definitions::{D_MESG, D_PBLC},
+    definitions::{D_MESG, D_PBLC, MAX_N, MAX_P},
     util::{
         coef::coef,
         ustr::{u16str, u8str},
@@ -10,6 +10,7 @@ use super::{
     definitions::{IType, LmotsPublicKey, QType},
     signing::LmotsSignature,
 };
+use crate::util::hash::Hasher;
 
 #[allow(non_snake_case)]
 pub fn verify_signature(
@@ -29,7 +30,7 @@ pub fn generate_public_key_canditate(
     I: &IType,
     q: &QType,
     message: &[u8],
-) -> Vec<u8> {
+) -> [u8; MAX_N] {
     let mut hasher = signature.parameter.get_hasher();
 
     hasher.update(I);
@@ -39,13 +40,10 @@ pub fn generate_public_key_canditate(
     hasher.update(message);
 
     let Q = hasher.finalize_reset();
-    let Q_checksum = signature.parameter.checksum(&Q);
+    let mut Q_and_checksum = signature.parameter.get_appended_with_checksum(&Q);
 
-    let mut Q_and_checksum = Q;
-    Q_and_checksum.push((Q_checksum >> 8 & 0xff) as u8);
-    Q_and_checksum.push((Q_checksum & 0xff) as u8);
+    let mut z = [[0u8; MAX_N]; MAX_P];
 
-    let mut z = vec![vec![0u8; signature.parameter.n as usize]; signature.parameter.p as usize];
     for i in 0..signature.parameter.p {
         let a = coef(&Q_and_checksum, i as u64, signature.parameter.w as u64);
         let mut tmp = signature.y[i as usize].clone();
@@ -66,8 +64,8 @@ pub fn generate_public_key_canditate(
     hasher.update(q);
     hasher.update(&D_PBLC);
 
-    for item in z {
-        hasher.update(&item);
+    for item in z.iter() {
+        hasher.update(item);
     }
 
     hasher.finalize()
@@ -92,7 +90,7 @@ mod tests {
                 let private_key = generate_private_key(i, q, $type);
                 let public_key = generate_public_key(&private_key);
 
-                let mut message: Vec<u8> = vec![1, 3, 5, 9, 0];
+                let mut message = [1, 3, 5, 9, 0];
 
                 let signature = LmotsSignature::sign(&private_key, &message);
 

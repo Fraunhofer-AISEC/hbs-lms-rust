@@ -6,7 +6,6 @@ use crate::util::hash::Sha256Hasher;
 use crate::util::helper::insert;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
-use std::convert::TryInto;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LmsAlgorithmType {

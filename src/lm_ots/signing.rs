@@ -1,55 +1,45 @@
-use std::usize;
-
+use crate::util::hash::Hasher;
 use crate::{
-    definitions::D_MESG,
+    definitions::{D_MESG, MAX_N, MAX_P},
     util::{
         coef::coef,
-        helper::insert,
         random::get_random,
         ustr::{str32u, u16str, u32str, u8str},
     },
     LmotsAlgorithmType,
 };
+use core::usize;
 
 use super::definitions::{LmotsAlgorithmParameter, LmotsPrivateKey};
 
 #[allow(non_snake_case)]
 pub struct LmotsSignature {
     pub parameter: LmotsAlgorithmParameter,
-    pub C: Vec<u8>,
-    pub y: Vec<Vec<u8>>,
+    pub C: [u8; MAX_N],
+    pub y: [[u8; MAX_N]; MAX_P],
 }
 
 impl LmotsSignature {
     #[allow(non_snake_case)]
     pub fn sign(private_key: &LmotsPrivateKey, message: &[u8]) -> Self {
-        let mut C = vec![0u8; private_key.parameter.n as usize];
-        get_random(C.as_mut_slice());
+        let mut C = [0u8; MAX_N];
+        get_random(&mut C);
 
         let mut hasher = private_key.parameter.get_hasher();
 
         hasher.update(&private_key.I);
         hasher.update(&private_key.q);
         hasher.update(&D_MESG);
-        hasher.update(C.as_mut_slice());
+        hasher.update(&C);
         hasher.update(message);
 
         let Q = hasher.finalize_reset();
-        let Q_checksum = private_key.parameter.checksum(Q.as_slice());
+        let Q_and_checksum = private_key.parameter.get_appended_with_checksum(&Q);
 
-        let mut Q_and_checksum = Q;
-        Q_and_checksum.push((Q_checksum >> 8 & 0xff) as u8);
-        Q_and_checksum.push((Q_checksum & 0xff) as u8);
-
-        let mut y =
-            vec![vec![0u8; private_key.parameter.n as usize]; private_key.parameter.p as usize];
+        let mut y = [[0u8; MAX_N]; MAX_P];
 
         for i in 0..private_key.parameter.p {
-            let a = coef(
-                &Q_and_checksum.as_slice(),
-                i as u64,
-                private_key.parameter.w as u64,
-            );
+            let a = coef(&Q_and_checksum, i as u64, private_key.parameter.w as u64);
             let mut tmp = private_key.key[i as usize].clone();
             for j in 0..a {
                 hasher.update(&private_key.I);
@@ -69,15 +59,23 @@ impl LmotsSignature {
         }
     }
 
-    pub fn to_binary_representation(&self) -> Vec<u8> {
-        let mut result = Vec::new();
+    pub fn to_binary_representation(&self) -> [u8; 4 + MAX_N + (MAX_N * MAX_P)] {
+        let mut result = [0u8; 4 + MAX_N + (MAX_N * MAX_P)];
 
-        insert(&u32str(self.parameter._type as u32), &mut result);
-        insert(&self.C, &mut result);
+        let mut array_index = 0;
 
-        let keys = self.y.iter().flatten().cloned().collect::<Vec<_>>();
+        result[array_index..4].copy_from_slice(&u32str(self.parameter._type as u32));
+        array_index += 4;
 
-        insert(&keys, &mut result);
+        result[array_index..array_index + self.parameter.n as usize].copy_from_slice(&self.C);
+        array_index += self.parameter.n as usize;
+
+        let keys = self.y.iter().flatten().cloned();
+
+        for byte in keys {
+            result[array_index] = byte;
+            array_index += 1;
+        }
 
         result
     }
@@ -104,14 +102,17 @@ impl LmotsSignature {
             return None;
         }
 
-        let C = consumed_data[..lm_ots_parameter.n as usize].to_vec();
+        let C = [0u8; MAX_N];
+
+        C.copy_from_slice(&consumed_data[..lm_ots_parameter.n as usize]);
         consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
 
-        let mut y: Vec<Vec<u8>> = Vec::new();
+        let mut y = [[0u8; MAX_N]; MAX_P];
 
-        for _ in 0..lm_ots_parameter.p {
-            let temp = consumed_data[..lm_ots_parameter.n as usize].to_vec();
-            y.push(temp);
+        for i in 0..lm_ots_parameter.p {
+            let temp = [0u8; MAX_N];
+            temp.copy_from_slice(&consumed_data[..lm_ots_parameter.n as usize]);
+            y[i as usize] = temp;
 
             consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
         }

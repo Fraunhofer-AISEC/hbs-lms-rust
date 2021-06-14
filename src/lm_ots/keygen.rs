@@ -1,9 +1,14 @@
 use super::definitions::*;
-use crate::{definitions::D_PBLC, util::random::*, util::ustr::*};
+use crate::util::hash::Hasher;
+use crate::{
+    definitions::{D_PBLC, MAX_N, MAX_P},
+    util::random::*,
+    util::ustr::*,
+};
 
 pub fn generate_private_key(i: IType, q: QType, _type: LmotsAlgorithmType) -> LmotsPrivateKey {
     let parameter = _type.get_parameter();
-    let mut key = vec![vec![0u8; parameter.n as usize]; parameter.p as usize];
+    let mut key = [[0u8; MAX_N]; MAX_P];
 
     for item in key.iter_mut() {
         get_random(item);
@@ -20,7 +25,7 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
 
     let mut hasher = parameter.get_hasher();
 
-    let mut y = vec![vec![0_u8; parameter.n as usize]; parameter.p as usize];
+    let mut y = [[0u8; MAX_N]; MAX_P];
 
     for i in 0..parameter.p as usize {
         let mut tmp = key[i].clone();
@@ -48,7 +53,7 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
         hasher.update(item);
     }
 
-    let mut public_key = vec![0u8; parameter.n as usize];
+    let mut public_key = [0u8; MAX_N];
     for (index, value) in hasher.finalize().iter().enumerate() {
         public_key[index] = *value;
     }

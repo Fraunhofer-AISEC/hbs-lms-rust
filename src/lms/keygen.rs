@@ -33,6 +33,56 @@ pub fn generate_private_key(
     LmsPrivateKey::new(lms_type, lmots_type, private_keys, i)
 }
 
+fn rec_fill(
+    tree: &mut [Option<[u8; 32]>; 64],
+    r: usize,
+    max_private_keys: usize,
+    private_key: &LmsPrivateKey,
+) -> [u8; 32] {
+    if let Some(x) = tree[r] {
+        return x;
+    }
+
+    let mut hasher = private_key.lms_type.get_parameter().get_hasher();
+
+    hasher.update(&private_key.I);
+    hasher.update(&u32str(r as u32));
+
+    if r >= max_private_keys {
+        hasher.update(&D_LEAF);
+        let lm_ots_public_key =
+            crate::lm_ots::generate_public_key(&private_key.key[r - max_private_keys].unwrap());
+        hasher.update(&lm_ots_public_key.key);
+
+        let temp = hasher.finalize();
+
+        let mut arr = [0u8; 32];
+        arr.copy_from_slice(&temp);
+
+        tree[r] = Some(arr);
+        tree[r].unwrap()
+    } else {
+        hasher.update(&D_INTR);
+        let left = rec_fill(tree, 2 * r, max_private_keys, private_key);
+        tree[2 * r] = Some(left);
+
+        let right = rec_fill(tree, 2 * r + 1, max_private_keys, private_key);
+        tree[2 * r + 1] = Some(right);
+
+        hasher.update(&tree[2 * r].unwrap());
+        hasher.update(&tree[2 * r + 1].unwrap());
+
+        let temp = hasher.finalize();
+
+        let mut arr = [0u8; 32];
+        arr.copy_from_slice(&temp);
+
+        tree[r] = Some(arr);
+
+        tree[r].unwrap()
+    }
+}
+
 pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
     let lms_parameter = private_key.lms_type.get_parameter();
     let num_lmots_keys = private_key.key.len();
@@ -42,46 +92,16 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
 
     let max_private_keys = 2_usize.pow(lms_parameter.h.into());
 
-    let mut hasher = lms_parameter.get_hasher();
+    let mut temp_hash_tree: [Option<[u8; MAX_M]>; MAX_TREE_ELEMENTS + 1] =
+        [None; MAX_TREE_ELEMENTS + 1]; // Use index + 1 to start accessing at 1
 
-    let mut hash_tree = [[0u8; MAX_M]; MAX_TREE_ELEMENTS + 1]; // Use index + 1 to start accessing at 1
+    let public_key = rec_fill(&mut temp_hash_tree, 1, max_private_keys, private_key);
 
-    // TODO: CHECK THIS IMPL AGAIN
+    let mut hash_tree = [[0u8; 32]; 64];
 
-    for i in 0..max_private_keys {
-        let mut r = i + num_lmots_keys;
-        hasher.update(&private_key.I);
-        hasher.update(&u32str(r as u32));
-        hasher.update(&D_LEAF);
-
-        let lm_ots_public_key = crate::lm_ots::generate_public_key(&private_key.key[i].unwrap());
-        hasher.update(&lm_ots_public_key.key);
-
-        let mut temp = hasher.finalize_reset();
-
-        hash_tree[r] = temp;
-
-        let mut j = i;
-
-        while j % 2 == 1 {
-            r = (r - 1) / 2;
-            j = (j - 1) / 2;
-
-            let left_side = hash_tree[j];
-
-            hasher.update(&private_key.I);
-            hasher.update(&u32str(r as u32));
-            hasher.update(&D_INTR);
-            hasher.update(&left_side);
-            hasher.update(&temp);
-
-            temp = hasher.finalize_reset();
-            hash_tree[r] = temp;
-        }
-        // hash_tree[]
+    for (index, temp_hash) in temp_hash_tree.iter().enumerate() {
+        hash_tree[index] = temp_hash.unwrap_or([0u8; 32]);
     }
-
-    let public_key = hash_tree[1];
 
     LmsPublicKey::new(
         public_key,

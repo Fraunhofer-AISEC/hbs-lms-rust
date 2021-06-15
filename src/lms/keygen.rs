@@ -26,7 +26,7 @@ pub fn generate_private_key(
 }
 
 fn rec_fill(
-    tree: &mut [Option<[u8; 32]>; 64],
+    tree: &mut [Option<[u8; 32]>; MAX_TREE_ELEMENTS + 1],
     r: usize,
     max_private_keys: usize,
     private_key: &LmsPrivateKey,

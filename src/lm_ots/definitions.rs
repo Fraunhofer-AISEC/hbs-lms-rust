@@ -34,6 +34,7 @@ impl LmotsAlgorithmType {
 
 pub type IType = [u8; 16];
 pub type QType = [u8; 4];
+pub type Seed = [u8; 32];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LmotsAlgorithmParameter {

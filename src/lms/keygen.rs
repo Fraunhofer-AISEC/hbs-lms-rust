@@ -1,10 +1,10 @@
 use crate::definitions::D_INTR;
 use crate::definitions::D_LEAF;
-use crate::definitions::MAX_LEAFS;
 use crate::definitions::MAX_M;
 use crate::definitions::MAX_TREE_ELEMENTS;
 use crate::lm_ots::definitions::IType;
 use crate::lm_ots::definitions::LmotsAlgorithmType;
+use crate::lm_ots::definitions::Seed;
 use crate::lms::definitions::LmsAlgorithmType;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
@@ -16,21 +16,13 @@ pub fn generate_private_key(
     lms_type: LmsAlgorithmType,
     lmots_type: LmotsAlgorithmType,
 ) -> LmsPrivateKey {
-    let parameters = lms_type.get_parameter();
-
     let mut i: IType = [0u8; 16];
     crate::util::random::get_random(&mut i);
 
-    let max_private_keys = 2_u32.pow(parameters.h.into());
+    let mut seed: Seed = [0u8; 32];
+    crate::util::random::get_random(&mut seed);
 
-    let mut private_keys = [None; MAX_LEAFS];
-
-    for q in 0..max_private_keys {
-        let new_lmots_private_key = crate::lm_ots::generate_private_key(u32str(q), i, lmots_type);
-        private_keys[q as usize] = Some(new_lmots_private_key);
-    }
-
-    LmsPrivateKey::new(lms_type, lmots_type, private_keys, i)
+    LmsPrivateKey::new(lms_type, lmots_type, seed, i)
 }
 
 fn rec_fill(
@@ -50,8 +42,13 @@ fn rec_fill(
 
     if r >= max_private_keys {
         hasher.update(&D_LEAF);
-        let lm_ots_public_key =
-            crate::lm_ots::generate_public_key(&private_key.key[r - max_private_keys].unwrap());
+        let lms_ots_private_key = crate::lm_ots::generate_private_key(
+            u32str((r - max_private_keys) as u32),
+            private_key.I,
+            private_key.seed,
+            private_key.lm_ots_type,
+        );
+        let lm_ots_public_key = crate::lm_ots::generate_public_key(&lms_ots_private_key);
         hasher.update(&lm_ots_public_key.key);
 
         let temp = hasher.finalize();
@@ -85,7 +82,7 @@ fn rec_fill(
 
 pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
     let lms_parameter = private_key.lms_type.get_parameter();
-    let num_lmots_keys = private_key.key.len();
+    let num_lmots_keys = private_key.lms_type.get_parameter().number_of_lm_ots_keys();
 
     // num_lmots_keys must be a power of two
     assert!(is_power_of_two(num_lmots_keys));

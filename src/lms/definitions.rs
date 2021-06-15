@@ -1,7 +1,8 @@
-use crate::definitions::{MAX_LEAFS, MAX_M, MAX_N, MAX_P, MAX_TREE_ELEMENTS};
-use crate::lm_ots::definitions::IType;
+use crate::definitions::{MAX_M, MAX_N, MAX_PRIV_KEY_LENGTH, MAX_TREE_ELEMENTS};
+use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
+use crate::lm_ots::definitions::{IType, Seed};
 use crate::util::hash::Hasher;
 use crate::util::hash::Sha256Hasher;
 use crate::util::helper::{copy_and_advance, read_and_advance};
@@ -89,9 +90,9 @@ impl LmsAlgorithmParameter {
 pub struct LmsPrivateKey {
     pub lms_type: LmsAlgorithmType,
     pub lm_ots_type: LmotsAlgorithmType,
-    pub key: [Option<LmotsPrivateKey>; MAX_LEAFS], // TODO: Need a dynamic solution; 2^25 (max number of leafs)
     pub I: IType,
     pub q: u32,
+    pub seed: Seed,
 }
 
 #[allow(non_snake_case)]
@@ -99,29 +100,30 @@ impl LmsPrivateKey {
     pub fn new(
         lms_type: LmsAlgorithmType,
         lmots_type: LmotsAlgorithmType,
-        key: [Option<LmotsPrivateKey>; MAX_LEAFS],
+        seed: Seed,
         I: IType,
     ) -> Self {
         LmsPrivateKey {
             lms_type,
             lm_ots_type: lmots_type,
-            key,
+            seed,
             I,
             q: 0,
         }
     }
 
     pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey, &'static str> {
-        if self.q as usize >= self.key.len() {
+        if self.q as usize >= self.lms_type.get_parameter().number_of_lm_ots_keys() {
             return Err("All private keys already used.");
         }
         self.q += 1;
-        let key = self.key[self.q as usize - 1].expect("Key must be present.");
+        let key =
+            lm_ots::generate_private_key(u32str(self.q - 1), self.I, self.seed, self.lm_ots_type);
         Ok(key)
     }
 
-    pub fn to_binary_representation(&self) -> [u8; 4 + 4 + 16 + 4 + ((MAX_N * MAX_P) * MAX_LEAFS)] {
-        let mut result = [0u8; 4 + 4 + 16 + 4 + ((MAX_N * MAX_P) * MAX_LEAFS)];
+    pub fn to_binary_representation(&self) -> [u8; MAX_PRIV_KEY_LENGTH] {
+        let mut result = [0u8; MAX_PRIV_KEY_LENGTH];
 
         let mut array_index = 0;
 
@@ -134,18 +136,7 @@ impl LmsPrivateKey {
         );
         copy_and_advance(&self.I, &mut result, &mut array_index);
         copy_and_advance(&u32str(self.q), &mut result, &mut array_index);
-
-        for key in self.key.iter() {
-            if key.is_none() {
-                break;
-            }
-            let key = key.unwrap();
-            let flat_data = key.get_flat_key();
-            for byte in flat_data {
-                result[array_index] = *byte;
-                array_index += 1;
-            }
-        }
+        copy_and_advance(&self.seed, &mut result, &mut array_index);
 
         result
     }
@@ -161,8 +152,6 @@ impl LmsPrivateKey {
             Some(x) => x,
         };
 
-        let lms_parameter = lms_type.get_parameter();
-
         let lm_ots_type = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
@@ -171,8 +160,6 @@ impl LmsPrivateKey {
             Some(x) => x,
         };
 
-        let lm_ots_parameter = lm_ots_type.get_parameter();
-
         let mut initial: IType = [0u8; 16];
         initial.copy_from_slice(&consumed_data[..16]);
         consumed_data = &consumed_data[16..];
@@ -180,37 +167,14 @@ impl LmsPrivateKey {
         let q = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        let mut keys = [None; MAX_LEAFS];
-
-        for (current_key_index, private_key) in keys
-            .iter_mut()
-            .enumerate()
-            .take(lms_parameter.number_of_lm_ots_keys())
-        {
-            let mut current_key_data = [[0u8; MAX_N]; MAX_P];
-
-            for current_p in 0..lm_ots_parameter.p {
-                let mut x = [0u8; MAX_N];
-                x.copy_from_slice(&consumed_data[..lm_ots_parameter.n as usize]);
-                consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
-
-                current_key_data[current_p as usize] = x;
-            }
-
-            // Append key
-            let lmots_private_key = LmotsPrivateKey::new(
-                initial,
-                u32str(current_key_index as u32),
-                lm_ots_parameter,
-                current_key_data,
-            );
-            *private_key = Some(lmots_private_key);
-        }
+        let mut seed: Seed = [0u8; 32];
+        seed.copy_from_slice(&consumed_data[..32]);
+        // consumed_data = &consumed_data[32..];
 
         let key = LmsPrivateKey {
             lms_type,
             lm_ots_type,
-            key: keys,
+            seed,
             I: initial,
             q,
         };

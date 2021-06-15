@@ -1,5 +1,5 @@
 use crate::{
-    definitions::{MAX_H, MAX_LEAFS, MAX_M, MAX_N, MAX_P},
+    definitions::{MAX_H, MAX_M, MAX_N, MAX_P, MAX_PRIV_KEY_LENGTH},
     lms,
     util::{
         helper::copy_and_advance,
@@ -10,11 +10,11 @@ use crate::{
 
 pub struct HssBinaryData {
     pub public_key: [u8; 4 + 4 + 4 + 16 + MAX_M],
-    pub private_key: [u8; 4 + 4 + 16 + 4 + ((MAX_N * MAX_P) * MAX_LEAFS)],
+    pub private_key: [u8; MAX_PRIV_KEY_LENGTH],
 }
 
 pub struct HssSignResult {
-    pub advanced_private_key: [u8; 4 + 4 + 16 + 4 + ((MAX_N * MAX_P) * MAX_LEAFS)],
+    pub advanced_private_key: [u8; MAX_PRIV_KEY_LENGTH],
     pub signature: [u8; 4 + 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H)],
 }
 

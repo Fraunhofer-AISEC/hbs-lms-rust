@@ -2,16 +2,28 @@ use super::definitions::*;
 use crate::util::hash::Hasher;
 use crate::{
     definitions::{D_PBLC, MAX_N, MAX_P},
-    util::random::*,
     util::ustr::*,
 };
 
-pub fn generate_private_key(i: IType, q: QType, _type: LmotsAlgorithmType) -> LmotsPrivateKey {
+pub fn generate_private_key(
+    i: IType,
+    q: QType,
+    seed: Seed,
+    _type: LmotsAlgorithmType,
+) -> LmotsPrivateKey {
     let parameter = _type.get_parameter();
     let mut key = [[0u8; MAX_N]; MAX_P];
 
-    for item in key.iter_mut() {
-        get_random(item);
+    let mut hasher = parameter.get_hasher();
+
+    for (index, item) in key.iter_mut().enumerate() {
+        hasher.update(&i);
+        hasher.update(&q);
+        hasher.update(&u16str(index as u16));
+        hasher.update(&[0xff]);
+        hasher.update(&seed);
+
+        *item = hasher.finalize_reset();
     }
 
     LmotsPrivateKey::new(i, q, parameter, key)

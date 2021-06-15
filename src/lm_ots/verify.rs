@@ -102,10 +102,10 @@ mod tests {
         };
     }
 
-    generate_test!(
-        lmots_sha256_n32_w1_verify_test,
-        crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W1
-    );
+    // generate_test!(
+    //     lmots_sha256_n32_w1_verify_test,
+    //     crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W1
+    // );
     generate_test!(
         lmots_sha256_n32_w2_verify_test,
         crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W2

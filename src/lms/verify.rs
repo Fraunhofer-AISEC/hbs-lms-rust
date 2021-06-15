@@ -98,7 +98,7 @@ mod tests {
     fn test_verification() {
         let mut private_key = generate_private_key(
             crate::lms::definitions::LmsAlgorithmType::LmsSha256M32H5,
-            crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W1,
+            crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W2,
         );
         let public_key = generate_public_key(&private_key);
 

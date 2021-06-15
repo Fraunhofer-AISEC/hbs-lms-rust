@@ -120,13 +120,13 @@ impl LmsPrivateKey {
         Ok(key)
     }
 
-    pub fn to_binary_representation(&self) -> [u8; 4 + 4 + 16 + 4 + ((MAX_N * MAX_P) * 33554432)] {
-        let mut result = [0u8; 4 + 4 + 16 + 4 + ((MAX_N * MAX_P) * 33554432)];
+    pub fn to_binary_representation(&self) -> [u8; 4 + 4 + 16 + 4 + ((MAX_N * MAX_P) * MAX_LEAFS)] {
+        let mut result = [0u8; 4 + 4 + 16 + 4 + ((MAX_N * MAX_P) * MAX_LEAFS)];
 
         let mut array_index = 0;
 
         copy_and_advance(&u32str(self.lms_type as u32), &mut result, &mut array_index);
-        copy_and_advance(&u32str(self.lms_type as u32), &mut result, &mut array_index);
+
         copy_and_advance(
             &u32str(self.lm_ots_type as u32),
             &mut result,
@@ -135,14 +135,15 @@ impl LmsPrivateKey {
         copy_and_advance(&self.I, &mut result, &mut array_index);
         copy_and_advance(&u32str(self.q), &mut result, &mut array_index);
 
-        for (index, key) in self.key.iter().enumerate() {
+        for key in self.key.iter() {
             if key.is_none() {
                 break;
             }
             let key = key.unwrap();
             let flat_data = key.get_flat_key();
-            for (byte_index, byte) in flat_data.enumerate() {
-                result[array_index + index + byte_index] = *byte;
+            for byte in flat_data {
+                result[array_index] = *byte;
+                array_index += 1;
             }
         }
 
@@ -179,7 +180,7 @@ impl LmsPrivateKey {
         let q = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        let mut keys = [None; 33554432];
+        let mut keys = [None; MAX_LEAFS];
 
         for (current_key_index, private_key) in keys
             .iter_mut()
@@ -319,7 +320,7 @@ mod tests {
 
     #[test]
     fn test_private_key_binary_representation() {
-        let lms_type = crate::LmsAlgorithmType::LmsSha256M32H10;
+        let lms_type = crate::LmsAlgorithmType::LmsSha256M32H5;
         let lmots_type = crate::LmotsAlgorithmType::LmotsSha256N32W2;
 
         let private_key = generate_private_key(lms_type, lmots_type);

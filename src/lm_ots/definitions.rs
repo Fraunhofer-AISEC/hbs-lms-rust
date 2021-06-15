@@ -181,14 +181,14 @@ mod tests {
         };
     }
 
-    generate_parameter_test!(
-        lmots_sha256_n32_w1_parameter_test,
-        LmotsAlgorithmType::LmotsSha256N32W1,
-        32,
-        1,
-        265,
-        7
-    );
+    // generate_parameter_test!(
+    //     lmots_sha256_n32_w1_parameter_test,
+    //     LmotsAlgorithmType::LmotsSha256N32W1,
+    //     32,
+    //     1,
+    //     265,
+    //     7
+    // );
     generate_parameter_test!(
         lmots_sha256_n32_w2_parameter_test,
         LmotsAlgorithmType::LmotsSha256N32W2,

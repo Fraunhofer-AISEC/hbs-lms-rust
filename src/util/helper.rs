@@ -8,7 +8,7 @@ pub fn is_odd(x: usize) -> bool {
 }
 
 pub fn copy_and_advance(src: &[u8], dst: &mut [u8], index: &mut usize) {
-    dst[*index..src.len()].copy_from_slice(src);
+    dst[*index..*index + src.len()].copy_from_slice(src);
     *index += src.len();
 }
 

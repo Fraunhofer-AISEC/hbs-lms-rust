@@ -3,6 +3,7 @@ use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::definitions::{IType, Seed};
+use crate::util::dynamic_array::DynamicArray;
 use crate::util::hash::Hasher;
 use crate::util::hash::Sha256Hasher;
 use crate::util::helper::{copy_and_advance, read_and_advance};
@@ -122,7 +123,7 @@ impl LmsPrivateKey {
         Ok(key)
     }
 
-    pub fn to_binary_representation(&self) -> [u8; MAX_PRIV_KEY_LENGTH] {
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_PRIV_KEY_LENGTH> {
         let mut result = [0u8; MAX_PRIV_KEY_LENGTH];
 
         let mut array_index = 0;
@@ -138,7 +139,7 @@ impl LmsPrivateKey {
         copy_and_advance(&u32str(self.q), &mut result, &mut array_index);
         copy_and_advance(&self.seed, &mut result, &mut array_index);
 
-        result
+        DynamicArray::new(result, MAX_PRIV_KEY_LENGTH)
     }
 
     pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
@@ -187,16 +188,16 @@ impl LmsPrivateKey {
 pub struct LmsPublicKey {
     pub lm_ots_type: LmotsAlgorithmType,
     pub lms_type: LmsAlgorithmType,
-    pub key: [u8; MAX_M],
-    pub tree: Option<[[u8; MAX_N]; MAX_TREE_ELEMENTS + 1]>, // 2^(max_height) - 1
+    pub key: DynamicArray<u8, MAX_M>,
+    pub tree: Option<DynamicArray<DynamicArray<u8, MAX_N>, {MAX_TREE_ELEMENTS + 1}>>, // 2^(max_height) - 1
     pub I: IType,
 }
 
 #[allow(non_snake_case)]
 impl LmsPublicKey {
     pub fn new(
-        public_key: [u8; MAX_M],
-        tree: [[u8; MAX_N]; MAX_TREE_ELEMENTS + 1],
+        public_key: DynamicArray<u8, MAX_M>,
+        tree: DynamicArray<DynamicArray<u8, MAX_N>, {MAX_TREE_ELEMENTS + 1}>,
         lm_ots_type: LmotsAlgorithmType,
         lms_type: LmsAlgorithmType,
         I: IType,
@@ -210,7 +211,7 @@ impl LmsPublicKey {
         }
     }
 
-    pub fn to_binary_representation(&self) -> [u8; 4 + 4 + 16 + MAX_M] {
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, {4 + 4 + 16 + MAX_M}> {
         let mut result = [0u8; 4 + 4 + 16 + MAX_M];
 
         let mut array_index = 0;
@@ -222,9 +223,9 @@ impl LmsPublicKey {
             &mut array_index,
         );
         copy_and_advance(&self.I, &mut result, &mut array_index);
-        copy_and_advance(&self.key, &mut result, &mut array_index);
+        copy_and_advance(&self.key.get_slice(), &mut result, &mut array_index);
 
-        result
+        DynamicArray::new(result, array_index)
     }
 
     pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
@@ -264,6 +265,8 @@ impl LmsPublicKey {
             key[i as usize] = data[data_index + i as usize];
         }
 
+        let key = DynamicArray::new(key, lm_parameter.m as usize);
+
         let public_key = LmsPublicKey {
             lms_type,
             lm_ots_type,
@@ -290,7 +293,7 @@ mod tests {
         let private_key = generate_private_key(lms_type, lmots_type);
 
         let serialized = private_key.to_binary_representation();
-        let deserialized = LmsPrivateKey::from_binary_representation(&serialized).unwrap();
+        let deserialized = LmsPrivateKey::from_binary_representation(&serialized.get_slice()).unwrap();
 
         assert!(private_key == deserialized);
     }

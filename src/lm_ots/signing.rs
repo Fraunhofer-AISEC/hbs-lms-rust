@@ -60,7 +60,7 @@ impl LmotsSignature {
         }
     }
 
-    pub fn to_binary_representation(&self) -> [u8; 4 + MAX_N + (MAX_N * MAX_P)] {
+    pub fn to_binary_representation(&self) -> ([u8; 4 + MAX_N + (MAX_N * MAX_P)], usize) {
         let mut result = [0u8; 4 + MAX_N + (MAX_N * MAX_P)];
 
         let mut array_index = 0;
@@ -79,7 +79,7 @@ impl LmotsSignature {
             array_index += 1;
         }
 
-        result
+        (result, array_index)
     }
 
     #[allow(non_snake_case)]

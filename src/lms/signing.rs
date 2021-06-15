@@ -68,8 +68,11 @@ impl LmsSignature {
 
         copy_and_advance(&self.q, &mut result, &mut array_index);
 
-        let lmots_signature = self.lmots_signature.to_binary_representation();
-        copy_and_advance(&lmots_signature, &mut result, &mut array_index);
+        let (lmots_signature, lmots_signature_length) =
+            self.lmots_signature.to_binary_representation();
+
+        let lmots_signature = &lmots_signature[..lmots_signature_length];
+        copy_and_advance(lmots_signature, &mut result, &mut array_index);
 
         copy_and_advance(
             &u32str(self.lms_parameter._type as u32),

@@ -92,18 +92,16 @@ mod tests {
             LmotsAlgorithmType::LmotsSha256N32W2,
         );
 
-        let message = String::from("This is message will be signed soon!");
-        let message_bytes = message.as_bytes();
+        let mut message = [32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0];
 
-        let signature = hss_sign(message_bytes, &keys.private_key)
+        let signature = hss_sign(&message, &keys.private_key)
             .expect("Signing should complete without error.")
             .signature;
 
-        assert!(hss_verify(message_bytes, &signature, &keys.public_key));
+        assert!(hss_verify(&message, &signature, &keys.public_key));
 
-        let wrong_message = String::from("this is message will be signed soon!");
-        let wrong_message_bytes = wrong_message.as_bytes();
+        message[0] = 33;
 
-        assert!(hss_verify(wrong_message_bytes, &signature, &keys.public_key) == false);
+        assert!(hss_verify(&message, &signature, &keys.public_key) == false);
     }
 }

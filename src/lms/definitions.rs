@@ -1,9 +1,7 @@
 use crate::lm_ots::definitions::IType;
 use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
-use crate::util::hash::Hasher;
 use crate::util::hash::Sha256Hasher;
-use crate::util::helper::insert;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 
@@ -67,15 +65,17 @@ impl LmsAlgorithmParameter {
         LmsAlgorithmParameter { h, m, _type }
     }
 
-    pub fn get_hasher(&self) -> Box<dyn Hasher> {
-        match self._type {
-            LmsAlgorithmType::LmsReserved => panic!("Reserved parameter."),
-            LmsAlgorithmType::LmsSha256M32H5 => Box::new(Sha256Hasher::new()),
-            LmsAlgorithmType::LmsSha256M32H10 => Box::new(Sha256Hasher::new()),
-            LmsAlgorithmType::LmsSha256M32H15 => Box::new(Sha256Hasher::new()),
-            LmsAlgorithmType::LmsSha256M32H20 => Box::new(Sha256Hasher::new()),
-            LmsAlgorithmType::LmsSha256M32H25 => Box::new(Sha256Hasher::new()),
-        }
+    // TODO: Make dynamic again
+    pub fn get_hasher(&self) -> Sha256Hasher {
+        Sha256Hasher::new()
+        // match self._type {
+        //     LmsAlgorithmType::LmsReserved => panic!("Reserved parameter."),
+        //     LmsAlgorithmType::LmsSha256M32H5 => Box::new(Sha256Hasher::new()),
+        //     LmsAlgorithmType::LmsSha256M32H10 => Box::new(Sha256Hasher::new()),
+        //     LmsAlgorithmType::LmsSha256M32H15 => Box::new(Sha256Hasher::new()),
+        //     LmsAlgorithmType::LmsSha256M32H20 => Box::new(Sha256Hasher::new()),
+        //     LmsAlgorithmType::LmsSha256M32H25 => Box::new(Sha256Hasher::new()),
+        // }
     }
 
     pub fn number_of_lm_ots_keys(&self) -> usize {
@@ -88,7 +88,7 @@ impl LmsAlgorithmParameter {
 pub struct LmsPrivateKey {
     pub lms_type: LmsAlgorithmType,
     pub lm_ots_type: LmotsAlgorithmType,
-    pub key: Vec<LmotsPrivateKey>,
+    pub key: [Option<LmotsPrivateKey>; 33554432], // TODO: Need a dynamic solution; 2^25 (max number of leafs)
     pub I: IType,
     pub q: u32,
 }
@@ -98,13 +98,13 @@ impl LmsPrivateKey {
     pub fn new(
         lms_type: LmsAlgorithmType,
         lmots_type: LmotsAlgorithmType,
-        key: Vec<LmotsPrivateKey>,
+        key: &[LmotsPrivateKey],
         I: IType,
     ) -> Self {
         LmsPrivateKey {
             lms_type,
             lm_ots_type: lmots_type,
-            key,
+            key: keys,
             I,
             q: 0,
         }

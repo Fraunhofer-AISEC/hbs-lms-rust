@@ -28,7 +28,7 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
     let mut y = [[0u8; MAX_N]; MAX_P];
 
     for i in 0..parameter.p as usize {
-        let mut tmp = key[i].clone();
+        let mut tmp = key[i];
 
         for j in 0..max_word_index {
             hasher.update(&private_key.I);

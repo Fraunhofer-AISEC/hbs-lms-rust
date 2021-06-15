@@ -102,21 +102,19 @@ impl LmotsAlgorithmParameter {
         result
     }
 
-    // TODO: Make it dynamic again
-    pub fn get_hasher(&self) -> Sha256Hasher {
-        Sha256Hasher::new()
-        // match self._type {
-        //     LmotsAlgorithmType::LmotsReserved => panic!("Reserved parameter type."),
-        //     LmotsAlgorithmType::LmotsSha256N32W1 => Box::new(Sha256Hasher::new()),
-        //     LmotsAlgorithmType::LmotsSha256N32W2 => Box::new(Sha256Hasher::new()),
-        //     LmotsAlgorithmType::LmotsSha256N32W4 => Box::new(Sha256Hasher::new()),
-        //     LmotsAlgorithmType::LmotsSha256N32W8 => Box::new(Sha256Hasher::new()),
-        // }
+    pub fn get_hasher(&self) -> impl Hasher {
+        match self._type {
+            LmotsAlgorithmType::LmotsReserved => panic!("Reserved parameter type."),
+            LmotsAlgorithmType::LmotsSha256N32W1 => Sha256Hasher::new(),
+            LmotsAlgorithmType::LmotsSha256N32W2 => Sha256Hasher::new(),
+            LmotsAlgorithmType::LmotsSha256N32W4 => Sha256Hasher::new(),
+            LmotsAlgorithmType::LmotsSha256N32W8 => Sha256Hasher::new(),
+        }
     }
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct LmotsPrivateKey {
     pub parameter: LmotsAlgorithmParameter,
     pub I: IType,

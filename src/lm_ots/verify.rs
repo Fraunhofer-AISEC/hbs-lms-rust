@@ -40,13 +40,13 @@ pub fn generate_public_key_canditate(
     hasher.update(message);
 
     let Q = hasher.finalize_reset();
-    let mut Q_and_checksum = signature.parameter.get_appended_with_checksum(&Q);
+    let Q_and_checksum = signature.parameter.get_appended_with_checksum(&Q);
 
     let mut z = [[0u8; MAX_N]; MAX_P];
 
     for i in 0..signature.parameter.p {
         let a = coef(&Q_and_checksum, i as u64, signature.parameter.w as u64);
-        let mut tmp = signature.y[i as usize].clone();
+        let mut tmp = signature.y[i as usize];
         let max_w = 2u64.pow(signature.parameter.w as u32) - 1;
 
         for j in a..max_w {

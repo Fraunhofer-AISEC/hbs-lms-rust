@@ -1,10 +1,14 @@
+use crate::definitions::MAX_H;
+use crate::definitions::MAX_M;
+use crate::definitions::MAX_N;
+use crate::definitions::MAX_P;
 use crate::lm_ots;
 use crate::lm_ots::definitions::QType;
 use crate::lm_ots::signing::LmotsSignature;
 use crate::lms::definitions::LmsAlgorithmParameter;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
-use crate::util::helper::insert;
+use crate::util::helper::copy_and_advance;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 use crate::LmotsAlgorithmType;
@@ -14,7 +18,7 @@ pub struct LmsSignature {
     pub lms_parameter: LmsAlgorithmParameter,
     pub q: QType,
     pub lmots_signature: LmotsSignature,
-    pub path: Vec<Vec<u8>>,
+    pub path: [[u8; MAX_M]; MAX_H], // Per Height one path?? TODO: Check again
 }
 
 impl LmsSignature {
@@ -31,17 +35,17 @@ impl LmsSignature {
             .as_ref()
             .expect("TODO: Precomputed tree must be available at signing.");
 
-        let ots_signature = LmotsSignature::sign(lm_ots_private_key, message);
+        let ots_signature = LmotsSignature::sign(&lm_ots_private_key, message);
 
         let h = lms_parameter.h;
         let mut i = 0usize;
         let r = 2usize.pow(h as u32) + str32u(&lm_ots_private_key.q) as usize;
 
-        let mut path: Vec<Vec<u8>> = Vec::new();
+        let mut path = [[0u8; MAX_M]; MAX_H];
 
         while i < h.into() {
             let temp = (r / (2usize.pow(i as u32))) ^ 0x1;
-            path.push(tree[temp].clone());
+            path[i] = tree[temp];
             i += 1;
         }
 
@@ -55,31 +59,41 @@ impl LmsSignature {
         Ok(signature)
     }
 
-    pub fn to_binary_representation(&self) -> Vec<u8> {
-        let mut result = Vec::new();
+    pub fn to_binary_representation(
+        &self,
+    ) -> [u8; 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H)] {
+        let mut result = [0u8; 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H)];
 
-        insert(&self.q, &mut result);
+        let mut array_index = 0;
+
+        copy_and_advance(&self.q, &mut result, &mut array_index);
 
         let lmots_signature = self.lmots_signature.to_binary_representation();
-        insert(&lmots_signature, &mut result);
+        copy_and_advance(&lmots_signature, &mut result, &mut array_index);
 
-        insert(&u32str(self.lms_parameter._type as u32), &mut result);
+        copy_and_advance(
+            &u32str(self.lms_parameter._type as u32),
+            &mut result,
+            &mut array_index,
+        );
 
-        let flattened_path: Vec<u8> = self.path.iter().flatten().copied().collect::<Vec<_>>();
+        let flattened_path = self.path.iter().flatten();
 
-        insert(&flattened_path, &mut result);
+        for path_byte in flattened_path {
+            result[array_index] = *path_byte;
+            array_index += 1;
+        }
 
         result
     }
 
-    pub fn from_binary_representation(data: Vec<u8>) -> Option<Self> {
+    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
         // Parsing like 5.4.2 Algorithm 6a
 
         if data.len() < 8 {
             return None;
         }
 
-        let data = data.as_slice();
         let mut consumed_data = data;
 
         let q = str32u(&consumed_data[..4]);
@@ -135,12 +149,12 @@ impl LmsSignature {
 
         tree_slice = &tree_slice[tree_start..];
 
-        let mut trees: Vec<Vec<u8>> = Vec::new();
+        let mut trees = [[0u8; MAX_M]; MAX_H];
 
-        for _ in 0..lms_parameter.h {
-            let mut path = vec![0u8; lms_parameter.m as usize];
+        for i in 0..lms_parameter.h {
+            let mut path = [0u8; MAX_M];
             path.copy_from_slice(&tree_slice[..lms_parameter.m as usize]);
-            trees.push(path);
+            trees[i as usize] = path;
 
             tree_slice = &tree_slice[lms_parameter.m as usize..];
         }

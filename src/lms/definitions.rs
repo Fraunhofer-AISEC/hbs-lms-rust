@@ -1,7 +1,10 @@
+use crate::definitions::{MAX_LEAFS, MAX_M, MAX_N, MAX_P, MAX_TREE_ELEMENTS};
 use crate::lm_ots::definitions::IType;
 use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
+use crate::util::hash::Hasher;
 use crate::util::hash::Sha256Hasher;
+use crate::util::helper::{copy_and_advance, read_and_advance};
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 
@@ -65,17 +68,15 @@ impl LmsAlgorithmParameter {
         LmsAlgorithmParameter { h, m, _type }
     }
 
-    // TODO: Make dynamic again
-    pub fn get_hasher(&self) -> Sha256Hasher {
-        Sha256Hasher::new()
-        // match self._type {
-        //     LmsAlgorithmType::LmsReserved => panic!("Reserved parameter."),
-        //     LmsAlgorithmType::LmsSha256M32H5 => Box::new(Sha256Hasher::new()),
-        //     LmsAlgorithmType::LmsSha256M32H10 => Box::new(Sha256Hasher::new()),
-        //     LmsAlgorithmType::LmsSha256M32H15 => Box::new(Sha256Hasher::new()),
-        //     LmsAlgorithmType::LmsSha256M32H20 => Box::new(Sha256Hasher::new()),
-        //     LmsAlgorithmType::LmsSha256M32H25 => Box::new(Sha256Hasher::new()),
-        // }
+    pub fn get_hasher(&self) -> impl Hasher {
+        match self._type {
+            LmsAlgorithmType::LmsReserved => panic!("Reserved parameter."),
+            LmsAlgorithmType::LmsSha256M32H5 => Sha256Hasher::new(),
+            LmsAlgorithmType::LmsSha256M32H10 => Sha256Hasher::new(),
+            LmsAlgorithmType::LmsSha256M32H15 => Sha256Hasher::new(),
+            LmsAlgorithmType::LmsSha256M32H20 => Sha256Hasher::new(),
+            LmsAlgorithmType::LmsSha256M32H25 => Sha256Hasher::new(),
+        }
     }
 
     pub fn number_of_lm_ots_keys(&self) -> usize {
@@ -88,7 +89,7 @@ impl LmsAlgorithmParameter {
 pub struct LmsPrivateKey {
     pub lms_type: LmsAlgorithmType,
     pub lm_ots_type: LmotsAlgorithmType,
-    pub key: [Option<LmotsPrivateKey>; 33554432], // TODO: Need a dynamic solution; 2^25 (max number of leafs)
+    pub key: [Option<LmotsPrivateKey>; MAX_LEAFS], // TODO: Need a dynamic solution; 2^25 (max number of leafs)
     pub I: IType,
     pub q: u32,
 }
@@ -98,42 +99,52 @@ impl LmsPrivateKey {
     pub fn new(
         lms_type: LmsAlgorithmType,
         lmots_type: LmotsAlgorithmType,
-        key: &[LmotsPrivateKey],
+        key: [Option<LmotsPrivateKey>; MAX_LEAFS],
         I: IType,
     ) -> Self {
         LmsPrivateKey {
             lms_type,
             lm_ots_type: lmots_type,
-            key: keys,
+            key,
             I,
             q: 0,
         }
     }
 
-    pub fn use_lmots_private_key(&mut self) -> Result<&LmotsPrivateKey, &'static str> {
+    pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey, &'static str> {
         if self.q as usize >= self.key.len() {
             return Err("All private keys already used.");
         }
         self.q += 1;
-        Ok(&self.key[self.q as usize - 1])
+        let key = self.key[self.q as usize - 1].expect("Key must be present.");
+        Ok(key)
     }
 
-    pub fn to_binary_representation(&self) -> Vec<u8> {
-        let mut result = Vec::new();
+    pub fn to_binary_representation(&self) -> [u8; 4 + 4 + 16 + 4 + ((MAX_N * MAX_P) * 33554432)] {
+        let mut result = [0u8; 4 + 4 + 16 + 4 + ((MAX_N * MAX_P) * 33554432)];
 
-        insert(&u32str(self.lms_type as u32), &mut result);
-        insert(&u32str(self.lm_ots_type as u32), &mut result);
-        insert(&self.I, &mut result);
-        insert(&u32str(self.q), &mut result);
+        let mut array_index = 0;
 
-        let keys = self
-            .key
-            .iter()
-            .map(|key| key.get_flat_key())
-            .flatten()
-            .collect::<Vec<u8>>();
+        copy_and_advance(&u32str(self.lms_type as u32), &mut result, &mut array_index);
+        copy_and_advance(&u32str(self.lms_type as u32), &mut result, &mut array_index);
+        copy_and_advance(
+            &u32str(self.lm_ots_type as u32),
+            &mut result,
+            &mut array_index,
+        );
+        copy_and_advance(&self.I, &mut result, &mut array_index);
+        copy_and_advance(&u32str(self.q), &mut result, &mut array_index);
 
-        insert(&keys, &mut result);
+        for (index, key) in self.key.iter().enumerate() {
+            if key.is_none() {
+                break;
+            }
+            let key = key.unwrap();
+            let flat_data = key.get_flat_key();
+            for (byte_index, byte) in flat_data.enumerate() {
+                result[array_index + index + byte_index] = *byte;
+            }
+        }
 
         result
     }
@@ -168,22 +179,31 @@ impl LmsPrivateKey {
         let q = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        let mut keys: Vec<LmotsPrivateKey> = Vec::new();
+        let mut keys = [None; 33554432];
 
-        for i in 0..lms_parameter.number_of_lm_ots_keys() {
-            let mut current_key: Vec<Vec<u8>> = Vec::new();
+        for (current_key_index, private_key) in keys
+            .iter_mut()
+            .enumerate()
+            .take(lms_parameter.number_of_lm_ots_keys())
+        {
+            let mut current_key_data = [[0u8; MAX_N]; MAX_P];
 
-            for _ in 0..lm_ots_parameter.p {
-                let mut x: Vec<u8> = vec![0u8; lm_ots_parameter.n as usize];
+            for current_p in 0..lm_ots_parameter.p {
+                let mut x = [0u8; MAX_N];
                 x.copy_from_slice(&consumed_data[..lm_ots_parameter.n as usize]);
                 consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
-                current_key.push(x);
+
+                current_key_data[current_p as usize] = x;
             }
 
             // Append key
-            let lmots_private_key =
-                LmotsPrivateKey::new(initial, u32str(i as u32), lm_ots_parameter, current_key);
-            keys.push(lmots_private_key);
+            let lmots_private_key = LmotsPrivateKey::new(
+                initial,
+                u32str(current_key_index as u32),
+                lm_ots_parameter,
+                current_key_data,
+            );
+            *private_key = Some(lmots_private_key);
         }
 
         let key = LmsPrivateKey {
@@ -202,16 +222,16 @@ impl LmsPrivateKey {
 pub struct LmsPublicKey {
     pub lm_ots_type: LmotsAlgorithmType,
     pub lms_type: LmsAlgorithmType,
-    pub key: Vec<u8>,
-    pub tree: Option<Vec<Vec<u8>>>,
+    pub key: [u8; MAX_M],
+    pub tree: Option<[[u8; MAX_N]; MAX_TREE_ELEMENTS + 1]>, // 2^(max_height) - 1
     pub I: IType,
 }
 
 #[allow(non_snake_case)]
 impl LmsPublicKey {
     pub fn new(
-        public_key: Vec<u8>,
-        tree: Vec<Vec<u8>>,
+        public_key: [u8; MAX_M],
+        tree: [[u8; MAX_N]; MAX_TREE_ELEMENTS + 1],
         lm_ots_type: LmotsAlgorithmType,
         lms_type: LmsAlgorithmType,
         I: IType,
@@ -225,18 +245,24 @@ impl LmsPublicKey {
         }
     }
 
-    pub fn to_binary_representation(&self) -> Vec<u8> {
-        let mut result = Vec::new();
+    pub fn to_binary_representation(&self) -> [u8; 4 + 4 + 16 + MAX_M] {
+        let mut result = [0u8; 4 + 4 + 16 + MAX_M];
 
-        insert(&u32str(self.lms_type as u32), &mut result);
-        insert(&u32str(self.lm_ots_type as u32), &mut result);
-        insert(&self.I, &mut result);
-        insert(&self.key, &mut result);
+        let mut array_index = 0;
+
+        copy_and_advance(&u32str(self.lms_type as u32), &mut result, &mut array_index);
+        copy_and_advance(
+            &u32str(self.lm_ots_type as u32),
+            &mut result,
+            &mut array_index,
+        );
+        copy_and_advance(&self.I, &mut result, &mut array_index);
+        copy_and_advance(&self.key, &mut result, &mut array_index);
 
         result
     }
 
-    pub fn from_binary_representation(data: Vec<u8>) -> Option<Self> {
+    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
         // Parsing like desribed in 5.4.2
         if data.len() < 8 {
             return None;
@@ -244,16 +270,14 @@ impl LmsPublicKey {
 
         let mut data_index = 0;
 
-        let pubtype = str32u(data[data_index..data_index + 4].try_into().unwrap());
-        data_index += 4;
+        let pubtype = str32u(read_and_advance(data, 4, &mut data_index));
 
         let lms_type = match LmsAlgorithmType::from_u32(pubtype) {
             None => return None,
             Some(x) => x,
         };
 
-        let ots_typecode = str32u(data[data_index..data_index + 4].try_into().unwrap());
-        data_index += 4;
+        let ots_typecode = str32u(read_and_advance(data, 4, &mut data_index));
 
         let lm_ots_type = match LmotsAlgorithmType::from_u32(ots_typecode) {
             None => return None,
@@ -267,13 +291,12 @@ impl LmsPublicKey {
         }
 
         let mut initial: IType = [0u8; 16];
-        initial.clone_from_slice(&data[data_index..data_index + 16]);
-        data_index += 16;
+        initial.clone_from_slice(read_and_advance(data, 16, &mut data_index));
 
-        let mut key: Vec<u8> = Vec::new();
+        let mut key = [0u8; MAX_M];
 
         for i in 0..lm_parameter.m {
-            key.push(data[data_index + i as usize]);
+            key[i as usize] = data[data_index + i as usize];
         }
 
         let public_key = LmsPublicKey {

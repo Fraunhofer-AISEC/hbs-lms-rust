@@ -1,11 +1,14 @@
 use crate::definitions::D_INTR;
 use crate::definitions::D_LEAF;
+use crate::definitions::MAX_LEAFS;
+use crate::definitions::MAX_M;
+use crate::definitions::MAX_TREE_ELEMENTS;
 use crate::lm_ots::definitions::IType;
 use crate::lm_ots::definitions::LmotsAlgorithmType;
-use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lms::definitions::LmsAlgorithmType;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
+use crate::util::hash::Hasher;
 use crate::util::helper::is_power_of_two;
 use crate::util::ustr::u32str;
 
@@ -20,12 +23,11 @@ pub fn generate_private_key(
 
     let max_private_keys = 2_u32.pow(parameters.h.into());
 
-    let mut private_keys: Vec<LmotsPrivateKey> = Vec::new();
+    let mut private_keys = [None; MAX_LEAFS];
 
     for q in 0..max_private_keys {
-        let q = u32str(q);
-        let new_lmots_private_key = crate::lm_ots::generate_private_key(q, i, lmots_type);
-        private_keys.push(new_lmots_private_key);
+        let new_lmots_private_key = crate::lm_ots::generate_private_key(u32str(q), i, lmots_type);
+        private_keys[q as usize] = Some(new_lmots_private_key);
     }
 
     LmsPrivateKey::new(lms_type, lmots_type, private_keys, i)
@@ -42,10 +44,9 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
 
     let mut hasher = lms_parameter.get_hasher();
 
-    let mut hash_tree: Vec<Vec<u8>> =
-        vec![vec![0u8; lms_parameter.m as usize]; 2_usize.pow((lms_parameter.h + 1).into())]; // Use index + 1 to start accessing at 1
+    let mut hash_tree = [[0u8; MAX_M]; MAX_TREE_ELEMENTS + 1]; // Use index + 1 to start accessing at 1
 
-    let mut hash_stack: Vec<Vec<u8>> = Vec::new();
+    // TODO: CHECK THIS IMPL AGAIN
 
     for i in 0..max_private_keys {
         let mut r = i + num_lmots_keys;
@@ -53,12 +54,12 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
         hasher.update(&u32str(r as u32));
         hasher.update(&D_LEAF);
 
-        let lm_ots_public_key = crate::lm_ots::generate_public_key(&private_key.key[i]);
+        let lm_ots_public_key = crate::lm_ots::generate_public_key(&private_key.key[i].unwrap());
         hasher.update(&lm_ots_public_key.key);
 
         let mut temp = hasher.finalize_reset();
 
-        hash_tree[r] = temp.clone();
+        hash_tree[r] = temp;
 
         let mut j = i;
 
@@ -66,7 +67,7 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
             r = (r - 1) / 2;
             j = (j - 1) / 2;
 
-            let left_side = hash_stack.pop().expect("Stack should have a value.");
+            let left_side = hash_tree[j];
 
             hasher.update(&private_key.I);
             hasher.update(&u32str(r as u32));
@@ -75,11 +76,12 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
             hasher.update(&temp);
 
             temp = hasher.finalize_reset();
-            hash_tree[r] = temp.clone();
+            hash_tree[r] = temp;
         }
-        hash_stack.push(temp);
+        // hash_tree[]
     }
-    let public_key = hash_stack.pop().expect("Stack should have a value.");
+
+    let public_key = hash_tree[1];
 
     LmsPublicKey::new(
         public_key,

@@ -28,7 +28,8 @@ impl Hasher for Sha256Hasher {
     }
 
     fn finalize(self) -> [u8; MAX_N] {
-        self.finalize()
+        self.hasher
+            .finalize()
             .iter()
             .as_slice()
             .try_into()
@@ -36,7 +37,8 @@ impl Hasher for Sha256Hasher {
     }
 
     fn finalize_reset(&mut self) -> [u8; MAX_N] {
-        self.finalize_reset()
+        self.hasher
+            .finalize_reset()
             .iter()
             .as_slice()
             .try_into()

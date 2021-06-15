@@ -22,12 +22,12 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
 }
 
 pub fn verify(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
-    let public_key = match LmsPublicKey::from_binary_representation(public_key.into()) {
+    let public_key = match LmsPublicKey::from_binary_representation(public_key) {
         None => return false,
         Some(x) => x,
     };
 
-    let signature = match LmsSignature::from_binary_representation(signature.into()) {
+    let signature = match LmsSignature::from_binary_representation(signature) {
         None => return false,
         Some(x) => x,
     };

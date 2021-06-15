@@ -1,4 +1,5 @@
 use crate::util::hash::Hasher;
+use crate::util::helper::copy_and_advance;
 use crate::{
     definitions::{D_MESG, MAX_N, MAX_P},
     util::{
@@ -40,7 +41,7 @@ impl LmotsSignature {
 
         for i in 0..private_key.parameter.p {
             let a = coef(&Q_and_checksum, i as u64, private_key.parameter.w as u64);
-            let mut tmp = private_key.key[i as usize].clone();
+            let mut tmp = private_key.key[i as usize];
             for j in 0..a {
                 hasher.update(&private_key.I);
                 hasher.update(&private_key.q);
@@ -64,11 +65,12 @@ impl LmotsSignature {
 
         let mut array_index = 0;
 
-        result[array_index..4].copy_from_slice(&u32str(self.parameter._type as u32));
-        array_index += 4;
-
-        result[array_index..array_index + self.parameter.n as usize].copy_from_slice(&self.C);
-        array_index += self.parameter.n as usize;
+        copy_and_advance(
+            &u32str(self.parameter._type as u32),
+            &mut result,
+            &mut array_index,
+        );
+        copy_and_advance(&self.C, &mut result, &mut array_index);
 
         let keys = self.y.iter().flatten().cloned();
 
@@ -102,7 +104,7 @@ impl LmotsSignature {
             return None;
         }
 
-        let C = [0u8; MAX_N];
+        let mut C = [0u8; MAX_N];
 
         C.copy_from_slice(&consumed_data[..lm_ots_parameter.n as usize]);
         consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
@@ -110,7 +112,7 @@ impl LmotsSignature {
         let mut y = [[0u8; MAX_N]; MAX_P];
 
         for i in 0..lm_ots_parameter.p {
-            let temp = [0u8; MAX_N];
+            let mut temp = [0u8; MAX_N];
             temp.copy_from_slice(&consumed_data[..lm_ots_parameter.n as usize]);
             y[i as usize] = temp;
 

@@ -1,7 +1,9 @@
 use crate::definitions::D_INTR;
 use crate::definitions::D_LEAF;
+use crate::definitions::MAX_M;
 use crate::lms::definitions::LmsPublicKey;
 use crate::lms::signing::LmsSignature;
+use crate::util::hash::Hasher;
 use crate::util::helper::is_odd;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
@@ -33,7 +35,7 @@ fn generate_public_key_candiate(
     signature: &LmsSignature,
     public_key: &LmsPublicKey,
     message: &[u8],
-) -> Result<Vec<u8>, &'static str> {
+) -> Result<[u8; MAX_M], &'static str> {
     if signature.lmots_signature.parameter._type != public_key.lm_ots_type {
         return Err("LM OTS Signature parameter type does not match public key signature type.");
     }
@@ -100,8 +102,8 @@ mod tests {
         );
         let public_key = generate_public_key(&private_key);
 
-        let mut first_message: Vec<u8> = vec![0, 4, 2, 7, 4, 2, 58, 3, 69, 3];
-        let mut second_message: Vec<u8> = vec![1, 2, 3, 4, 5, 6, 7, 0];
+        let mut first_message = [0u8, 4, 2, 7, 4, 2, 58, 3, 69, 3];
+        let mut second_message = [1u8, 2, 3, 4, 5, 6, 7, 0];
 
         let first_signature =
             LmsSignature::sign(&mut private_key, &public_key, &first_message).unwrap();

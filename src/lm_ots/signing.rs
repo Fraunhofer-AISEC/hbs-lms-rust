@@ -1,5 +1,5 @@
+use crate::util::dynamic_array::DynamicArray;
 use crate::util::hash::Hasher;
-use crate::util::helper::copy_and_advance;
 use crate::{
     definitions::{D_MESG, MAX_N, MAX_P},
     util::{
@@ -60,26 +60,19 @@ impl LmotsSignature {
         }
     }
 
-    pub fn to_binary_representation(&self) -> ([u8; 4 + MAX_N + (MAX_N * MAX_P)], usize) {
-        let mut result = [0u8; 4 + MAX_N + (MAX_N * MAX_P)];
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + MAX_N + (MAX_N * MAX_P) }> {
+        let mut result = DynamicArray::new();
 
-        let mut array_index = 0;
-
-        copy_and_advance(
-            &u32str(self.parameter._type as u32),
-            &mut result,
-            &mut array_index,
-        );
-        copy_and_advance(&self.C, &mut result, &mut array_index);
+        result.append(&u32str(self.parameter._type as u32));
+        result.append(&self.C);
 
         let keys = self.y.iter().flatten().cloned();
 
         for byte in keys {
-            result[array_index] = byte;
-            array_index += 1;
+            result.append(&[byte]);
         }
 
-        (result, array_index)
+        result
     }
 
     #[allow(non_snake_case)]

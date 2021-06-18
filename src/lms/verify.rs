@@ -24,7 +24,7 @@ pub fn verify(
     let public_key_canditate = generate_public_key_candiate(signature, public_key, message)?;
     // let public_key = public_key.tree[1].clone();
 
-    if public_key_canditate == public_key.key {
+    if public_key_canditate == public_key.key.get_slice() {
         Ok(())
     } else {
         Err("Public key canditate is not equal to public key.")
@@ -74,11 +74,11 @@ fn generate_public_key_candiate(
         hasher.update(&D_INTR);
 
         if is_odd(node_num as usize) {
-            hasher.update(&signature.path[i]);
+            hasher.update(&signature.path[i].get_slice());
             hasher.update(&temp);
         } else {
             hasher.update(&temp);
-            hasher.update(&signature.path[i]);
+            hasher.update(&signature.path[i].get_slice());
         }
         temp = hasher.finalize_reset();
         node_num /= 2;

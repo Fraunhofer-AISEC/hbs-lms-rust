@@ -81,8 +81,8 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
         Some(x) => x,
     };
 
-    write(&private_key_name, &result.advanced_private_key)?;
-    write(&signature_name, &result.signature)?;
+    write(&private_key_name, &result.advanced_private_key.get_slice())?;
+    write(&signature_name, &result.signature.get_slice())?;
 
     Ok(())
 }
@@ -146,8 +146,11 @@ fn genkey(args: &ArgMatches) -> Result<(), std::io::Error> {
     let private_key_binary = keys.private_key;
     let private_key_filename = get_private_key_name(&keyname);
 
-    write(public_key_filename.as_str(), &public_key_binary)?;
-    write(private_key_filename.as_str(), &private_key_binary)?;
+    write(public_key_filename.as_str(), &public_key_binary.get_slice())?;
+    write(
+        private_key_filename.as_str(),
+        &private_key_binary.get_slice(),
+    )?;
 
     Ok(())
 }

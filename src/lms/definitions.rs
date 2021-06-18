@@ -6,7 +6,7 @@ use crate::lm_ots::definitions::{IType, Seed};
 use crate::util::dynamic_array::DynamicArray;
 use crate::util::hash::Hasher;
 use crate::util::hash::Sha256Hasher;
-use crate::util::helper::{copy_and_advance, read_and_advance};
+use crate::util::helper::read_and_advance;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 
@@ -124,22 +124,16 @@ impl LmsPrivateKey {
     }
 
     pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_PRIV_KEY_LENGTH> {
-        let mut result = [0u8; MAX_PRIV_KEY_LENGTH];
+        let mut result = DynamicArray::new();
 
-        let mut array_index = 0;
+        result.append(&u32str(self.lms_type as u32));
+        result.append(&u32str(self.lm_ots_type as u32));
 
-        copy_and_advance(&u32str(self.lms_type as u32), &mut result, &mut array_index);
+        result.append(&self.I);
+        result.append(&u32str(self.q));
+        result.append(&self.seed);
 
-        copy_and_advance(
-            &u32str(self.lm_ots_type as u32),
-            &mut result,
-            &mut array_index,
-        );
-        copy_and_advance(&self.I, &mut result, &mut array_index);
-        copy_and_advance(&u32str(self.q), &mut result, &mut array_index);
-        copy_and_advance(&self.seed, &mut result, &mut array_index);
-
-        DynamicArray::new(result, MAX_PRIV_KEY_LENGTH)
+        result
     }
 
     pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
@@ -189,7 +183,7 @@ pub struct LmsPublicKey {
     pub lm_ots_type: LmotsAlgorithmType,
     pub lms_type: LmsAlgorithmType,
     pub key: DynamicArray<u8, MAX_M>,
-    pub tree: Option<DynamicArray<DynamicArray<u8, MAX_N>, {MAX_TREE_ELEMENTS + 1}>>, // 2^(max_height) - 1
+    pub tree: Option<DynamicArray<DynamicArray<u8, MAX_N>, { MAX_TREE_ELEMENTS + 1 }>>, // 2^(max_height) - 1
     pub I: IType,
 }
 
@@ -197,7 +191,7 @@ pub struct LmsPublicKey {
 impl LmsPublicKey {
     pub fn new(
         public_key: DynamicArray<u8, MAX_M>,
-        tree: DynamicArray<DynamicArray<u8, MAX_N>, {MAX_TREE_ELEMENTS + 1}>,
+        tree: DynamicArray<DynamicArray<u8, MAX_N>, { MAX_TREE_ELEMENTS + 1 }>,
         lm_ots_type: LmotsAlgorithmType,
         lms_type: LmsAlgorithmType,
         I: IType,
@@ -211,21 +205,16 @@ impl LmsPublicKey {
         }
     }
 
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, {4 + 4 + 16 + MAX_M}> {
-        let mut result = [0u8; 4 + 4 + 16 + MAX_M];
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + 4 + 16 + MAX_M }> {
+        let mut result = DynamicArray::new();
 
-        let mut array_index = 0;
+        result.append(&u32str(self.lms_type as u32));
+        result.append(&u32str(self.lm_ots_type as u32));
 
-        copy_and_advance(&u32str(self.lms_type as u32), &mut result, &mut array_index);
-        copy_and_advance(
-            &u32str(self.lm_ots_type as u32),
-            &mut result,
-            &mut array_index,
-        );
-        copy_and_advance(&self.I, &mut result, &mut array_index);
-        copy_and_advance(&self.key.get_slice(), &mut result, &mut array_index);
+        result.append(&self.I);
+        result.append(&self.key.get_slice());
 
-        DynamicArray::new(result, array_index)
+        result
     }
 
     pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
@@ -259,13 +248,9 @@ impl LmsPublicKey {
         let mut initial: IType = [0u8; 16];
         initial.clone_from_slice(read_and_advance(data, 16, &mut data_index));
 
-        let mut key = [0u8; MAX_M];
+        let mut key: DynamicArray<u8, MAX_M> = DynamicArray::new();
 
-        for i in 0..lm_parameter.m {
-            key[i as usize] = data[data_index + i as usize];
-        }
-
-        let key = DynamicArray::new(key, lm_parameter.m as usize);
+        key.append(&data[data_index..data_index + lm_parameter.m as usize]);
 
         let public_key = LmsPublicKey {
             lms_type,
@@ -293,7 +278,8 @@ mod tests {
         let private_key = generate_private_key(lms_type, lmots_type);
 
         let serialized = private_key.to_binary_representation();
-        let deserialized = LmsPrivateKey::from_binary_representation(&serialized.get_slice()).unwrap();
+        let deserialized =
+            LmsPrivateKey::from_binary_representation(&serialized.get_slice()).unwrap();
 
         assert!(private_key == deserialized);
     }

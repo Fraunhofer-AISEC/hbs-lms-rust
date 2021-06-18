@@ -8,6 +8,7 @@ use crate::lm_ots::definitions::Seed;
 use crate::lms::definitions::LmsAlgorithmType;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
+use crate::util::dynamic_array::DynamicArray;
 use crate::util::hash::Hasher;
 use crate::util::helper::is_power_of_two;
 use crate::util::ustr::u32str;
@@ -94,14 +95,15 @@ pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
 
     let public_key = rec_fill(&mut temp_hash_tree, 1, max_private_keys, private_key);
 
-    let mut hash_tree = [[0u8; 32]; 64];
+    let mut hash_tree: DynamicArray<DynamicArray<u8, 32>, 64> = DynamicArray::new();
 
     for (index, temp_hash) in temp_hash_tree.iter().enumerate() {
-        hash_tree[index] = temp_hash.unwrap_or([0u8; 32]);
+        let value = temp_hash.unwrap_or([0u8; 32]);
+        hash_tree[index] = DynamicArray::from_slice(&value);
     }
 
     LmsPublicKey::new(
-        public_key,
+        DynamicArray::from_slice(&public_key),
         hash_tree,
         private_key.lm_ots_type,
         private_key.lms_type,

@@ -8,7 +8,7 @@ use crate::lm_ots::signing::LmotsSignature;
 use crate::lms::definitions::LmsAlgorithmParameter;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
-use crate::util::helper::copy_and_advance;
+use crate::util::dynamic_array::DynamicArray;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 use crate::LmotsAlgorithmType;
@@ -18,7 +18,7 @@ pub struct LmsSignature {
     pub lms_parameter: LmsAlgorithmParameter,
     pub q: QType,
     pub lmots_signature: LmotsSignature,
-    pub path: [[u8; MAX_M]; MAX_H], // Per Height one path?? TODO: Check again
+    pub path: DynamicArray<DynamicArray<u8, MAX_M>, MAX_H>,
 }
 
 impl LmsSignature {
@@ -41,7 +41,7 @@ impl LmsSignature {
         let mut i = 0usize;
         let r = 2usize.pow(h as u32) + str32u(&lm_ots_private_key.q) as usize;
 
-        let mut path = [[0u8; MAX_M]; MAX_H];
+        let mut path: DynamicArray<DynamicArray<u8, MAX_M>, MAX_H> = DynamicArray::new();
 
         while i < h.into() {
             let temp = (r / (2usize.pow(i as u32))) ^ 0x1;
@@ -61,30 +61,19 @@ impl LmsSignature {
 
     pub fn to_binary_representation(
         &self,
-    ) -> [u8; 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H)] {
-        let mut result = [0u8; 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H)];
+    ) -> DynamicArray<u8, { 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H) }> {
+        let mut result = DynamicArray::new();
 
-        let mut array_index = 0;
+        result.append(&self.q);
 
-        copy_and_advance(&self.q, &mut result, &mut array_index);
+        let lmots_signature = self.lmots_signature.to_binary_representation();
 
-        let (lmots_signature, lmots_signature_length) =
-            self.lmots_signature.to_binary_representation();
+        result.append(&lmots_signature.get_slice());
 
-        let lmots_signature = &lmots_signature[..lmots_signature_length];
-        copy_and_advance(lmots_signature, &mut result, &mut array_index);
+        result.append(&u32str(self.lms_parameter._type as u32));
 
-        copy_and_advance(
-            &u32str(self.lms_parameter._type as u32),
-            &mut result,
-            &mut array_index,
-        );
-
-        let flattened_path = self.path.iter().flatten();
-
-        for path_byte in flattened_path {
-            result[array_index] = *path_byte;
-            array_index += 1;
+        for element in self.path.into_iter() {
+            result.append(element.get_slice());
         }
 
         result
@@ -152,11 +141,12 @@ impl LmsSignature {
 
         tree_slice = &tree_slice[tree_start..];
 
-        let mut trees = [[0u8; MAX_M]; MAX_H];
+        let mut trees: DynamicArray<DynamicArray<u8, MAX_M>, MAX_H> = DynamicArray::new();
 
         for i in 0..lms_parameter.h {
-            let mut path = [0u8; MAX_M];
-            path.copy_from_slice(&tree_slice[..lms_parameter.m as usize]);
+            let mut path = DynamicArray::new();
+            path.get_mut_slice()
+                .copy_from_slice(&tree_slice[..lms_parameter.m as usize]);
             trees[i as usize] = path;
 
             tree_slice = &tree_slice[lms_parameter.m as usize..];

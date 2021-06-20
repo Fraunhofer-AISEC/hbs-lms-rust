@@ -3,7 +3,6 @@ use crate::{
     lms,
     util::{
         dynamic_array::DynamicArray,
-        helper::copy_and_advance,
         ustr::{str32u, u32str},
     },
     LmotsAlgorithmType, LmsAlgorithmType,
@@ -56,18 +55,8 @@ pub fn hss_sign(message: &[u8], private_key: &[u8]) -> Option<HssSignResult> {
     let mut hss_signature = DynamicArray::new();
     let hss_levels = u32str(0); // Needed to be compatible with reference implementation
 
-    let mut hss_index = 0;
-
-    copy_and_advance(
-        &hss_levels,
-        &mut hss_signature.get_mut_slice(),
-        &mut hss_index,
-    );
-    copy_and_advance(
-        &signature.to_binary_representation().get_slice(),
-        &mut hss_signature.get_mut_slice(),
-        &mut hss_index,
-    );
+    hss_signature.append(&hss_levels);
+    hss_signature.append(&signature.to_binary_representation().get_slice());
 
     let result = HssSignResult {
         advanced_private_key: private_key.to_binary_representation(),
@@ -87,18 +76,8 @@ pub fn hss_keygen(lms_type: LmsAlgorithmType, lmots_type: LmotsAlgorithmType) ->
     let mut hss_public_key = DynamicArray::new();
     let hss_levels = u32str(1); // Needed to be compatible with reference implementation
 
-    let mut hss_index = 0;
-
-    copy_and_advance(
-        &hss_levels,
-        &mut hss_public_key.get_mut_slice(),
-        &mut hss_index,
-    );
-    copy_and_advance(
-        &public_key.get_slice(),
-        &mut hss_public_key.get_mut_slice(),
-        &mut hss_index,
-    );
+    hss_public_key.append(&hss_levels);
+    hss_public_key.append(&public_key.get_slice());
 
     HssBinaryData {
         private_key,

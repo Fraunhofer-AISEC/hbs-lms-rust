@@ -1,6 +1,6 @@
 use core::ops::{Index, IndexMut};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DynamicArray<T: Copy + Default, const ELEMENTS: usize> {
     data: [T; ELEMENTS],
     actual_size: usize,
@@ -12,6 +12,10 @@ impl<T: Copy + Default, const ELEMENTS: usize> DynamicArray<T, ELEMENTS> {
             data: [T::default(); ELEMENTS],
             actual_size: 0,
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.actual_size
     }
 
     pub fn from_slice(data: &[T]) -> Self {
@@ -31,8 +35,16 @@ impl<T: Copy + Default, const ELEMENTS: usize> DynamicArray<T, ELEMENTS> {
         &mut self.data[..self.actual_size]
     }
 
+    pub fn set_size(&mut self, size: usize) {
+        if size > ELEMENTS {
+            panic!("Size is larger than array.")
+        }
+        self.actual_size = size;
+    }
+
     pub fn append(&mut self, data: &[T]) {
         self.data[self.actual_size..self.actual_size + data.len()].copy_from_slice(data);
+        self.actual_size += data.len();
     }
 }
 
@@ -54,8 +66,8 @@ impl<T: Copy + Default, const ELEMENTS: usize> Index<usize> for DynamicArray<T, 
 
 impl<T: Copy + Default, const ELEMENTS: usize> IndexMut<usize> for DynamicArray<T, ELEMENTS> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        if index > self.actual_size {
-            self.actual_size = index;
+        if index + 1 > self.actual_size {
+            self.actual_size = index + 1;
         }
         &mut self.data[index]
     }
@@ -82,7 +94,7 @@ impl<'a, T: Copy + Default, const ELEMENTS: usize> Iterator
 {
     type Item = T;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current_index > self.dynamic_array.actual_size {
+        if self.current_index >= self.dynamic_array.actual_size {
             return None;
         }
         let ret = Some(self.dynamic_array.data[self.current_index]);

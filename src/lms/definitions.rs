@@ -38,6 +38,7 @@ impl LmsAlgorithmType {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct LmsAlgorithmParameter {
     pub h: u8,
     pub m: u8,
@@ -179,6 +180,7 @@ impl LmsPrivateKey {
 }
 
 #[allow(non_snake_case)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct LmsPublicKey {
     pub lm_ots_type: LmotsAlgorithmType,
     pub lms_type: LmsAlgorithmType,
@@ -266,9 +268,9 @@ impl LmsPublicKey {
 
 #[cfg(test)]
 mod tests {
-    use crate::lms::keygen::generate_private_key;
+    use crate::lms::keygen::{generate_private_key, generate_public_key};
 
-    use super::LmsPrivateKey;
+    use super::{LmsPrivateKey, LmsPublicKey};
 
     #[test]
     fn test_private_key_binary_representation() {
@@ -282,5 +284,24 @@ mod tests {
             LmsPrivateKey::from_binary_representation(&serialized.get_slice()).unwrap();
 
         assert!(private_key == deserialized);
+    }
+
+    #[test]
+    fn test_public_key_binary_representation() {
+        let lms_type = crate::LmsAlgorithmType::LmsSha256M32H5;
+        let lmots_type = crate::LmotsAlgorithmType::LmotsSha256N32W2;
+
+        let private_key = generate_private_key(lms_type, lmots_type);
+
+        let public_key = generate_public_key(&private_key);
+
+        let serialized = public_key.to_binary_representation();
+        let mut deserialized = LmsPublicKey::from_binary_representation(serialized.get_slice())
+            .expect("Deserialization must succeed.");
+
+        // Copy tree, because it doesn't get serialized
+        deserialized.tree = public_key.tree;
+
+        assert!(public_key == deserialized);
     }
 }

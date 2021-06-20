@@ -1,4 +1,5 @@
 use super::definitions::*;
+use crate::util::dynamic_array::DynamicArray;
 use crate::util::hash::Hasher;
 use crate::{
     definitions::{D_PBLC, MAX_N, MAX_P},
@@ -12,18 +13,18 @@ pub fn generate_private_key(
     _type: LmotsAlgorithmType,
 ) -> LmotsPrivateKey {
     let parameter = _type.get_parameter();
-    let mut key = [[0u8; MAX_N]; MAX_P];
+    let mut key = DynamicArray::new();
 
     let mut hasher = parameter.get_hasher();
 
-    for (index, item) in key.iter_mut().enumerate() {
+    for index in 0.._type.get_parameter().p {
         hasher.update(&i);
         hasher.update(&q);
         hasher.update(&u16str(index as u16));
         hasher.update(&[0xff]);
         hasher.update(&seed);
 
-        *item = hasher.finalize_reset();
+        key[index as usize] = DynamicArray::from_slice(&hasher.finalize_reset());
     }
 
     LmotsPrivateKey::new(i, q, parameter, key)
@@ -37,7 +38,7 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
 
     let mut hasher = parameter.get_hasher();
 
-    let mut y = [[0u8; MAX_N]; MAX_P];
+    let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
     for i in 0..parameter.p as usize {
         let mut tmp = key[i];
@@ -47,7 +48,7 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
             hasher.update(&private_key.q);
             hasher.update(&u16str(i as u16));
             hasher.update(&u8str(j as u8));
-            hasher.update(&tmp);
+            hasher.update(tmp.get_slice());
 
             for (index, value) in hasher.finalize_reset().iter().enumerate() {
                 tmp[index] = *value;
@@ -61,11 +62,11 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
     hasher.update(&private_key.q);
     hasher.update(&D_PBLC);
 
-    for item in y.iter() {
-        hasher.update(item);
+    for item in y.into_iter() {
+        hasher.update(item.get_slice());
     }
 
-    let mut public_key = [0u8; MAX_N];
+    let mut public_key = DynamicArray::new();
     for (index, value) in hasher.finalize().iter().enumerate() {
         public_key[index] = *value;
     }

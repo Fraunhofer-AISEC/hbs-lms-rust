@@ -2,6 +2,7 @@ use crate::{
     definitions::{D_MESG, D_PBLC, MAX_N, MAX_P},
     util::{
         coef::coef,
+        dynamic_array::DynamicArray,
         ustr::{u16str, u8str},
     },
 };
@@ -18,10 +19,13 @@ pub fn verify_signature(
     public_key: &LmotsPublicKey,
     message: &[u8],
 ) -> bool {
-    let public_key_candiatte =
+    // let old_candidate =
+    //      generate_public_key_canditate_old(signature, &public_key.I, &public_key.q, message);
+
+    let public_key_candidate =
         generate_public_key_canditate(signature, &public_key.I, &public_key.q, message);
 
-    public_key_candiatte == public_key.key
+    public_key_candidate == public_key.key
 }
 
 #[allow(non_snake_case)]
@@ -30,32 +34,36 @@ pub fn generate_public_key_canditate(
     I: &IType,
     q: &QType,
     message: &[u8],
-) -> [u8; MAX_N] {
+) -> DynamicArray<u8, MAX_N> {
     let mut hasher = signature.parameter.get_hasher();
 
     hasher.update(I);
     hasher.update(q);
     hasher.update(&D_MESG);
-    hasher.update(&signature.C);
+    hasher.update(signature.C.get_slice());
     hasher.update(message);
 
     let Q = hasher.finalize_reset();
     let Q_and_checksum = signature.parameter.get_appended_with_checksum(&Q);
 
-    let mut z = [[0u8; MAX_N]; MAX_P];
+    let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
+    let max_w = 2u64.pow(signature.parameter.w as u32) - 1;
 
     for i in 0..signature.parameter.p {
-        let a = coef(&Q_and_checksum, i as u64, signature.parameter.w as u64);
+        let a = coef(
+            &Q_and_checksum.get_slice(),
+            i as u64,
+            signature.parameter.w as u64,
+        );
         let mut tmp = signature.y[i as usize];
-        let max_w = 2u64.pow(signature.parameter.w as u32) - 1;
 
         for j in a..max_w {
             hasher.update(I);
             hasher.update(q);
             hasher.update(&u16str(i));
             hasher.update(&u8str(j as u8));
-            hasher.update(&tmp);
-            tmp = hasher.finalize_reset();
+            hasher.update(tmp.get_slice());
+            tmp = DynamicArray::from_slice(&hasher.finalize_reset());
         }
         z[i as usize] = tmp;
     }
@@ -64,12 +72,69 @@ pub fn generate_public_key_canditate(
     hasher.update(q);
     hasher.update(&D_PBLC);
 
-    for item in z.iter() {
-        hasher.update(item);
+    let mut counter = 0;
+
+    for item in z.into_iter() {
+        hasher.update(item.get_slice());
+        counter += 1;
     }
 
-    hasher.finalize()
+    DynamicArray::from_slice(&hasher.finalize())
 }
+
+// #[allow(non_snake_case)]
+// pub fn generate_public_key_canditate_old(
+//     signature: &LmotsSignature,
+//     I: &IType,
+//     q: &QType,
+//     message: &[u8],
+// ) -> [u8; MAX_N] {
+//     let mut hasher = signature.parameter.get_hasher();
+
+//     let mut c = [0u8; MAX_N];
+//     c.copy_from_slice(signature.C.get_slice());
+
+//     hasher.update(I);
+//     hasher.update(q);
+//     hasher.update(&D_MESG);
+//     hasher.update(&c);
+//     hasher.update(message);
+
+//     let Q = hasher.finalize_reset();
+//     let Q_and_checksum = signature.parameter.get_appended_with_checksum(&Q);
+
+//     let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
+
+//     let max_w = 2u64.pow(signature.parameter.w as u32) - 1;
+
+//     for i in 0..signature.parameter.p {
+//         let a = coef(&Q_and_checksum.get_slice(), i as u64, signature.parameter.w as u64);
+//         let mut tmp = signature.y[i as usize];
+
+//         for j in a..max_w {
+//             hasher.update(I);
+//             hasher.update(q);
+//             hasher.update(&u16str(i));
+//             hasher.update(&u8str(j as u8));
+//             hasher.update(&tmp.get_slice());
+//             tmp = DynamicArray::from_slice(&hasher.finalize_reset());
+//         }
+//         z[i as usize] = tmp;
+//     }
+
+//     hasher.update(I);
+//     hasher.update(q);
+//     hasher.update(&D_PBLC);
+
+//     let mut counter = 0;
+
+//     for item in z.into_iter() {
+//         hasher.update(item);
+//         counter += 1;
+//     }
+
+//     hasher.finalize()
+// }
 
 #[cfg(test)]
 mod tests {
@@ -85,7 +150,7 @@ mod tests {
             #[test]
             fn $name() {
                 let i: IType = [2u8; 16];
-                let q: QType = [2u8; 4];
+                let q: QType = [0u8; 4];
                 let seed: Seed = [
                     74, 222, 147, 88, 142, 55, 215, 148, 59, 52, 12, 170, 167, 93, 94, 237, 90,
                     176, 213, 104, 226, 71, 9, 74, 130, 187, 214, 75, 151, 184, 216, 175,

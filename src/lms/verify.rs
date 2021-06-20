@@ -63,7 +63,7 @@ fn generate_public_key_candiate(
     hasher.update(&public_key.I);
     hasher.update(&u32str(node_num));
     hasher.update(&D_LEAF);
-    hasher.update(&ots_public_key_canditate);
+    hasher.update(ots_public_key_canditate.get_slice());
 
     let mut temp = hasher.finalize_reset();
     let mut i = 0;
@@ -91,7 +91,6 @@ fn generate_public_key_candiate(
 #[cfg(test)]
 mod tests {
 
-    use super::*;
     use crate::lms::*;
 
     #[test]

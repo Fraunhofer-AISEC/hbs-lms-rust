@@ -50,7 +50,7 @@ fn rec_fill(
             private_key.lm_ots_type,
         );
         let lm_ots_public_key = crate::lm_ots::generate_public_key(&lms_ots_private_key);
-        hasher.update(&lm_ots_public_key.key);
+        hasher.update(&lm_ots_public_key.key.get_slice());
 
         let temp = hasher.finalize();
 

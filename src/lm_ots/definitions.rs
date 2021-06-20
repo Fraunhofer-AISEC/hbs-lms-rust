@@ -2,6 +2,7 @@ use crate::{
     definitions::{MAX_N, MAX_P},
     util::{
         coef::coef,
+        dynamic_array::DynamicArray,
         hash::{Hasher, Sha256Hasher},
     },
 };
@@ -88,17 +89,18 @@ impl LmotsAlgorithmParameter {
         sum << self.ls
     }
 
-    pub fn get_appended_with_checksum(&self, byte_string: &[u8]) -> [u8; MAX_N + 2] {
-        let mut result = [0u8; MAX_N + 2];
+    pub fn get_appended_with_checksum(
+        &self,
+        byte_string: &[u8],
+    ) -> DynamicArray<u8, { MAX_N + 2 }> {
+        let mut result = DynamicArray::new();
 
         let checksum = self.checksum(byte_string);
 
-        for (place, data) in result.iter_mut().zip(byte_string.iter()) {
-            *place = *data;
-        }
+        result.append(byte_string);
 
-        result[result.len() - 2] = (checksum >> 8 & 0xff) as u8;
-        result[result.len() - 1] = (checksum & 0xff) as u8;
+        result.append(&[(checksum >> 8 & 0xff) as u8]);
+        result.append(&[(checksum & 0xff) as u8]);
 
         result
     }
@@ -120,7 +122,7 @@ pub struct LmotsPrivateKey {
     pub parameter: LmotsAlgorithmParameter,
     pub I: IType,
     pub q: QType,
-    pub key: [[u8; MAX_N]; MAX_P], // [[0u8; n]; p];
+    pub key: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>, // [[0u8; n]; p];
 }
 
 #[allow(non_snake_case)]
@@ -129,7 +131,7 @@ impl LmotsPrivateKey {
         I: IType,
         q: QType,
         parameter: LmotsAlgorithmParameter,
-        key: [[u8; MAX_N]; MAX_P],
+        key: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>,
     ) -> Self {
         LmotsPrivateKey {
             parameter,
@@ -138,10 +140,6 @@ impl LmotsPrivateKey {
             key,
         }
     }
-
-    pub fn get_flat_key(&self) -> impl Iterator<Item = &u8> {
-        self.key.iter().flatten()
-    }
 }
 
 #[allow(non_snake_case)]
@@ -149,12 +147,17 @@ pub struct LmotsPublicKey {
     pub parameter: LmotsAlgorithmParameter,
     pub I: IType,
     pub q: QType,
-    pub key: [u8; MAX_N],
+    pub key: DynamicArray<u8, MAX_N>,
 }
 
 #[allow(non_snake_case)]
 impl LmotsPublicKey {
-    pub fn new(I: IType, q: QType, parameter: LmotsAlgorithmParameter, key: [u8; MAX_N]) -> Self {
+    pub fn new(
+        I: IType,
+        q: QType,
+        parameter: LmotsAlgorithmParameter,
+        key: DynamicArray<u8, MAX_N>,
+    ) -> Self {
         LmotsPublicKey {
             parameter,
             I,

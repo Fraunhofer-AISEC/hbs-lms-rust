@@ -14,41 +14,51 @@ use core::usize;
 use super::definitions::{LmotsAlgorithmParameter, LmotsPrivateKey};
 
 #[allow(non_snake_case)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct LmotsSignature {
     pub parameter: LmotsAlgorithmParameter,
-    pub C: [u8; MAX_N],
-    pub y: [[u8; MAX_N]; MAX_P],
+    pub C: DynamicArray<u8, MAX_N>,
+    pub y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>,
 }
 
 impl LmotsSignature {
     #[allow(non_snake_case)]
     pub fn sign(private_key: &LmotsPrivateKey, message: &[u8]) -> Self {
-        let mut C = [0u8; MAX_N];
-        get_random(&mut C);
+        let mut C = DynamicArray::new();
+
+        C.set_size(private_key.parameter.n as usize);
+
+        get_random(C.get_mut_slice());
 
         let mut hasher = private_key.parameter.get_hasher();
 
         hasher.update(&private_key.I);
         hasher.update(&private_key.q);
         hasher.update(&D_MESG);
-        hasher.update(&C);
+        hasher.update(&C.get_slice());
         hasher.update(message);
 
-        let Q = hasher.finalize_reset();
-        let Q_and_checksum = private_key.parameter.get_appended_with_checksum(&Q);
+        let Q: DynamicArray<u8, MAX_N> = DynamicArray::from_slice(&hasher.finalize_reset());
+        let Q_and_checksum = private_key
+            .parameter
+            .get_appended_with_checksum(&Q.get_slice());
 
-        let mut y = [[0u8; MAX_N]; MAX_P];
+        let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
         for i in 0..private_key.parameter.p {
-            let a = coef(&Q_and_checksum, i as u64, private_key.parameter.w as u64);
+            let a = coef(
+                &Q_and_checksum.get_slice(),
+                i as u64,
+                private_key.parameter.w as u64,
+            );
             let mut tmp = private_key.key[i as usize];
             for j in 0..a {
                 hasher.update(&private_key.I);
                 hasher.update(&private_key.q);
                 hasher.update(&u16str(i));
                 hasher.update(&u8str(j as u8));
-                hasher.update(&tmp);
-                tmp = hasher.finalize_reset();
+                hasher.update(tmp.get_slice());
+                tmp = DynamicArray::from_slice(&hasher.finalize_reset());
             }
             y[i as usize] = tmp;
         }
@@ -64,12 +74,12 @@ impl LmotsSignature {
         let mut result = DynamicArray::new();
 
         result.append(&u32str(self.parameter._type as u32));
-        result.append(&self.C);
+        result.append(self.C.get_slice());
 
-        let keys = self.y.iter().flatten().cloned();
-
-        for byte in keys {
-            result.append(&[byte]);
+        for x in self.y.into_iter() {
+            for y in x.into_iter() {
+                result.append(&[y]);
+            }
         }
 
         result
@@ -97,16 +107,16 @@ impl LmotsSignature {
             return None;
         }
 
-        let mut C = [0u8; MAX_N];
+        let mut C = DynamicArray::new();
 
-        C.copy_from_slice(&consumed_data[..lm_ots_parameter.n as usize]);
+        C.append(&consumed_data[..lm_ots_parameter.n as usize]);
         consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
 
-        let mut y = [[0u8; MAX_N]; MAX_P];
+        let mut y = DynamicArray::new();
 
         for i in 0..lm_ots_parameter.p {
-            let mut temp = [0u8; MAX_N];
-            temp.copy_from_slice(&consumed_data[..lm_ots_parameter.n as usize]);
+            let mut temp = DynamicArray::new();
+            temp.append(&consumed_data[..lm_ots_parameter.n as usize]);
             y[i as usize] = temp;
 
             consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
@@ -119,5 +129,44 @@ impl LmotsSignature {
         };
 
         Some(signature)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        definitions::{MAX_N, MAX_P},
+        util::dynamic_array::DynamicArray,
+    };
+
+    use super::LmotsSignature;
+
+    #[test]
+    fn test_binary_representation() {
+        let mut c = DynamicArray::new();
+        let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
+
+        for i in 0..MAX_N {
+            c[i] = i as u8;
+        }
+
+        for i in 0..MAX_P {
+            for j in 0..MAX_N {
+                y[i][j] = j as u8;
+            }
+        }
+
+        let signature = LmotsSignature {
+            parameter: crate::lm_ots::LmotsAlgorithmType::LmotsSha256N32W1.get_parameter(),
+            C: c,
+            y,
+        };
+
+        let binary_rep = signature.to_binary_representation();
+        let deserialized_signature =
+            LmotsSignature::from_binary_representation(binary_rep.get_slice())
+                .expect("Deserialization must succeed.");
+
+        assert!(signature == deserialized_signature);
     }
 }

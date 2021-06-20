@@ -14,6 +14,7 @@ use crate::util::ustr::u32str;
 use crate::LmotsAlgorithmType;
 use crate::LmsAlgorithmType;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct LmsSignature {
     pub lms_parameter: LmsAlgorithmParameter,
     pub q: QType,
@@ -145,8 +146,7 @@ impl LmsSignature {
 
         for i in 0..lms_parameter.h {
             let mut path = DynamicArray::new();
-            path.get_mut_slice()
-                .copy_from_slice(&tree_slice[..lms_parameter.m as usize]);
+            path.append(&tree_slice[..lms_parameter.m as usize]);
             trees[i as usize] = path;
 
             tree_slice = &tree_slice[lms_parameter.m as usize..];
@@ -160,5 +160,34 @@ impl LmsSignature {
         };
 
         Some(signature)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::lms::keygen::{generate_private_key, generate_public_key};
+
+    use super::LmsSignature;
+
+    #[test]
+    fn test_binary_representation_of_signature() {
+        let lms_type = crate::LmsAlgorithmType::LmsSha256M32H5;
+        let lmots_type = crate::LmotsAlgorithmType::LmotsSha256N32W2;
+
+        let mut private_key = generate_private_key(lms_type, lmots_type);
+
+        let public_key = generate_public_key(&private_key);
+
+        let message = "Hi, what up?".as_bytes();
+
+        let signature = LmsSignature::sign(&mut private_key, &&public_key, message)
+            .expect("Signing must succeed.");
+
+        let binary = signature.to_binary_representation();
+
+        let deserialized = LmsSignature::from_binary_representation(&binary.get_slice())
+            .expect("Deserialization must succeed.");
+
+        assert!(signature == deserialized);
     }
 }

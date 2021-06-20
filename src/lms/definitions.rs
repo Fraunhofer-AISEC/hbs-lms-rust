@@ -1,4 +1,4 @@
-use crate::definitions::{MAX_M, MAX_N, MAX_PRIV_KEY_LENGTH, MAX_TREE_ELEMENTS};
+use crate::definitions::{MAX_M, MAX_PRIV_KEY_LENGTH};
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
@@ -185,7 +185,6 @@ pub struct LmsPublicKey {
     pub lm_ots_type: LmotsAlgorithmType,
     pub lms_type: LmsAlgorithmType,
     pub key: DynamicArray<u8, MAX_M>,
-    pub tree: Option<DynamicArray<DynamicArray<u8, MAX_N>, { MAX_TREE_ELEMENTS + 1 }>>, // 2^(max_height) - 1
     pub I: IType,
 }
 
@@ -193,7 +192,6 @@ pub struct LmsPublicKey {
 impl LmsPublicKey {
     pub fn new(
         public_key: DynamicArray<u8, MAX_M>,
-        tree: DynamicArray<DynamicArray<u8, MAX_N>, { MAX_TREE_ELEMENTS + 1 }>,
         lm_ots_type: LmotsAlgorithmType,
         lms_type: LmsAlgorithmType,
         I: IType,
@@ -202,7 +200,6 @@ impl LmsPublicKey {
             lm_ots_type,
             lms_type,
             key: public_key,
-            tree: Some(tree),
             I,
         }
     }
@@ -259,7 +256,6 @@ impl LmsPublicKey {
             lm_ots_type,
             I: initial,
             key,
-            tree: None,
         };
 
         Some(public_key)
@@ -296,11 +292,8 @@ mod tests {
         let public_key = generate_public_key(&private_key);
 
         let serialized = public_key.to_binary_representation();
-        let mut deserialized = LmsPublicKey::from_binary_representation(serialized.get_slice())
+        let deserialized = LmsPublicKey::from_binary_representation(serialized.get_slice())
             .expect("Deserialization must succeed.");
-
-        // Copy tree, because it doesn't get serialized
-        deserialized.tree = public_key.tree;
 
         assert!(public_key == deserialized);
     }

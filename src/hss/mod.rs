@@ -42,9 +42,7 @@ pub fn hss_sign(message: &[u8], private_key: &[u8]) -> Option<HssSignResult> {
             Some(x) => x,
         };
 
-    let public_key = lms::generate_public_key(&private_key);
-
-    let signature = lms::signing::LmsSignature::sign(&mut private_key, &public_key, message);
+    let signature = lms::signing::LmsSignature::sign(&mut private_key, message);
 
     if signature.is_err() {
         return None;

@@ -7,12 +7,13 @@ use crate::lm_ots::definitions::QType;
 use crate::lm_ots::signing::LmotsSignature;
 use crate::lms::definitions::LmsAlgorithmParameter;
 use crate::lms::definitions::LmsPrivateKey;
-use crate::lms::definitions::LmsPublicKey;
 use crate::util::dynamic_array::DynamicArray;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 use crate::LmotsAlgorithmType;
 use crate::LmsAlgorithmType;
+
+use super::helper::get_tree_element;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct LmsSignature {
@@ -25,16 +26,10 @@ pub struct LmsSignature {
 impl LmsSignature {
     pub fn sign(
         lms_private_key: &mut LmsPrivateKey,
-        lms_public_key: &LmsPublicKey,
         message: &[u8],
     ) -> Result<LmsSignature, &'static str> {
         let lms_parameter = lms_private_key.lms_type.get_parameter();
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
-
-        let tree = lms_public_key
-            .tree
-            .as_ref()
-            .expect("TODO: Precomputed tree must be available at signing.");
 
         let ots_signature = LmotsSignature::sign(&lm_ots_private_key, message);
 
@@ -45,8 +40,8 @@ impl LmsSignature {
         let mut path: DynamicArray<DynamicArray<u8, MAX_M>, MAX_H> = DynamicArray::new();
 
         while i < h.into() {
-            let temp = (r / (2usize.pow(i as u32))) ^ 0x1;
-            path[i] = tree[temp];
+            let tree_index = (r / (2usize.pow(i as u32))) ^ 0x1;
+            path[i] = get_tree_element(tree_index, &lms_private_key);
             i += 1;
         }
 
@@ -165,7 +160,7 @@ impl LmsSignature {
 
 #[cfg(test)]
 mod tests {
-    use crate::lms::keygen::{generate_private_key, generate_public_key};
+    use crate::lms::keygen::generate_private_key;
 
     use super::LmsSignature;
 
@@ -176,12 +171,10 @@ mod tests {
 
         let mut private_key = generate_private_key(lms_type, lmots_type);
 
-        let public_key = generate_public_key(&private_key);
-
         let message = "Hi, what up?".as_bytes();
 
-        let signature = LmsSignature::sign(&mut private_key, &&public_key, message)
-            .expect("Signing must succeed.");
+        let signature =
+            LmsSignature::sign(&mut private_key, message).expect("Signing must succeed.");
 
         let binary = signature.to_binary_representation();
 

@@ -1,30 +1,25 @@
+use crate::definitions::MAX_M;
+use crate::util::dynamic_array::DynamicArray;
 use crate::util::hash::Hasher;
 use crate::{
-    definitions::{D_INTR, D_LEAF, MAX_N, MAX_TREE_ELEMENTS},
+    definitions::{D_INTR, D_LEAF},
     util::ustr::u32str,
 };
 
 use super::definitions::LmsPrivateKey;
 
-pub fn get_tree_element(
-    tree: &mut [Option<[u8; MAX_N]>; MAX_TREE_ELEMENTS + 1],
-    r: usize,
-    max_private_keys: usize,
-    private_key: &LmsPrivateKey,
-) -> [u8; MAX_N] {
-    if let Some(x) = tree[r] {
-        return x;
-    }
-
+pub fn get_tree_element(index: usize, private_key: &LmsPrivateKey) -> DynamicArray<u8, MAX_M> {
     let mut hasher = private_key.lms_type.get_parameter().get_hasher();
 
     hasher.update(&private_key.I);
-    hasher.update(&u32str(r as u32));
+    hasher.update(&u32str(index as u32));
 
-    if r >= max_private_keys {
+    let max_private_keys = private_key.lms_type.get_parameter().number_of_lm_ots_keys();
+
+    if index >= max_private_keys {
         hasher.update(&D_LEAF);
         let lms_ots_private_key = crate::lm_ots::generate_private_key(
-            u32str((r - max_private_keys) as u32),
+            u32str((index - max_private_keys) as u32),
             private_key.I,
             private_key.seed,
             private_key.lm_ots_type,
@@ -33,22 +28,12 @@ pub fn get_tree_element(
         hasher.update(&lm_ots_public_key.key.get_slice());
     } else {
         hasher.update(&D_INTR);
-        let left = get_tree_element(tree, 2 * r, max_private_keys, private_key);
-        tree[2 * r] = Some(left);
+        let left = get_tree_element(2 * index, private_key);
+        let right = get_tree_element(2 * index + 1, private_key);
 
-        let right = get_tree_element(tree, 2 * r + 1, max_private_keys, private_key);
-        tree[2 * r + 1] = Some(right);
-
-        hasher.update(&tree[2 * r].unwrap());
-        hasher.update(&tree[2 * r + 1].unwrap());
+        hasher.update(&left.get_slice());
+        hasher.update(&right.get_slice());
     }
 
-    let temp = hasher.finalize();
-
-    let mut arr = [0u8; 32];
-    arr.copy_from_slice(&temp);
-
-    tree[r] = Some(arr);
-
-    tree[r].unwrap()
+    DynamicArray::from_slice(&hasher.finalize())
 }

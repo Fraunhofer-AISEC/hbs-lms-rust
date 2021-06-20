@@ -22,7 +22,6 @@ pub fn verify(
     }
 
     let public_key_canditate = generate_public_key_candiate(signature, public_key, message)?;
-    // let public_key = public_key.tree[1].clone();
 
     if public_key_canditate == public_key.key.get_slice() {
         Ok(())

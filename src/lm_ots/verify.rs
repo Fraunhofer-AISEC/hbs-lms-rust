@@ -19,9 +19,6 @@ pub fn verify_signature(
     public_key: &LmotsPublicKey,
     message: &[u8],
 ) -> bool {
-    // let old_candidate =
-    //      generate_public_key_canditate_old(signature, &public_key.I, &public_key.q, message);
-
     let public_key_candidate =
         generate_public_key_canditate(signature, &public_key.I, &public_key.q, message);
 
@@ -114,10 +111,10 @@ mod tests {
         };
     }
 
-    // generate_test!(
-    //     lmots_sha256_n32_w1_verify_test,
-    //     crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W1
-    // );
+    generate_test!(
+        lmots_sha256_n32_w1_verify_test,
+        crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W1
+    );
     generate_test!(
         lmots_sha256_n32_w2_verify_test,
         crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W2

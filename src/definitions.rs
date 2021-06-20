@@ -15,7 +15,7 @@ pub const D_INTR: [u8; 2] = [0x83, 0x83];
 pub const MAX_N: usize = 32;
 pub const MAX_P: usize = 265;
 pub const MAX_M: usize = 32;
-pub const MAX_H: usize = 5;
+pub const MAX_H: usize = 10;
 pub const MAX_TREE_ELEMENTS: usize = 2usize.pow(MAX_H as u32 + 1) - 1; // (2 ^ (5 + 1)) - 1
 pub const MAX_LEAFS: usize = 2usize.pow(MAX_H as u32); // 2 ^ 25
 

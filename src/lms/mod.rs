@@ -6,6 +6,7 @@ use crate::lms::definitions::LmsPublicKey;
 use self::signing::LmsSignature;
 
 pub mod definitions;
+mod helper;
 mod keygen;
 pub mod signing;
 mod verify;

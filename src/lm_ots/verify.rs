@@ -14,6 +14,7 @@ use super::{
 use crate::util::hash::Hasher;
 
 #[allow(non_snake_case)]
+#[allow(dead_code)]
 pub fn verify_signature(
     signature: &LmotsSignature,
     public_key: &LmotsPublicKey,

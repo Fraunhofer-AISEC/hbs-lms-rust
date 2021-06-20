@@ -65,7 +65,7 @@ impl LmotsAlgorithmParameter {
         }
     }
 
-    #[allow(clippy::clippy::many_single_char_names)]
+    #[allow(clippy::many_single_char_names)]
     fn internal_get(n: u16, w: u8, _type: LmotsAlgorithmType) -> Self {
         // Compute p and ls depending on n and w (see RFC8554 Appendix B.)
         let u = ((8.0 * n as f64) / w as f64).ceil();

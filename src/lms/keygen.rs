@@ -51,14 +51,6 @@ fn rec_fill(
         );
         let lm_ots_public_key = crate::lm_ots::generate_public_key(&lms_ots_private_key);
         hasher.update(&lm_ots_public_key.key.get_slice());
-
-        let temp = hasher.finalize();
-
-        let mut arr = [0u8; 32];
-        arr.copy_from_slice(&temp);
-
-        tree[r] = Some(arr);
-        tree[r].unwrap()
     } else {
         hasher.update(&D_INTR);
         let left = rec_fill(tree, 2 * r, max_private_keys, private_key);
@@ -69,16 +61,16 @@ fn rec_fill(
 
         hasher.update(&tree[2 * r].unwrap());
         hasher.update(&tree[2 * r + 1].unwrap());
-
-        let temp = hasher.finalize();
-
-        let mut arr = [0u8; 32];
-        arr.copy_from_slice(&temp);
-
-        tree[r] = Some(arr);
-
-        tree[r].unwrap()
     }
+
+    let temp = hasher.finalize();
+
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&temp);
+
+    tree[r] = Some(arr);
+
+    tree[r].unwrap()
 }
 
 pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {

@@ -11,6 +11,7 @@ pub const D_INTR: [u8; 2] = [0x83, 0x83];
 
 pub const MAX_N: usize = 32;
 pub const MAX_P: usize = 265;
+
 pub const MAX_M: usize = 32;
 pub const MAX_H: usize = 25;
 

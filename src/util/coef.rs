@@ -2,10 +2,7 @@ use crate::definitions::ByteString;
 
 /* Treat byte_string as w-bit integers and return index. */
 pub fn coef(byte_string: &ByteString, i: u64, w: u64) -> u64 {
-    debug_assert!([1, 2, 4, 8].contains(&w));
-
     let index = ((i * w) / 8) as usize;
-    assert!(index < byte_string.len());
 
     let digits_per_byte = 8 / w;
     let shift = w as u64 * (!i & (digits_per_byte - 1) as u64);

@@ -5,7 +5,6 @@ use crate::lm_ots::definitions::Seed;
 use crate::lms::definitions::LmsAlgorithmType;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
-use crate::util::helper::is_power_of_two;
 
 pub fn generate_private_key(
     lms_type: LmsAlgorithmType,
@@ -21,11 +20,6 @@ pub fn generate_private_key(
 }
 
 pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
-    let num_lmots_keys = private_key.lms_type.get_parameter().number_of_lm_ots_keys();
-
-    // num_lmots_keys must be a power of two
-    assert!(is_power_of_two(num_lmots_keys));
-
     let public_key = get_tree_element(1, private_key);
 
     LmsPublicKey::new(

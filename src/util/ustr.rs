@@ -5,7 +5,6 @@ pub fn u32str(x: u32) -> [u8; 4] {
 }
 
 pub fn str32u(x: &[u8]) -> u32 {
-    assert!(x.len() >= 4);
     let arr: [u8; 4] = x.try_into().expect("Slice not 4 bytes long");
     u32::from_be_bytes(arr)
 }

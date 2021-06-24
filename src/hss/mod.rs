@@ -22,15 +22,27 @@ pub struct HssSignResult {
 pub fn hss_verify(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
     // Todo: Check if HSS Levels = 1 and then forward data;
 
-    assert!(public_key.len() > 4);
+    if public_key.len() <= 4 {
+        return false;
+    }
+
     let hss_levels = str32u(&public_key[0..4]);
 
-    assert!(hss_levels == 1); // Needed to be compatible with reference implementation
+    // Needed to be compatible with reference implementation
+    if hss_levels != 1 {
+        panic!("HSS Levels greater than 1 are note supported yet.");
+    }
 
-    assert!(signature.len() > 4);
-    let hss_levels = str32u(&signature[0..4]);
+    if signature.len() <= 4 {
+        return false;
+    }
 
-    assert!(hss_levels == 0); // Needed to be compatible with reference implementation
+    let signature_hss_levels = str32u(&signature[0..4]);
+
+    // Needed to be compatible with reference implementation
+    if signature_hss_levels != 0 {
+        panic!("HSS Levels greater than 1 are note supported yet.")
+    }
 
     crate::lms::verify(message, &signature[4..], &public_key[4..])
 }

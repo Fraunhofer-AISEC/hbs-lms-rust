@@ -42,7 +42,7 @@ pub fn generate_public_key_canditate(
     hasher.update(message);
 
     let Q = hasher.finalize_reset();
-    let Q_and_checksum = signature.parameter.get_appended_with_checksum(&Q);
+    let Q_and_checksum = signature.parameter.get_appended_with_checksum(Q.get_slice());
 
     let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
     let max_w = 2u64.pow(signature.parameter.w as u32) - 1;
@@ -61,7 +61,7 @@ pub fn generate_public_key_canditate(
             hasher.update(&u16str(i));
             hasher.update(&u8str(j as u8));
             hasher.update(tmp.get_slice());
-            tmp = DynamicArray::from_slice(&hasher.finalize_reset());
+            tmp = hasher.finalize_reset();
         }
         z[i as usize] = tmp;
     }
@@ -74,7 +74,7 @@ pub fn generate_public_key_canditate(
         hasher.update(item.get_slice());
     }
 
-    DynamicArray::from_slice(&hasher.finalize())
+    hasher.finalize()
 }
 
 #[cfg(test)]

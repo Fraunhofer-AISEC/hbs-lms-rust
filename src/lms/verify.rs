@@ -4,6 +4,7 @@ use crate::constants::MAX_M;
 use crate::hasher::Hasher;
 use crate::lms::definitions::LmsPublicKey;
 use crate::lms::signing::LmsSignature;
+use crate::util::dynamic_array::DynamicArray;
 use crate::util::helper::is_odd;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
@@ -23,7 +24,7 @@ pub fn verify(
 
     let public_key_canditate = generate_public_key_candiate(signature, public_key, message)?;
 
-    if public_key_canditate == public_key.key.get_slice() {
+    if public_key_canditate == public_key.key {
         Ok(())
     } else {
         Err("Public key canditate is not equal to public key.")
@@ -34,7 +35,7 @@ fn generate_public_key_candiate(
     signature: &LmsSignature,
     public_key: &LmsPublicKey,
     message: &[u8],
-) -> Result<[u8; MAX_M], &'static str> {
+) -> Result<DynamicArray<u8, MAX_M>, &'static str> {
     if signature.lmots_signature.parameter._type != public_key.lm_ots_type {
         return Err("LM OTS Signature parameter type does not match public key signature type.");
     }
@@ -74,9 +75,9 @@ fn generate_public_key_candiate(
 
         if is_odd(node_num as usize) {
             hasher.update(&signature.path[i].get_slice());
-            hasher.update(&temp);
+            hasher.update(&temp.get_slice());
         } else {
-            hasher.update(&temp);
+            hasher.update(&temp.get_slice());
             hasher.update(&signature.path[i].get_slice());
         }
         temp = hasher.finalize_reset();

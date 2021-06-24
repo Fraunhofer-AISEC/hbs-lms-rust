@@ -35,5 +35,5 @@ pub fn get_tree_element(index: usize, private_key: &LmsPrivateKey) -> DynamicArr
         hasher.update(&right.get_slice());
     }
 
-    DynamicArray::from_slice(&hasher.finalize())
+    hasher.finalize()
 }

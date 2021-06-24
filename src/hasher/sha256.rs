@@ -1,8 +1,6 @@
-use core::convert::TryInto;
-
 use sha2::{Digest, Sha256};
 
-use crate::constants::MAX_N;
+use crate::{constants::MAX_N, util::dynamic_array::DynamicArray};
 
 use super::Hasher;
 
@@ -23,21 +21,17 @@ impl Hasher for Sha256Hasher {
         self.hasher.update(data);
     }
 
-    fn finalize(self) -> [u8; MAX_N] {
-        self.hasher
+    fn finalize(self) -> DynamicArray<u8, MAX_N> {
+        DynamicArray::from_slice(self.hasher
             .finalize()
             .iter()
-            .as_slice()
-            .try_into()
-            .expect("Wrong length")
+            .as_slice())
     }
 
-    fn finalize_reset(&mut self) -> [u8; MAX_N] {
-        self.hasher
+    fn finalize_reset(&mut self) -> DynamicArray<u8, MAX_N> {
+        DynamicArray::from_slice(self.hasher
             .finalize_reset()
             .iter()
-            .as_slice()
-            .try_into()
-            .expect("Wrong length")
+            .as_slice())
     }
 }

@@ -24,7 +24,7 @@ pub fn generate_private_key(
         hasher.update(&[0xff]);
         hasher.update(&seed);
 
-        key[index as usize] = DynamicArray::from_slice(&hasher.finalize_reset());
+        key[index as usize] = hasher.finalize_reset();
     }
 
     LmotsPrivateKey::new(i, q, parameter, key)
@@ -50,8 +50,8 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
             hasher.update(&u8str(j as u8));
             hasher.update(tmp.get_slice());
 
-            for (index, value) in hasher.finalize_reset().iter().enumerate() {
-                tmp[index] = *value;
+            for (index, value) in hasher.finalize_reset().into_iter().enumerate() {
+                tmp[index] = value;
             }
         }
 
@@ -67,8 +67,8 @@ pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {
     }
 
     let mut public_key = DynamicArray::new();
-    for (index, value) in hasher.finalize().iter().enumerate() {
-        public_key[index] = *value;
+    for (index, value) in hasher.finalize().into_iter().enumerate() {
+        public_key[index] = value;
     }
 
     LmotsPublicKey::new(private_key.I, private_key.q, *parameter, public_key)

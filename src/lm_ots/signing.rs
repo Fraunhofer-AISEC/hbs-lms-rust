@@ -38,7 +38,7 @@ impl LmotsSignature {
         hasher.update(&C.get_slice());
         hasher.update(message);
 
-        let Q: DynamicArray<u8, MAX_N> = DynamicArray::from_slice(&hasher.finalize_reset());
+        let Q: DynamicArray<u8, MAX_N> = hasher.finalize_reset();
         let Q_and_checksum = private_key
             .parameter
             .get_appended_with_checksum(&Q.get_slice());
@@ -58,7 +58,7 @@ impl LmotsSignature {
                 hasher.update(&u16str(i));
                 hasher.update(&u8str(j as u8));
                 hasher.update(tmp.get_slice());
-                tmp = DynamicArray::from_slice(&hasher.finalize_reset());
+                tmp = hasher.finalize_reset();
             }
             y[i as usize] = tmp;
         }

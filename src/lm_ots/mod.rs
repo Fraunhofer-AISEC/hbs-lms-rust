@@ -1,5 +1,4 @@
 use crate::lm_ots::definitions::IType;
-use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::definitions::LmotsPublicKey;
 use crate::lm_ots::definitions::QType;
@@ -9,6 +8,7 @@ use self::definitions::Seed;
 
 pub mod definitions;
 mod keygen;
+pub mod parameter;
 pub mod signing;
 pub mod verify;
 

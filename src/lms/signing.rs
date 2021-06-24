@@ -3,6 +3,7 @@ use crate::constants::MAX_M;
 use crate::constants::MAX_N;
 use crate::constants::MAX_P;
 use crate::lm_ots;
+use crate::lm_ots::definitions::LmotsAlgorithmParameter;
 use crate::lm_ots::definitions::QType;
 use crate::lm_ots::signing::LmotsSignature;
 use crate::lms::definitions::LmsAlgorithmParameter;
@@ -28,7 +29,7 @@ impl LmsSignature {
         lms_private_key: &mut LmsPrivateKey,
         message: &[u8],
     ) -> Result<LmsSignature, &'static str> {
-        let lms_parameter = lms_private_key.lms_type.get_parameter();
+        let lms_parameter = lms_private_key.lms_parameter;
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
         let ots_signature = LmotsSignature::sign(&lm_ots_private_key, message);
@@ -95,7 +96,7 @@ impl LmsSignature {
             Some(x) => x,
         };
 
-        let lm_ots_parameter = ots_type.get_parameter();
+        let lm_ots_parameter = LmotsAlgorithmParameter::new(ots_type);
 
         if data.len() < 12 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1) {
             return None;
@@ -113,12 +114,10 @@ impl LmsSignature {
 
         let lms_type = str32u(&data[lms_type_start..=lms_type_end]);
 
-        let lms_type = match LmsAlgorithmType::from_u32(lms_type) {
+        let lms_parameter = match LmsAlgorithmType::from_u32(lms_type) {
             None => return None,
-            Some(x) => x,
+            Some(x) => LmsAlgorithmParameter::new(x),
         };
-
-        let lms_parameter = lms_type.get_parameter();
 
         if q >= 2u32.pow(lms_parameter.h as u32) {
             return None;
@@ -160,14 +159,17 @@ impl LmsSignature {
 
 #[cfg(test)]
 mod tests {
-    use crate::lms::keygen::generate_private_key;
+    use crate::{
+        lm_ots::definitions::LmotsAlgorithmParameter,
+        lms::{definitions::LmsAlgorithmParameter, keygen::generate_private_key},
+    };
 
     use super::LmsSignature;
 
     #[test]
     fn test_binary_representation_of_signature() {
-        let lms_type = crate::LmsAlgorithmType::LmsSha256M32H5;
-        let lmots_type = crate::LmotsAlgorithmType::LmotsSha256N32W2;
+        let lms_type = LmsAlgorithmParameter::new(crate::LmsAlgorithmType::LmsSha256M32H5);
+        let lmots_type = LmotsAlgorithmParameter::new(crate::LmotsAlgorithmType::LmotsSha256N32W2);
 
         let mut private_key = generate_private_key(lms_type, lmots_type);
 

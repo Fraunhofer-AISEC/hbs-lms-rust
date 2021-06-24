@@ -14,11 +14,11 @@ pub fn verify(
     public_key: &LmsPublicKey,
     message: &[u8],
 ) -> Result<(), &'static str> {
-    if signature.lms_parameter._type != public_key.lms_type {
+    if signature.lms_parameter != public_key.lms_parameter {
         return Err("Signature LMS Type does not match public key LMS type");
     }
 
-    if signature.lmots_signature.parameter._type != public_key.lm_ots_type {
+    if signature.lmots_signature.parameter != public_key.lm_ots_parameter {
         return Err("Signature LM OTS Type does not match public key LM OTS type");
     }
 
@@ -36,11 +36,11 @@ fn generate_public_key_candiate(
     public_key: &LmsPublicKey,
     message: &[u8],
 ) -> Result<DynamicArray<u8, MAX_M>, &'static str> {
-    if signature.lmots_signature.parameter._type != public_key.lm_ots_type {
+    if signature.lmots_signature.parameter != public_key.lm_ots_parameter {
         return Err("LM OTS Signature parameter type does not match public key signature type.");
     }
 
-    if signature.lms_parameter._type != public_key.lms_type {
+    if signature.lms_parameter != public_key.lms_parameter {
         return Err("LMS Signature does not match public key signature type.");
     }
 
@@ -96,8 +96,10 @@ mod tests {
     #[test]
     fn test_verification() {
         let mut private_key = generate_private_key(
-            crate::lms::definitions::LmsAlgorithmType::LmsSha256M32H5,
-            crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W2,
+            LmsAlgorithmParameter::new(crate::lms::definitions::LmsAlgorithmType::LmsSha256M32H5),
+            LmotsAlgorithmParameter::new(
+                crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W2,
+            ),
         );
         let public_key = generate_public_key(&private_key);
 

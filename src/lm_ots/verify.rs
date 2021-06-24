@@ -82,7 +82,7 @@ pub fn generate_public_key_canditate(
 #[cfg(test)]
 mod tests {
     use crate::lm_ots::{
-        definitions::{IType, QType, Seed},
+        definitions::{IType, LmotsAlgorithmParameter, QType, Seed},
         keygen::{generate_private_key, generate_public_key},
         signing::LmotsSignature,
         verify::verify_signature,
@@ -99,7 +99,9 @@ mod tests {
                     176, 213, 104, 226, 71, 9, 74, 130, 187, 214, 75, 151, 184, 216, 175,
                 ];
 
-                let private_key = generate_private_key(i, q, seed, $type);
+                let lm_ots_parameter = LmotsAlgorithmParameter::new($type);
+
+                let private_key = generate_private_key(i, q, seed, lm_ots_parameter);
                 let public_key = generate_public_key(&private_key);
 
                 let mut message = [1, 3, 5, 9, 0];

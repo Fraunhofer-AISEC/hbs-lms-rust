@@ -10,14 +10,13 @@ pub fn generate_private_key(
     i: IType,
     q: QType,
     seed: Seed,
-    _type: LmotsAlgorithmType,
+    lmots_parameter: LmotsAlgorithmParameter,
 ) -> LmotsPrivateKey {
-    let parameter = _type.get_parameter();
     let mut key = DynamicArray::new();
 
-    let mut hasher = parameter.get_hasher();
+    let mut hasher = lmots_parameter.get_hasher();
 
-    for index in 0.._type.get_parameter().p {
+    for index in 0..lmots_parameter.p {
         hasher.update(&i);
         hasher.update(&q);
         hasher.update(&u16str(index as u16));
@@ -27,7 +26,7 @@ pub fn generate_private_key(
         key[index as usize] = hasher.finalize_reset();
     }
 
-    LmotsPrivateKey::new(i, q, parameter, key)
+    LmotsPrivateKey::new(i, q, lmots_parameter, key)
 }
 
 pub fn generate_public_key(private_key: &LmotsPrivateKey) -> LmotsPublicKey {

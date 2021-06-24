@@ -1,8 +1,9 @@
-use crate::lm_ots::definitions::LmotsAlgorithmType;
+use crate::lm_ots::definitions::{LmotsAlgorithmParameter, LmotsAlgorithmType};
 use crate::lms::definitions::LmsAlgorithmType;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
 
+use self::definitions::LmsAlgorithmParameter;
 use self::signing::LmsSignature;
 
 pub mod definitions;
@@ -12,10 +13,10 @@ pub mod signing;
 mod verify;
 
 pub fn generate_private_key(
-    lms_type: LmsAlgorithmType,
-    lmots_type: LmotsAlgorithmType,
+    lms_parameter: LmsAlgorithmParameter,
+    lmots_parameter: LmotsAlgorithmParameter,
 ) -> LmsPrivateKey {
-    keygen::generate_private_key(lms_type, lmots_type)
+    keygen::generate_private_key(lms_parameter, lmots_parameter)
 }
 
 pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {

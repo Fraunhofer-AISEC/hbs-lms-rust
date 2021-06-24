@@ -14,10 +14,6 @@ pub enum LmotsAlgorithmType {
 }
 
 impl LmotsAlgorithmType {
-    pub fn get_parameter(self) -> LmotsAlgorithmParameter {
-        LmotsAlgorithmParameter::get(self)
-    }
-
     pub fn from_u32(x: u32) -> Option<Self> {
         match x {
             0 => Some(LmotsAlgorithmType::LmotsReserved),
@@ -44,7 +40,7 @@ pub struct LmotsAlgorithmParameter {
 }
 
 impl LmotsAlgorithmParameter {
-    pub fn get(_type: LmotsAlgorithmType) -> Self {
+    pub fn new(_type: LmotsAlgorithmType) -> Self {
         match _type {
             LmotsAlgorithmType::LmotsReserved => panic!("Reserved parameter type."),
             LmotsAlgorithmType::LmotsSha256N32W1 => {
@@ -111,6 +107,10 @@ impl LmotsAlgorithmParameter {
             LmotsAlgorithmType::LmotsSha256N32W8 => Sha256Hasher::new(),
         }
     }
+
+    pub fn get_binary_identifier(&self) -> u32 {
+        self._type as u32
+    }
 }
 
 #[allow(non_snake_case)]
@@ -172,7 +172,7 @@ mod tests {
         ($name:ident, $type:expr, $n:literal, $w:literal, $p:literal, $ls:literal) => {
             #[test]
             fn $name() {
-                let parameter = LmotsAlgorithmParameter::get($type);
+                let parameter = LmotsAlgorithmParameter::new($type);
                 assert_eq!(parameter._type, $type);
                 assert_eq!(parameter.n, $n);
                 assert_eq!(parameter.w, $w);

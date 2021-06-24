@@ -2,9 +2,9 @@ use crate::constants::{MAX_M, MAX_PRIVATE_KEY_LENGTH};
 use crate::hasher::sha256::Sha256Hasher;
 use crate::hasher::Hasher;
 use crate::lm_ots;
-use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::definitions::{IType, Seed};
+use crate::lm_ots::definitions::{LmotsAlgorithmParameter, LmotsAlgorithmType};
 use crate::util::dynamic_array::DynamicArray;
 use crate::util::helper::read_and_advance;
 use crate::util::ustr::str32u;
@@ -21,10 +21,6 @@ pub enum LmsAlgorithmType {
 }
 
 impl LmsAlgorithmType {
-    pub fn get_parameter(self) -> LmsAlgorithmParameter {
-        LmsAlgorithmParameter::get(self)
-    }
-
     pub fn from_u32(x: u32) -> Option<LmsAlgorithmType> {
         match x {
             0 => Some(LmsAlgorithmType::LmsReserved),
@@ -38,7 +34,7 @@ impl LmsAlgorithmType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct LmsAlgorithmParameter {
     pub h: u8,
     pub m: u8,
@@ -46,7 +42,7 @@ pub struct LmsAlgorithmParameter {
 }
 
 impl LmsAlgorithmParameter {
-    pub fn get(_type: LmsAlgorithmType) -> Self {
+    pub fn new(_type: LmsAlgorithmType) -> Self {
         match _type {
             LmsAlgorithmType::LmsReserved => panic!("Reserved parameter."),
             LmsAlgorithmType::LmsSha256M32H5 => {
@@ -85,13 +81,17 @@ impl LmsAlgorithmParameter {
     pub fn number_of_lm_ots_keys(&self) -> usize {
         2usize.pow(self.h as u32)
     }
+
+    pub fn get_binary_identifier(&self) -> u32 {
+        self._type as u32
+    }
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct LmsPrivateKey {
-    pub lms_type: LmsAlgorithmType,
-    pub lm_ots_type: LmotsAlgorithmType,
+    pub lms_parameter: LmsAlgorithmParameter,
+    pub lm_ots_parameter: LmotsAlgorithmParameter,
     pub I: IType,
     pub q: u32,
     pub seed: Seed,
@@ -100,14 +100,14 @@ pub struct LmsPrivateKey {
 #[allow(non_snake_case)]
 impl LmsPrivateKey {
     pub fn new(
-        lms_type: LmsAlgorithmType,
-        lmots_type: LmotsAlgorithmType,
+        lms_parameter: LmsAlgorithmParameter,
+        lm_ots_parameter: LmotsAlgorithmParameter,
         seed: Seed,
         I: IType,
     ) -> Self {
         LmsPrivateKey {
-            lms_type,
-            lm_ots_type: lmots_type,
+            lms_parameter,
+            lm_ots_parameter,
             seed,
             I,
             q: 0,
@@ -115,20 +115,24 @@ impl LmsPrivateKey {
     }
 
     pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey, &'static str> {
-        if self.q as usize >= self.lms_type.get_parameter().number_of_lm_ots_keys() {
+        if self.q as usize >= self.lms_parameter.number_of_lm_ots_keys() {
             return Err("All private keys already used.");
         }
         self.q += 1;
-        let key =
-            lm_ots::generate_private_key(u32str(self.q - 1), self.I, self.seed, self.lm_ots_type);
+        let key = lm_ots::generate_private_key(
+            u32str(self.q - 1),
+            self.I,
+            self.seed,
+            self.lm_ots_parameter,
+        );
         Ok(key)
     }
 
     pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH> {
         let mut result = DynamicArray::new();
 
-        result.append(&u32str(self.lms_type as u32));
-        result.append(&u32str(self.lm_ots_type as u32));
+        result.append(&u32str(self.lms_parameter._type as u32));
+        result.append(&u32str(self.lm_ots_parameter._type as u32));
 
         result.append(&self.I);
         result.append(&u32str(self.q));
@@ -143,17 +147,17 @@ impl LmsPrivateKey {
         let lms_type = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        let lms_type = match LmsAlgorithmType::from_u32(lms_type) {
+        let lms_parameter = match LmsAlgorithmType::from_u32(lms_type) {
             None => return None,
-            Some(x) => x,
+            Some(x) => LmsAlgorithmParameter::new(x),
         };
 
         let lm_ots_type = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        let lm_ots_type = match LmotsAlgorithmType::from_u32(lm_ots_type) {
+        let lm_ots_parameter = match LmotsAlgorithmType::from_u32(lm_ots_type) {
             None => return None,
-            Some(x) => x,
+            Some(x) => LmotsAlgorithmParameter::new(x),
         };
 
         let mut initial: IType = [0u8; 16];
@@ -168,8 +172,8 @@ impl LmsPrivateKey {
         // consumed_data = &consumed_data[32..];
 
         let key = LmsPrivateKey {
-            lms_type,
-            lm_ots_type,
+            lms_parameter,
+            lm_ots_parameter,
             seed,
             I: initial,
             q,
@@ -182,8 +186,8 @@ impl LmsPrivateKey {
 #[allow(non_snake_case)]
 #[derive(Debug, PartialEq, Eq)]
 pub struct LmsPublicKey {
-    pub lm_ots_type: LmotsAlgorithmType,
-    pub lms_type: LmsAlgorithmType,
+    pub lm_ots_parameter: LmotsAlgorithmParameter,
+    pub lms_parameter: LmsAlgorithmParameter,
     pub key: DynamicArray<u8, MAX_M>,
     pub I: IType,
 }
@@ -192,13 +196,13 @@ pub struct LmsPublicKey {
 impl LmsPublicKey {
     pub fn new(
         public_key: DynamicArray<u8, MAX_M>,
-        lm_ots_type: LmotsAlgorithmType,
-        lms_type: LmsAlgorithmType,
+        lm_ots_parameter: LmotsAlgorithmParameter,
+        lms_parameter: LmsAlgorithmParameter,
         I: IType,
     ) -> Self {
         LmsPublicKey {
-            lm_ots_type,
-            lms_type,
+            lm_ots_parameter,
+            lms_parameter,
             key: public_key,
             I,
         }
@@ -207,8 +211,8 @@ impl LmsPublicKey {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + 4 + 16 + MAX_M }> {
         let mut result = DynamicArray::new();
 
-        result.append(&u32str(self.lms_type as u32));
-        result.append(&u32str(self.lm_ots_type as u32));
+        result.append(&u32str(self.lms_parameter.get_binary_identifier()));
+        result.append(&u32str(self.lm_ots_parameter.get_binary_identifier()));
 
         result.append(&self.I);
         result.append(&self.key.get_slice());
@@ -226,21 +230,19 @@ impl LmsPublicKey {
 
         let pubtype = str32u(read_and_advance(data, 4, &mut data_index));
 
-        let lms_type = match LmsAlgorithmType::from_u32(pubtype) {
+        let lms_parameter = match LmsAlgorithmType::from_u32(pubtype) {
             None => return None,
-            Some(x) => x,
+            Some(x) => LmsAlgorithmParameter::new(x),
         };
 
         let ots_typecode = str32u(read_and_advance(data, 4, &mut data_index));
 
-        let lm_ots_type = match LmotsAlgorithmType::from_u32(ots_typecode) {
+        let lm_ots_parameter = match LmotsAlgorithmType::from_u32(ots_typecode) {
             None => return None,
-            Some(x) => x,
+            Some(x) => LmotsAlgorithmParameter::new(x),
         };
 
-        let lm_parameter = lms_type.get_parameter();
-
-        if data.len() - data_index == 24 + lm_parameter.m as usize {
+        if data.len() - data_index == 24 + lms_parameter.m as usize {
             return None;
         }
 
@@ -249,11 +251,11 @@ impl LmsPublicKey {
 
         let mut key: DynamicArray<u8, MAX_M> = DynamicArray::new();
 
-        key.append(&data[data_index..data_index + lm_parameter.m as usize]);
+        key.append(&data[data_index..data_index + lms_parameter.m as usize]);
 
         let public_key = LmsPublicKey {
-            lms_type,
-            lm_ots_type,
+            lms_parameter,
+            lm_ots_parameter,
             I: initial,
             key,
         };
@@ -264,14 +266,20 @@ impl LmsPublicKey {
 
 #[cfg(test)]
 mod tests {
-    use crate::lms::keygen::{generate_private_key, generate_public_key};
+    use crate::{
+        lm_ots::definitions::LmotsAlgorithmParameter,
+        lms::{
+            definitions::LmsAlgorithmParameter,
+            keygen::{generate_private_key, generate_public_key},
+        },
+    };
 
     use super::{LmsPrivateKey, LmsPublicKey};
 
     #[test]
     fn test_private_key_binary_representation() {
-        let lms_type = crate::LmsAlgorithmType::LmsSha256M32H5;
-        let lmots_type = crate::LmotsAlgorithmType::LmotsSha256N32W2;
+        let lms_type = LmsAlgorithmParameter::new(crate::LmsAlgorithmType::LmsSha256M32H5);
+        let lmots_type = LmotsAlgorithmParameter::new(crate::LmotsAlgorithmType::LmotsSha256N32W2);
 
         let private_key = generate_private_key(lms_type, lmots_type);
 
@@ -284,8 +292,8 @@ mod tests {
 
     #[test]
     fn test_public_key_binary_representation() {
-        let lms_type = crate::LmsAlgorithmType::LmsSha256M32H5;
-        let lmots_type = crate::LmotsAlgorithmType::LmotsSha256N32W2;
+        let lms_type = LmsAlgorithmParameter::new(crate::LmsAlgorithmType::LmsSha256M32H5);
+        let lmots_type = LmotsAlgorithmParameter::new(crate::LmotsAlgorithmType::LmotsSha256N32W2);
 
         let private_key = generate_private_key(lms_type, lmots_type);
 

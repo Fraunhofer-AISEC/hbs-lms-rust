@@ -101,7 +101,7 @@ impl LmotsSignature {
             Some(x) => x,
         };
 
-        let lm_ots_parameter = lm_ots_type.get_parameter();
+        let lm_ots_parameter = LmotsAlgorithmParameter::new(lm_ots_type);
 
         if data.len() != 4 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1) {
             return None;
@@ -139,6 +139,7 @@ mod tests {
         util::dynamic_array::DynamicArray,
     };
 
+    use super::LmotsAlgorithmParameter;
     use super::LmotsSignature;
 
     #[test]
@@ -157,7 +158,9 @@ mod tests {
         }
 
         let signature = LmotsSignature {
-            parameter: crate::lm_ots::LmotsAlgorithmType::LmotsSha256N32W1.get_parameter(),
+            parameter: LmotsAlgorithmParameter::new(
+                crate::lm_ots::LmotsAlgorithmType::LmotsSha256N32W1,
+            ),
             C: c,
             y,
         };

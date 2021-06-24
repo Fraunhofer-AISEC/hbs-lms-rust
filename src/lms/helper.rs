@@ -9,12 +9,12 @@ use crate::{
 use super::definitions::LmsPrivateKey;
 
 pub fn get_tree_element(index: usize, private_key: &LmsPrivateKey) -> DynamicArray<u8, MAX_M> {
-    let mut hasher = private_key.lms_type.get_parameter().get_hasher();
+    let mut hasher = private_key.lms_parameter.get_hasher();
 
     hasher.update(&private_key.I);
     hasher.update(&u32str(index as u32));
 
-    let max_private_keys = private_key.lms_type.get_parameter().number_of_lm_ots_keys();
+    let max_private_keys = private_key.lms_parameter.number_of_lm_ots_keys();
 
     if index >= max_private_keys {
         hasher.update(&D_LEAF);
@@ -22,7 +22,7 @@ pub fn get_tree_element(index: usize, private_key: &LmsPrivateKey) -> DynamicArr
             u32str((index - max_private_keys) as u32),
             private_key.I,
             private_key.seed,
-            private_key.lm_ots_type,
+            private_key.lm_ots_parameter,
         );
         let lm_ots_public_key = crate::lm_ots::generate_public_key(&lms_ots_private_key);
         hasher.update(&lm_ots_public_key.key.get_slice());

@@ -22,16 +22,10 @@ impl Hasher for Sha256Hasher {
     }
 
     fn finalize(self) -> DynamicArray<u8, MAX_N> {
-        DynamicArray::from_slice(self.hasher
-            .finalize()
-            .iter()
-            .as_slice())
+        DynamicArray::from_slice(self.hasher.finalize().iter().as_slice())
     }
 
     fn finalize_reset(&mut self) -> DynamicArray<u8, MAX_N> {
-        DynamicArray::from_slice(self.hasher
-            .finalize_reset()
-            .iter()
-            .as_slice())
+        DynamicArray::from_slice(self.hasher.finalize_reset().iter().as_slice())
     }
 }

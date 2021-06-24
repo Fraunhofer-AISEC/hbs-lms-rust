@@ -70,10 +70,10 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let private_key_name = get_private_key_name(&keyname);
     let signature_name = get_signature_name(&message_name);
 
-    let private_key_data = read_file(&&private_key_name);
+    let mut private_key_data = read_file(&private_key_name);
     let message_data = read_file(&message_name);
 
-    let result = match hss_sign(&message_data, &private_key_data) {
+    let result = match hss_sign(&message_data, &mut private_key_data) {
         None => {
             print!("Could not sign message.");
             exit(-1)
@@ -81,8 +81,8 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
         Some(x) => x,
     };
 
-    write(&private_key_name, &result.advanced_private_key.get_slice())?;
-    write(&signature_name, &result.signature.get_slice())?;
+    write(&private_key_name, &private_key_data)?;
+    write(&signature_name, &result.get_slice())?;
 
     Ok(())
 }

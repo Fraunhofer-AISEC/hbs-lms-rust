@@ -1,5 +1,5 @@
 use crate::{
-    constants::{MAX_H, MAX_M, MAX_N, MAX_P, MAX_PRIV_KEY_LENGTH},
+    constants::{MAX_PRIVATE_KEY_LENGTH, MAX_PUBLIC_KEY_LENGTH, MAX_SIGNATURE_LENGTH},
     lms,
     util::{
         dynamic_array::DynamicArray,
@@ -9,14 +9,8 @@ use crate::{
 };
 
 pub struct HssBinaryData {
-    pub public_key: DynamicArray<u8, { 4 + 4 + 4 + 16 + MAX_M }>,
-    pub private_key: DynamicArray<u8, MAX_PRIV_KEY_LENGTH>,
-}
-
-pub struct HssSignResult {
-    pub advanced_private_key: DynamicArray<u8, MAX_PRIV_KEY_LENGTH>,
-    pub signature:
-        DynamicArray<u8, { 4 + 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H) }>,
+    pub public_key: DynamicArray<u8, MAX_PUBLIC_KEY_LENGTH>,
+    pub private_key: DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH>,
 }
 
 pub fn hss_verify(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
@@ -47,18 +41,24 @@ pub fn hss_verify(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
     crate::lms::verify(message, &signature[4..], &public_key[4..])
 }
 
-pub fn hss_sign(message: &[u8], private_key: &[u8]) -> Option<HssSignResult> {
-    let mut private_key =
+pub fn hss_sign(
+    message: &[u8],
+    private_key: &mut [u8],
+) -> Option<DynamicArray<u8, MAX_SIGNATURE_LENGTH>> {
+    let mut parsed_private_key =
         match lms::definitions::LmsPrivateKey::from_binary_representation(private_key) {
             None => return None,
             Some(x) => x,
         };
 
-    let signature = lms::signing::LmsSignature::sign(&mut private_key, message);
+    let signature = lms::signing::LmsSignature::sign(&mut parsed_private_key, message);
 
     if signature.is_err() {
         return None;
     }
+
+    // Replace private key with advanced key
+    private_key.copy_from_slice(parsed_private_key.to_binary_representation().get_slice());
 
     let signature = signature.unwrap();
 
@@ -68,12 +68,7 @@ pub fn hss_sign(message: &[u8], private_key: &[u8]) -> Option<HssSignResult> {
     hss_signature.append(&hss_levels);
     hss_signature.append(&signature.to_binary_representation().get_slice());
 
-    let result = HssSignResult {
-        advanced_private_key: private_key.to_binary_representation(),
-        signature: hss_signature,
-    };
-
-    Some(result)
+    Some(hss_signature)
 }
 
 pub fn hss_keygen(lms_type: LmsAlgorithmType, lmots_type: LmotsAlgorithmType) -> HssBinaryData {
@@ -102,7 +97,7 @@ mod tests {
 
     #[test]
     fn test_signing() {
-        let keys = hss_keygen(
+        let mut keys = hss_keygen(
             LmsAlgorithmType::LmsSha256M32H5,
             LmotsAlgorithmType::LmotsSha256N32W2,
         );
@@ -111,9 +106,8 @@ mod tests {
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
 
-        let signature = hss_sign(&message, &keys.private_key.get_slice())
-            .expect("Signing should complete without error.")
-            .signature;
+        let signature = hss_sign(&message, keys.private_key.get_mut_slice())
+            .expect("Signing should complete without error.");
 
         assert!(hss_verify(
             &message,

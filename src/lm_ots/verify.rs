@@ -42,7 +42,9 @@ pub fn generate_public_key_canditate(
     hasher.update(message);
 
     let Q = hasher.finalize_reset();
-    let Q_and_checksum = signature.parameter.get_appended_with_checksum(Q.get_slice());
+    let Q_and_checksum = signature
+        .parameter
+        .get_appended_with_checksum(Q.get_slice());
 
     let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
     let max_w = 2u64.pow(signature.parameter.w as u32) - 1;

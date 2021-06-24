@@ -1,4 +1,4 @@
-use crate::constants::{MAX_M, MAX_PRIV_KEY_LENGTH};
+use crate::constants::{MAX_M, MAX_PRIVATE_KEY_LENGTH};
 use crate::hasher::sha256::Sha256Hasher;
 use crate::hasher::Hasher;
 use crate::lm_ots;
@@ -124,7 +124,7 @@ impl LmsPrivateKey {
         Ok(key)
     }
 
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_PRIV_KEY_LENGTH> {
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH> {
         let mut result = DynamicArray::new();
 
         result.append(&u32str(self.lms_type as u32));

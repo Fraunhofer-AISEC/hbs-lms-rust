@@ -1,6 +1,7 @@
 #![no_std]
 
 mod constants;
+mod hasher;
 mod hss;
 mod lm_ots;
 mod lms;

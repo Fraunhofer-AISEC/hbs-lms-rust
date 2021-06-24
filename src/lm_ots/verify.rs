@@ -1,5 +1,6 @@
 use crate::{
     constants::{D_MESG, D_PBLC, MAX_N, MAX_P},
+    hasher::Hasher,
     util::{
         coef::coef,
         dynamic_array::DynamicArray,
@@ -11,7 +12,6 @@ use super::{
     definitions::{IType, LmotsPublicKey, QType},
     signing::LmotsSignature,
 };
-use crate::util::hash::Hasher;
 
 #[allow(non_snake_case)]
 #[allow(dead_code)]

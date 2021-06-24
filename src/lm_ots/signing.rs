@@ -1,5 +1,5 @@
+use crate::hasher::Hasher;
 use crate::util::dynamic_array::DynamicArray;
-use crate::util::hash::Hasher;
 use crate::{
     constants::{D_MESG, MAX_N, MAX_P},
     util::{

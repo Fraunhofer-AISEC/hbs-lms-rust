@@ -1,9 +1,9 @@
 use crate::constants::D_INTR;
 use crate::constants::D_LEAF;
 use crate::constants::MAX_M;
+use crate::hasher::Hasher;
 use crate::lms::definitions::LmsPublicKey;
 use crate::lms::signing::LmsSignature;
-use crate::util::hash::Hasher;
 use crate::util::helper::is_odd;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;

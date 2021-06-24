@@ -1,10 +1,7 @@
 use crate::{
     constants::{MAX_N, MAX_P},
-    util::{
-        coef::coef,
-        dynamic_array::DynamicArray,
-        hash::{Hasher, Sha256Hasher},
-    },
+    hasher::{sha256::Sha256Hasher, Hasher},
+    util::{coef::coef, dynamic_array::DynamicArray},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

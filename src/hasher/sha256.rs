@@ -4,11 +4,7 @@ use sha2::{Digest, Sha256};
 
 use crate::constants::MAX_N;
 
-pub trait Hasher {
-    fn update(&mut self, data: &[u8]);
-    fn finalize(self) -> [u8; MAX_N];
-    fn finalize_reset(&mut self) -> [u8; MAX_N];
-}
+use super::Hasher;
 
 pub struct Sha256Hasher {
     hasher: Sha256,

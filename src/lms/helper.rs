@@ -1,6 +1,6 @@
 use crate::constants::MAX_M;
+use crate::hasher::Hasher;
 use crate::util::dynamic_array::DynamicArray;
-use crate::util::hash::Hasher;
 use crate::{
     constants::{D_INTR, D_LEAF},
     util::ustr::u32str,

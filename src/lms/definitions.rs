@@ -1,11 +1,11 @@
 use crate::constants::{MAX_M, MAX_PRIV_KEY_LENGTH};
+use crate::hasher::sha256::Sha256Hasher;
+use crate::hasher::Hasher;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::definitions::{IType, Seed};
 use crate::util::dynamic_array::DynamicArray;
-use crate::util::hash::Hasher;
-use crate::util::hash::Sha256Hasher;
 use crate::util::helper::read_and_advance;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;

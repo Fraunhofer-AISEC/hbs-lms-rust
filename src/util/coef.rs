@@ -1,7 +1,5 @@
-use crate::definitions::ByteString;
-
 /* Treat byte_string as w-bit integers and return index. */
-pub fn coef(byte_string: &ByteString, i: u64, w: u64) -> u64 {
+pub fn coef(byte_string: &[u8], i: u64, w: u64) -> u64 {
     let index = ((i * w) / 8) as usize;
 
     let digits_per_byte = 8 / w;

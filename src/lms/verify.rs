@@ -1,6 +1,6 @@
-use crate::definitions::D_INTR;
-use crate::definitions::D_LEAF;
-use crate::definitions::MAX_M;
+use crate::constants::D_INTR;
+use crate::constants::D_LEAF;
+use crate::constants::MAX_M;
 use crate::lms::definitions::LmsPublicKey;
 use crate::lms::signing::LmsSignature;
 use crate::util::hash::Hasher;

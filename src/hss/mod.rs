@@ -1,5 +1,5 @@
 use crate::{
-    definitions::{MAX_H, MAX_M, MAX_N, MAX_P, MAX_PRIV_KEY_LENGTH},
+    constants::{MAX_H, MAX_M, MAX_N, MAX_P, MAX_PRIV_KEY_LENGTH},
     lms,
     util::{
         dynamic_array::DynamicArray,

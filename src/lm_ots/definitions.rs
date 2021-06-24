@@ -1,5 +1,5 @@
 use crate::{
-    definitions::{MAX_N, MAX_P},
+    constants::{MAX_N, MAX_P},
     util::{
         coef::coef,
         dynamic_array::DynamicArray,

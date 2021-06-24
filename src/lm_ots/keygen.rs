@@ -2,7 +2,7 @@ use super::definitions::*;
 use crate::util::dynamic_array::DynamicArray;
 use crate::util::hash::Hasher;
 use crate::{
-    definitions::{D_PBLC, MAX_N, MAX_P},
+    constants::{D_PBLC, MAX_N, MAX_P},
     util::ustr::*,
 };
 

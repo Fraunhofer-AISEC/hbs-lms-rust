@@ -1,6 +1,7 @@
 #![no_std]
 
-mod definitions;
+mod constants;
+mod errors;
 mod hss;
 mod lm_ots;
 mod lms;

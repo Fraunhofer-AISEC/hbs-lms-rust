@@ -1,8 +1,8 @@
-use crate::definitions::MAX_M;
+use crate::constants::MAX_M;
 use crate::util::dynamic_array::DynamicArray;
 use crate::util::hash::Hasher;
 use crate::{
-    definitions::{D_INTR, D_LEAF},
+    constants::{D_INTR, D_LEAF},
     util::ustr::u32str,
 };
 

@@ -1,4 +1,4 @@
-use crate::definitions::{MAX_M, MAX_PRIV_KEY_LENGTH};
+use crate::constants::{MAX_M, MAX_PRIV_KEY_LENGTH};
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsAlgorithmType;
 use crate::lm_ots::definitions::LmotsPrivateKey;

@@ -2,7 +2,7 @@ use core::convert::TryInto;
 
 use sha2::{Digest, Sha256};
 
-use crate::definitions::MAX_N;
+use crate::constants::MAX_N;
 
 pub trait Hasher {
     fn update(&mut self, data: &[u8]);

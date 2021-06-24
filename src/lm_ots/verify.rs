@@ -1,5 +1,5 @@
 use crate::{
-    definitions::{D_MESG, D_PBLC, MAX_N, MAX_P},
+    constants::{D_MESG, D_PBLC, MAX_N, MAX_P},
     util::{
         coef::coef,
         dynamic_array::DynamicArray,

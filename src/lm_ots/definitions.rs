@@ -59,22 +59,22 @@ mod tests {
     use super::*;
 
     macro_rules! generate_parameter_test {
-        ($name:ident, $parameter:expr, $n:literal, $w:literal, $p:literal, $ls:literal, $type:literal) => {
+        ($name:ident, $parameter:ty, $n:literal, $w:literal, $p:literal, $ls:literal, $type:literal) => {
             #[test]
             fn $name() {
-                let parameter = $parameter;
-                assert_eq!(parameter.get_n(), $n);
-                assert_eq!(parameter.get_w(), $w);
+                let parameter = <$parameter>::new();
+                assert_eq!(<$parameter>::N, $n);
+                assert_eq!(<$parameter>::W, $w);
                 assert_eq!(parameter.get_p(), $p);
                 assert_eq!(parameter.get_ls(), $ls);
-                assert_eq!(parameter.get_type(), $type);
+                assert_eq!(<$parameter>::TYPE, $type);
             }
         };
     }
 
     generate_parameter_test!(
         lmots_sha256_n32_w1_parameter_test,
-        parameter::LmotsSha256N32W1::new(),
+        parameter::LmotsSha256N32W1,
         32,
         1,
         265,
@@ -83,7 +83,7 @@ mod tests {
     );
     generate_parameter_test!(
         lmots_sha256_n32_w2_parameter_test,
-        parameter::LmotsSha256N32W2::new(),
+        parameter::LmotsSha256N32W2,
         32,
         2,
         133,
@@ -92,7 +92,7 @@ mod tests {
     );
     generate_parameter_test!(
         lmots_sha256_n32_w4_parameter_test,
-        parameter::LmotsSha256N32W4::new(),
+        parameter::LmotsSha256N32W4,
         32,
         4,
         67,
@@ -101,7 +101,7 @@ mod tests {
     );
     generate_parameter_test!(
         lmots_sha256_n32_w8_parameter_test,
-        parameter::LmotsSha256N32W8::new(),
+        parameter::LmotsSha256N32W8,
         32,
         8,
         34,

@@ -36,7 +36,7 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
 
         let mut parameter = <OTS>::new();
 
-        C.set_size(parameter.get_n() as usize);
+        C.set_size(<OTS>::N as usize);
 
         get_random(C.get_mut_slice());
 
@@ -52,11 +52,7 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
         let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
         for i in 0..parameter.get_p() {
-            let a = coef(
-                &Q_and_checksum.get_slice(),
-                i as u64,
-                parameter.get_w() as u64,
-            );
+            let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64);
             let mut tmp = private_key.key[i as usize];
             for j in 0..a {
                 parameter.update(&private_key.I);
@@ -79,9 +75,7 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + MAX_N + (MAX_N * MAX_P) }> {
         let mut result = DynamicArray::new();
 
-        let parameter = <OTS>::new();
-
-        result.append(&u32str(parameter.get_type()));
+        result.append(&u32str(<OTS>::TYPE));
         result.append(self.C.get_slice());
 
         for x in self.y.into_iter() {
@@ -110,7 +104,7 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
             return None;
         }
 
-        let n = parameter.get_n();
+        let n = <OTS>::N;
         let p = parameter.get_p();
 
         if data.len() != 4 + n as usize * (p as usize + 1) {
@@ -163,12 +157,12 @@ mod tests {
         let mut c = DynamicArray::new();
         let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
-        for i in 0..parameter.get_n() as usize {
+        for i in 0..<LmotsType>::N as usize {
             c[i] = i as u8;
         }
 
         for i in 0..parameter.get_p() as usize {
-            for j in 0..parameter.get_n() as usize {
+            for j in 0..<LmotsType>::N as usize {
                 y[i][j] = j as u8;
             }
         }

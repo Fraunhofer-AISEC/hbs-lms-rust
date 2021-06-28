@@ -45,14 +45,10 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
     let Q_and_checksum = parameter.get_appended_with_checksum(Q.get_slice());
 
     let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
-    let max_w = 2u64.pow(parameter.get_w() as u32) - 1;
+    let max_w = 2u64.pow(<OTS>::W as u32) - 1;
 
     for i in 0..parameter.get_p() {
-        let a = coef(
-            &Q_and_checksum.get_slice(),
-            i as u64,
-            parameter.get_w() as u64,
-        );
+        let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64);
         let mut tmp = signature.y[i as usize];
 
         for j in a..max_w {

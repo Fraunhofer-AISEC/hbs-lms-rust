@@ -33,7 +33,7 @@ pub fn generate_public_key<OTS: LmotsParameter>(
 ) -> LmotsPublicKey<OTS> {
     let mut parameter = <OTS>::new();
 
-    let max_word_index: usize = (1 << parameter.get_w()) - 1;
+    let max_word_index: usize = (1 << <OTS>::W) - 1;
     let key = &private_key.key;
 
     let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();

@@ -59,11 +59,10 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH> {
         let mut result = DynamicArray::new();
 
-        let lm_ots_parameter = <OTS>::new();
         let lms_parameter = <LMS>::new();
 
         result.append(&u32str(lms_parameter.get_type() as u32));
-        result.append(&u32str(lm_ots_parameter.get_type()));
+        result.append(&u32str(<OTS>::TYPE));
 
         result.append(&self.I);
         result.append(&u32str(self.q));
@@ -150,11 +149,10 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPublicKey<OTS, LMS> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + 4 + 16 + MAX_M }> {
         let mut result = DynamicArray::new();
 
-        let lm_ots_parameter = <OTS>::new();
         let lms_parameter = <LMS>::new();
 
         result.append(&u32str(lms_parameter.get_type()));
-        result.append(&u32str(lm_ots_parameter.get_type()));
+        result.append(&u32str(<OTS>::TYPE));
 
         result.append(&self.I);
         result.append(&self.key.get_slice());

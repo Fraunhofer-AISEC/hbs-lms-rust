@@ -112,7 +112,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
 
         let lm_ots_parameter = <OTS>::new();
 
-        let n = lm_ots_parameter.get_n();
+        let n = <OTS>::N;
         let p = lm_ots_parameter.get_p();
 
         if data.len() < 12 + n as usize * (p as usize + 1) {
@@ -150,8 +150,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
         }
 
         let mut tree_slice = data;
-        let tree_start =
-            12 + lm_ots_parameter.get_n() as usize * (lm_ots_parameter.get_p() as usize + 1);
+        let tree_start = 12 + <OTS>::N as usize * (lm_ots_parameter.get_p() as usize + 1);
 
         tree_slice = &tree_slice[tree_start..];
 

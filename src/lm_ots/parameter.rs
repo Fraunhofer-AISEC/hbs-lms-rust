@@ -9,8 +9,6 @@ pub trait LmotsParameter: Hasher {
     const W: u8;
     const TYPE: u32;
 
-    fn new() -> Self;
-
     fn is_type_correct(_type: u32) -> bool {
         Self::TYPE == _type
     }
@@ -72,15 +70,15 @@ macro_rules! generate_parameter_type {
             const N: u16 = $n;
             const W: u8 = $w;
             const TYPE: u32 = $type;
+        }
 
-            fn new() -> Self {
+        impl Hasher for $name {
+            fn get_hasher() -> Self {
                 $name {
                     hasher: $hasher::new(),
                 }
             }
-        }
 
-        impl Hasher for $name {
             fn update(&mut self, data: &[u8]) {
                 self.hasher.update(data)
             }

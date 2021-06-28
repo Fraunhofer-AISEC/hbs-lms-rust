@@ -17,6 +17,10 @@ impl Sha256Hasher {
 }
 
 impl Hasher for Sha256Hasher {
+    fn get_hasher() -> Self {
+        Self::new()
+    }
+
     fn update(&mut self, data: &[u8]) {
         self.hasher.update(data);
     }

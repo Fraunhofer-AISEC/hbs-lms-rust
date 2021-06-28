@@ -30,7 +30,7 @@ fn generate_public_key_candiate<OTS: LmotsParameter, LMS: LmsParameter>(
     public_key: &LmsPublicKey<OTS, LMS>,
     message: &[u8],
 ) -> Result<DynamicArray<u8, MAX_M>, &'static str> {
-    let mut lms_parameter = <LMS>::new();
+    let mut hasher = <LMS>::get_hasher();
 
     let leafs = <LMS>::number_of_lm_ots_keys() as u32;
 
@@ -48,27 +48,27 @@ fn generate_public_key_candiate<OTS: LmotsParameter, LMS: LmsParameter>(
 
     let mut node_num = leafs + str32u(&signature.q);
 
-    lms_parameter.update(&public_key.I);
-    lms_parameter.update(&u32str(node_num));
-    lms_parameter.update(&D_LEAF);
-    lms_parameter.update(ots_public_key_canditate.get_slice());
+    hasher.update(&public_key.I);
+    hasher.update(&u32str(node_num));
+    hasher.update(&D_LEAF);
+    hasher.update(ots_public_key_canditate.get_slice());
 
-    let mut temp = lms_parameter.finalize_reset();
+    let mut temp = hasher.finalize_reset();
     let mut i = 0;
 
     while node_num > 1 {
-        lms_parameter.update(&public_key.I);
-        lms_parameter.update(&u32str(node_num / 2));
-        lms_parameter.update(&D_INTR);
+        hasher.update(&public_key.I);
+        hasher.update(&u32str(node_num / 2));
+        hasher.update(&D_INTR);
 
         if is_odd(node_num as usize) {
-            lms_parameter.update(&signature.path[i].get_slice());
-            lms_parameter.update(&temp.get_slice());
+            hasher.update(&signature.path[i].get_slice());
+            hasher.update(&temp.get_slice());
         } else {
-            lms_parameter.update(&temp.get_slice());
-            lms_parameter.update(&signature.path[i].get_slice());
+            hasher.update(&temp.get_slice());
+            hasher.update(&signature.path[i].get_slice());
         }
-        temp = lms_parameter.finalize_reset();
+        temp = hasher.finalize_reset();
         node_num /= 2;
         i += 1;
     }

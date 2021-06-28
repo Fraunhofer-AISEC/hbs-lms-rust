@@ -34,19 +34,19 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
     pub fn sign(private_key: &LmotsPrivateKey<OTS>, message: &[u8]) -> Self {
         let mut C = DynamicArray::new();
 
-        let mut parameter = <OTS>::new();
+        let mut hasher = <OTS>::get_hasher();
 
         C.set_size(<OTS>::N as usize);
 
         get_random(C.get_mut_slice());
 
-        parameter.update(&private_key.I);
-        parameter.update(&private_key.q);
-        parameter.update(&D_MESG);
-        parameter.update(&C.get_slice());
-        parameter.update(message);
+        hasher.update(&private_key.I);
+        hasher.update(&private_key.q);
+        hasher.update(&D_MESG);
+        hasher.update(&C.get_slice());
+        hasher.update(message);
 
-        let Q: DynamicArray<u8, MAX_N> = parameter.finalize_reset();
+        let Q: DynamicArray<u8, MAX_N> = hasher.finalize_reset();
         let Q_and_checksum = <OTS>::get_appended_with_checksum(&Q.get_slice());
 
         let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
@@ -55,12 +55,12 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
             let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64);
             let mut tmp = private_key.key[i as usize];
             for j in 0..a {
-                parameter.update(&private_key.I);
-                parameter.update(&private_key.q);
-                parameter.update(&u16str(i));
-                parameter.update(&u8str(j as u8));
-                parameter.update(tmp.get_slice());
-                tmp = parameter.finalize_reset();
+                hasher.update(&private_key.I);
+                hasher.update(&private_key.q);
+                hasher.update(&u16str(i));
+                hasher.update(&u8str(j as u8));
+                hasher.update(tmp.get_slice());
+                tmp = hasher.finalize_reset();
             }
             y[i as usize] = tmp;
         }

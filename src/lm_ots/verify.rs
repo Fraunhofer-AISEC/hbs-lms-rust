@@ -33,15 +33,15 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
     q: &QType,
     message: &[u8],
 ) -> DynamicArray<u8, MAX_N> {
-    let mut parameter = <OTS>::new();
+    let mut hasher = <OTS>::get_hasher();
 
-    parameter.update(I);
-    parameter.update(q);
-    parameter.update(&D_MESG);
-    parameter.update(signature.C.get_slice());
-    parameter.update(message);
+    hasher.update(I);
+    hasher.update(q);
+    hasher.update(&D_MESG);
+    hasher.update(signature.C.get_slice());
+    hasher.update(message);
 
-    let Q = parameter.finalize_reset();
+    let Q = hasher.finalize_reset();
     let Q_and_checksum = <OTS>::get_appended_with_checksum(Q.get_slice());
 
     let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
@@ -52,25 +52,25 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
         let mut tmp = signature.y[i as usize];
 
         for j in a..max_w {
-            parameter.update(I);
-            parameter.update(q);
-            parameter.update(&u16str(i));
-            parameter.update(&u8str(j as u8));
-            parameter.update(tmp.get_slice());
-            tmp = parameter.finalize_reset();
+            hasher.update(I);
+            hasher.update(q);
+            hasher.update(&u16str(i));
+            hasher.update(&u8str(j as u8));
+            hasher.update(tmp.get_slice());
+            tmp = hasher.finalize_reset();
         }
         z[i as usize] = tmp;
     }
 
-    parameter.update(I);
-    parameter.update(q);
-    parameter.update(&D_PBLC);
+    hasher.update(I);
+    hasher.update(q);
+    hasher.update(&D_PBLC);
 
     for item in z.into_iter() {
-        parameter.update(item.get_slice());
+        hasher.update(item.get_slice());
     }
 
-    parameter.finalize()
+    hasher.finalize()
 }
 
 #[cfg(test)]

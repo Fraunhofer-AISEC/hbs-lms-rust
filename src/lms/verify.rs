@@ -1,7 +1,6 @@
 use crate::constants::D_INTR;
 use crate::constants::D_LEAF;
 use crate::constants::MAX_M;
-use crate::hasher::Hasher;
 use crate::lm_ots::parameter::LmotsParameter;
 use crate::lms::definitions::LmsPublicKey;
 use crate::lms::signing::LmsSignature;
@@ -10,15 +9,13 @@ use crate::util::helper::is_odd;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 
-pub fn verify<OTS: LmotsParameter>(
-    signature: &LmsSignature<OTS>,
-    public_key: &LmsPublicKey<OTS>,
+use super::parameter::LmsParameter;
+
+pub fn verify<OTS: LmotsParameter, LMS: LmsParameter>(
+    signature: &LmsSignature<OTS, LMS>,
+    public_key: &LmsPublicKey<OTS, LMS>,
     message: &[u8],
 ) -> Result<(), &'static str> {
-    if signature.lms_parameter != public_key.lms_parameter {
-        return Err("Signature LMS Type does not match public key LMS type");
-    }
-
     let public_key_canditate = generate_public_key_candiate(signature, public_key, message)?;
 
     if public_key_canditate == public_key.key {
@@ -28,16 +25,15 @@ pub fn verify<OTS: LmotsParameter>(
     }
 }
 
-fn generate_public_key_candiate<OTS: LmotsParameter>(
-    signature: &LmsSignature<OTS>,
-    public_key: &LmsPublicKey<OTS>,
+fn generate_public_key_candiate<OTS: LmotsParameter, LMS: LmsParameter>(
+    signature: &LmsSignature<OTS, LMS>,
+    public_key: &LmsPublicKey<OTS, LMS>,
     message: &[u8],
 ) -> Result<DynamicArray<u8, MAX_M>, &'static str> {
-    if signature.lms_parameter != public_key.lms_parameter {
-        return Err("LMS Signature does not match public key signature type.");
-    }
+    let mut lms_parameter = <LMS>::new();
 
-    let leafs = 2u32.pow(signature.lms_parameter.h.into());
+    let leafs = lms_parameter.number_of_lm_ots_keys() as u32;
+
     let curr = str32u(&signature.q);
     if curr >= leafs {
         return Err("q is larger than the maximum number of private keys.");
@@ -51,29 +47,28 @@ fn generate_public_key_candiate<OTS: LmotsParameter>(
     );
 
     let mut node_num = leafs + str32u(&signature.q);
-    let mut hasher = signature.lms_parameter.get_hasher();
 
-    hasher.update(&public_key.I);
-    hasher.update(&u32str(node_num));
-    hasher.update(&D_LEAF);
-    hasher.update(ots_public_key_canditate.get_slice());
+    lms_parameter.update(&public_key.I);
+    lms_parameter.update(&u32str(node_num));
+    lms_parameter.update(&D_LEAF);
+    lms_parameter.update(ots_public_key_canditate.get_slice());
 
-    let mut temp = hasher.finalize_reset();
+    let mut temp = lms_parameter.finalize_reset();
     let mut i = 0;
 
     while node_num > 1 {
-        hasher.update(&public_key.I);
-        hasher.update(&u32str(node_num / 2));
-        hasher.update(&D_INTR);
+        lms_parameter.update(&public_key.I);
+        lms_parameter.update(&u32str(node_num / 2));
+        lms_parameter.update(&D_INTR);
 
         if is_odd(node_num as usize) {
-            hasher.update(&signature.path[i].get_slice());
-            hasher.update(&temp.get_slice());
+            lms_parameter.update(&signature.path[i].get_slice());
+            lms_parameter.update(&temp.get_slice());
         } else {
-            hasher.update(&temp.get_slice());
-            hasher.update(&signature.path[i].get_slice());
+            lms_parameter.update(&temp.get_slice());
+            lms_parameter.update(&signature.path[i].get_slice());
         }
-        temp = hasher.finalize_reset();
+        temp = lms_parameter.finalize_reset();
         node_num /= 2;
         i += 1;
     }
@@ -83,14 +78,21 @@ fn generate_public_key_candiate<OTS: LmotsParameter>(
 
 #[cfg(test)]
 mod tests {
-
-    use crate::{lm_ots::parameter, lms::*};
+    use crate::{
+        lm_ots,
+        lms::{
+            self,
+            keygen::{generate_private_key, generate_public_key},
+            signing::LmsSignature,
+        },
+    };
 
     #[test]
     fn test_verification() {
-        let mut private_key = generate_private_key::<parameter::LmotsSha256N32W2>(
-            LmsAlgorithmParameter::new(crate::lms::definitions::LmsAlgorithmType::LmsSha256M32H5),
-        );
+        let mut private_key = generate_private_key::<
+            lm_ots::parameter::LmotsSha256N32W2,
+            lms::parameter::LmsSha256M32H5,
+        >();
         let public_key = generate_public_key(&private_key);
 
         let mut first_message = [0u8, 4, 2, 7, 4, 2, 58, 3, 69, 3];

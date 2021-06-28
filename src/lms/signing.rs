@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use crate::constants::MAX_H;
 use crate::constants::MAX_M;
 use crate::constants::MAX_N;
@@ -6,45 +8,44 @@ use crate::lm_ots;
 use crate::lm_ots::definitions::QType;
 use crate::lm_ots::parameter::LmotsParameter;
 use crate::lm_ots::signing::LmotsSignature;
-use crate::lms::definitions::LmsAlgorithmParameter;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::util::dynamic_array::DynamicArray;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
-use crate::LmsAlgorithmType;
 
 use super::helper::get_tree_element;
+use super::parameter::LmsParameter;
 
 #[derive(Debug)]
-pub struct LmsSignature<OTS: LmotsParameter> {
-    pub lms_parameter: LmsAlgorithmParameter,
+pub struct LmsSignature<OTS: LmotsParameter, LMS: LmsParameter> {
     pub q: QType,
     pub lmots_signature: LmotsSignature<OTS>,
     pub path: DynamicArray<DynamicArray<u8, MAX_M>, MAX_H>,
+    lms_parameter: PhantomData<LMS>,
 }
 
-impl<OTS: LmotsParameter> PartialEq for LmsSignature<OTS> {
+impl<OTS: LmotsParameter, LMS: LmsParameter> PartialEq for LmsSignature<OTS, LMS> {
     fn eq(&self, other: &Self) -> bool {
-        self.lms_parameter == other.lms_parameter
-            && self.q == other.q
+        self.q == other.q
             && self.lmots_signature == other.lmots_signature
             && self.path == other.path
+            && self.lms_parameter == other.lms_parameter
     }
 }
 
-impl<OTS: LmotsParameter> Eq for LmsSignature<OTS> {}
+impl<OTS: LmotsParameter, LMS: LmsParameter> Eq for LmsSignature<OTS, LMS> {}
 
-impl<OTS: LmotsParameter> LmsSignature<OTS> {
+impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
     pub fn sign(
-        lms_private_key: &mut LmsPrivateKey<OTS>,
+        lms_private_key: &mut LmsPrivateKey<OTS, LMS>,
         message: &[u8],
-    ) -> Result<LmsSignature<OTS>, &'static str> {
-        let lms_parameter = lms_private_key.lms_parameter;
+    ) -> Result<LmsSignature<OTS, LMS>, &'static str> {
+        let lms_parameter = <LMS>::new();
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
         let ots_signature = LmotsSignature::sign(&lm_ots_private_key, message);
 
-        let h = lms_parameter.h;
+        let h = lms_parameter.get_h();
         let mut i = 0usize;
         let r = 2usize.pow(h as u32) + str32u(&lm_ots_private_key.q) as usize;
 
@@ -57,10 +58,10 @@ impl<OTS: LmotsParameter> LmsSignature<OTS> {
         }
 
         let signature = LmsSignature {
-            lms_parameter,
             q: lm_ots_private_key.q,
             lmots_signature: ots_signature,
             path,
+            lms_parameter: PhantomData,
         };
 
         Ok(signature)
@@ -77,7 +78,9 @@ impl<OTS: LmotsParameter> LmsSignature<OTS> {
 
         result.append(&lmots_signature.get_slice());
 
-        result.append(&u32str(self.lms_parameter._type as u32));
+        let lms_parameter = <LMS>::new();
+
+        result.append(&u32str(lms_parameter.get_type() as u32));
 
         for element in self.path.into_iter() {
             result.append(element.get_slice());
@@ -128,19 +131,20 @@ impl<OTS: LmotsParameter> LmsSignature<OTS> {
 
         let lms_type = str32u(&data[lms_type_start..=lms_type_end]);
 
-        let lms_parameter = match LmsAlgorithmType::from_u32(lms_type) {
-            None => return None,
-            Some(x) => LmsAlgorithmParameter::new(x),
-        };
+        let lms_parameter = <LMS>::new();
 
-        if q >= 2u32.pow(lms_parameter.h as u32) {
+        if !lms_parameter.is_type_correct(lms_type) {
+            return None;
+        }
+
+        if q >= 2u32.pow(lms_parameter.get_h() as u32) {
             return None;
         }
 
         if data.len()
             != 12
                 + n as usize * (p as usize + 1)
-                + lms_parameter.m as usize * lms_parameter.h as usize
+                + lms_parameter.get_m() as usize * lms_parameter.get_h() as usize
         {
             return None;
         }
@@ -153,19 +157,19 @@ impl<OTS: LmotsParameter> LmsSignature<OTS> {
 
         let mut trees: DynamicArray<DynamicArray<u8, MAX_M>, MAX_H> = DynamicArray::new();
 
-        for i in 0..lms_parameter.h {
+        for i in 0..lms_parameter.get_h() {
             let mut path = DynamicArray::new();
-            path.append(&tree_slice[..lms_parameter.m as usize]);
+            path.append(&tree_slice[..lms_parameter.get_m() as usize]);
             trees[i as usize] = path;
 
-            tree_slice = &tree_slice[lms_parameter.m as usize..];
+            tree_slice = &tree_slice[lms_parameter.get_m() as usize..];
         }
 
         let signature = Self {
-            lms_parameter,
             lmots_signature,
             q: u32str(q),
             path: trees,
+            lms_parameter: PhantomData,
         };
 
         Some(signature)
@@ -175,17 +179,18 @@ impl<OTS: LmotsParameter> LmsSignature<OTS> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        lm_ots::parameter,
-        lms::{definitions::LmsAlgorithmParameter, keygen::generate_private_key},
+        lm_ots,
+        lms::{self, keygen::generate_private_key},
     };
 
     use super::LmsSignature;
 
     #[test]
     fn test_binary_representation_of_signature() {
-        let lms_type = LmsAlgorithmParameter::new(crate::LmsAlgorithmType::LmsSha256M32H5);
-
-        let mut private_key = generate_private_key::<parameter::LmotsSha256N32W2>(lms_type);
+        let mut private_key = generate_private_key::<
+            lm_ots::parameter::LmotsSha256N32W2,
+            lms::parameter::LmsSha256M32H5,
+        >();
 
         let message = "Hi, what up?".as_bytes();
 

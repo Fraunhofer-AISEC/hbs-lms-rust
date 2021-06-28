@@ -5,7 +5,7 @@ use crate::{
 };
 
 pub trait LmotsParameter: Hasher {
-    const N: u16;
+    const N: usize = Self::OUTPUT_SIZE;
     const W: u8;
     const TYPE: u32;
 
@@ -61,18 +61,19 @@ pub trait LmotsParameter: Hasher {
 }
 
 macro_rules! generate_parameter_type {
-    ($name:ident, $n:literal, $w:literal, $type:literal, $hasher:ident) => {
+    ($name:ident, $w:literal, $type:literal, $hasher:ident) => {
         pub struct $name {
             hasher: $hasher,
         }
 
         impl LmotsParameter for $name {
-            const N: u16 = $n;
             const W: u8 = $w;
             const TYPE: u32 = $type;
         }
 
         impl Hasher for $name {
+            const OUTPUT_SIZE: usize = $hasher::OUTPUT_SIZE;
+
             fn get_hasher() -> Self {
                 $name {
                     hasher: $hasher::new(),
@@ -94,7 +95,7 @@ macro_rules! generate_parameter_type {
     };
 }
 
-generate_parameter_type!(LmotsSha256N32W1, 32, 1, 1, Sha256Hasher);
-generate_parameter_type!(LmotsSha256N32W2, 32, 2, 2, Sha256Hasher);
-generate_parameter_type!(LmotsSha256N32W4, 32, 4, 3, Sha256Hasher);
-generate_parameter_type!(LmotsSha256N32W8, 32, 8, 4, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W1, 1, 1, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W2, 2, 2, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W4, 4, 3, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W8, 8, 4, Sha256Hasher);

@@ -5,7 +5,7 @@ use crate::{
 
 pub trait LmsParameter: Hasher {
     const H: u8;
-    const M: u8;
+    const M: usize = Self::OUTPUT_SIZE;
     const TYPE: u32;
 
     fn is_type_correct(_type: u32) -> bool {
@@ -25,11 +25,12 @@ macro_rules! generate_parameter_type {
 
         impl LmsParameter for $name {
             const H: u8 = $h;
-            const M: u8 = $m;
             const TYPE: u32 = $type;
         }
 
         impl Hasher for $name {
+            const OUTPUT_SIZE: usize = $hasher::OUTPUT_SIZE;
+
             fn get_hasher() -> Self {
                 $name {
                     hasher: $hasher::new(),

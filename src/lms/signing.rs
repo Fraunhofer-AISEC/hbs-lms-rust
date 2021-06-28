@@ -104,9 +104,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
         let lm_ots_type = str32u(&consumed_data[..4]);
         // consumed_data = &consumed_data[4..];
 
-        let lm_ots_parameter = <OTS>::new();
-
-        if !lm_ots_parameter.is_type_correct(lm_ots_type) {
+        if !<OTS>::is_type_correct(lm_ots_type) {
             return None;
         }
 

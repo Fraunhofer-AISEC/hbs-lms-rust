@@ -11,7 +11,7 @@ pub trait LmotsParameter: Hasher {
 
     fn new() -> Self;
 
-    fn is_type_correct(&self, _type: u32) -> bool {
+    fn is_type_correct(_type: u32) -> bool {
         Self::TYPE == _type
     }
 

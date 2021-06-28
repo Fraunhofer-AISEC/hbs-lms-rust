@@ -98,9 +98,7 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
         let lm_ots_type = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        let parameter = <OTS>::new();
-
-        if !parameter.is_type_correct(lm_ots_type) {
+        if !<OTS>::is_type_correct(lm_ots_type) {
             return None;
         }
 

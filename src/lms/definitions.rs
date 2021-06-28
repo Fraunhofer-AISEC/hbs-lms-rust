@@ -77,18 +77,14 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
         let lms_type = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        let lms_parameter = <LMS>::new();
-
-        if !lms_parameter.is_type_correct(lms_type) {
+        if !<OTS>::is_type_correct(lms_type) {
             return None;
         }
 
         let lm_ots_type = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        let lm_ots_parameter = <OTS>::new();
-
-        if !lm_ots_parameter.is_type_correct(lm_ots_type) {
+        if !<OTS>::is_type_correct(lm_ots_type) {
             return None;
         }
 
@@ -172,15 +168,13 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPublicKey<OTS, LMS> {
 
         let lms_parameter = <LMS>::new();
 
-        if !lms_parameter.is_type_correct(lms_type) {
+        if !<OTS>::is_type_correct(lms_type) {
             return None;
         }
 
         let lm_ots_typecode = str32u(read_and_advance(data, 4, &mut data_index));
 
-        let lm_ots_parameter = <OTS>::new();
-
-        if !lm_ots_parameter.is_type_correct(lm_ots_typecode) {
+        if !<OTS>::is_type_correct(lm_ots_typecode) {
             return None;
         }
 

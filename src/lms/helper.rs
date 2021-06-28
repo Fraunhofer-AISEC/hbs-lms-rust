@@ -18,7 +18,7 @@ pub fn get_tree_element<OTS: LmotsParameter, LMS: LmsParameter>(
     lms_parameter.update(&private_key.I);
     lms_parameter.update(&u32str(index as u32));
 
-    let max_private_keys = lms_parameter.number_of_lm_ots_keys();
+    let max_private_keys = <LMS>::number_of_lm_ots_keys();
 
     if index >= max_private_keys {
         lms_parameter.update(&D_LEAF);

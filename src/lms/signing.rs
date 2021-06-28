@@ -40,12 +40,11 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
         lms_private_key: &mut LmsPrivateKey<OTS, LMS>,
         message: &[u8],
     ) -> Result<LmsSignature<OTS, LMS>, &'static str> {
-        let lms_parameter = <LMS>::new();
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
         let ots_signature = LmotsSignature::sign(&lm_ots_private_key, message);
 
-        let h = lms_parameter.get_h();
+        let h = <LMS>::H;
         let mut i = 0usize;
         let r = 2usize.pow(h as u32) + str32u(&lm_ots_private_key.q) as usize;
 
@@ -78,9 +77,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
 
         result.append(&lmots_signature.get_slice());
 
-        let lms_parameter = <LMS>::new();
-
-        result.append(&u32str(lms_parameter.get_type() as u32));
+        result.append(&u32str(<LMS>::TYPE as u32));
 
         for element in self.path.into_iter() {
             result.append(element.get_slice());
@@ -127,20 +124,15 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
 
         let lms_type = str32u(&data[lms_type_start..=lms_type_end]);
 
-        let lms_parameter = <LMS>::new();
-
-        if !lms_parameter.is_type_correct(lms_type) {
+        if !<LMS>::is_type_correct(lms_type) {
             return None;
         }
 
-        if q >= 2u32.pow(lms_parameter.get_h() as u32) {
+        if q >= 2u32.pow(<LMS>::H as u32) {
             return None;
         }
 
-        if data.len()
-            != 12
-                + n as usize * (p as usize + 1)
-                + lms_parameter.get_m() as usize * lms_parameter.get_h() as usize
+        if data.len() != 12 + n as usize * (p as usize + 1) + <LMS>::M as usize * <LMS>::H as usize
         {
             return None;
         }
@@ -152,12 +144,12 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
 
         let mut trees: DynamicArray<DynamicArray<u8, MAX_M>, MAX_H> = DynamicArray::new();
 
-        for i in 0..lms_parameter.get_h() {
+        for i in 0..<LMS>::H {
             let mut path = DynamicArray::new();
-            path.append(&tree_slice[..lms_parameter.get_m() as usize]);
+            path.append(&tree_slice[..<LMS>::M as usize]);
             trees[i as usize] = path;
 
-            tree_slice = &tree_slice[lms_parameter.get_m() as usize..];
+            tree_slice = &tree_slice[<LMS>::M as usize..];
         }
 
         let signature = Self {

@@ -32,7 +32,7 @@ fn generate_public_key_candiate<OTS: LmotsParameter, LMS: LmsParameter>(
 ) -> Result<DynamicArray<u8, MAX_M>, &'static str> {
     let mut lms_parameter = <LMS>::new();
 
-    let leafs = lms_parameter.number_of_lm_ots_keys() as u32;
+    let leafs = <LMS>::number_of_lm_ots_keys() as u32;
 
     let curr = str32u(&signature.q);
     if curr >= leafs {

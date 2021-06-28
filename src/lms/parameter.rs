@@ -4,19 +4,19 @@ use crate::{
 };
 
 pub trait LmsParameter: Hasher {
+    const H: u8;
+    const M: u8;
+    const TYPE: u32;
+
     fn new() -> Self;
 
-    fn is_type_correct(&self, _type: u32) -> bool {
-        self.get_type() == _type
+    fn is_type_correct(_type: u32) -> bool {
+        Self::TYPE == _type
     }
 
-    fn number_of_lm_ots_keys(&self) -> usize {
-        2usize.pow(self.get_h() as u32)
+    fn number_of_lm_ots_keys() -> usize {
+        2usize.pow(Self::H as u32)
     }
-
-    fn get_h(&self) -> u8;
-    fn get_m(&self) -> u8;
-    fn get_type(&self) -> u32;
 }
 
 macro_rules! generate_parameter_type {
@@ -26,22 +26,14 @@ macro_rules! generate_parameter_type {
         }
 
         impl LmsParameter for $name {
+            const H: u8 = $h;
+            const M: u8 = $m;
+            const TYPE: u32 = $type;
+
             fn new() -> Self {
                 $name {
                     hasher: $hasher::new(),
                 }
-            }
-
-            fn get_m(&self) -> u8 {
-                $m
-            }
-
-            fn get_h(&self) -> u8 {
-                $h
-            }
-
-            fn get_type(&self) -> u32 {
-                $type
             }
         }
 

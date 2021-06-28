@@ -47,8 +47,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
     }
 
     pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey<OTS>, &'static str> {
-        let lms_parameter = <LMS>::new();
-        if self.q as usize >= lms_parameter.number_of_lm_ots_keys() {
+        if self.q as usize >= <LMS>::number_of_lm_ots_keys() {
             return Err("All private keys already used.");
         }
         self.q += 1;
@@ -59,9 +58,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH> {
         let mut result = DynamicArray::new();
 
-        let lms_parameter = <LMS>::new();
-
-        result.append(&u32str(lms_parameter.get_type() as u32));
+        result.append(&u32str(<LMS>::TYPE as u32));
         result.append(&u32str(<OTS>::TYPE));
 
         result.append(&self.I);
@@ -77,7 +74,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
         let lms_type = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        if !<OTS>::is_type_correct(lms_type) {
+        if !<LMS>::is_type_correct(lms_type) {
             return None;
         }
 
@@ -145,9 +142,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPublicKey<OTS, LMS> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + 4 + 16 + MAX_M }> {
         let mut result = DynamicArray::new();
 
-        let lms_parameter = <LMS>::new();
-
-        result.append(&u32str(lms_parameter.get_type()));
+        result.append(&u32str(<LMS>::TYPE));
         result.append(&u32str(<OTS>::TYPE));
 
         result.append(&self.I);
@@ -166,9 +161,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPublicKey<OTS, LMS> {
 
         let lms_type = str32u(read_and_advance(data, 4, &mut data_index));
 
-        let lms_parameter = <LMS>::new();
-
-        if !<OTS>::is_type_correct(lms_type) {
+        if !<LMS>::is_type_correct(lms_type) {
             return None;
         }
 
@@ -178,7 +171,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPublicKey<OTS, LMS> {
             return None;
         }
 
-        if data.len() - data_index == 24 + lms_parameter.get_m() as usize {
+        if data.len() - data_index == 24 + <LMS>::M as usize {
             return None;
         }
 
@@ -187,7 +180,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPublicKey<OTS, LMS> {
 
         let mut key: DynamicArray<u8, MAX_M> = DynamicArray::new();
 
-        key.append(&data[data_index..data_index + lms_parameter.get_m() as usize]);
+        key.append(&data[data_index..data_index + <LMS>::M as usize]);
 
         let public_key = LmsPublicKey {
             I: initial,

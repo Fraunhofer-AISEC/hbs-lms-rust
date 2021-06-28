@@ -7,31 +7,31 @@ use crate::{
 pub trait LmotsParameter: Hasher {
     fn new() -> Self;
 
-    fn is_type_correct(_type: u16) -> bool {
-        Self::new().get_type() == _type
+    fn is_type_correct(&self, _type: u32) -> bool {
+        self.get_type() == _type
     }
 
-    fn get_n() -> u16;
-    fn get_w() -> u8;
-    fn get_type() -> u16;
+    fn get_n(&self) -> u16;
+    fn get_w(&self) -> u8;
+    fn get_type(&self) -> u32;
 
-    fn get_p() -> u16 {
+    fn get_p(&self) -> u16 {
         // Compute p and ls depending on n and w (see RFC8554 Appendix B.)
-        let u = ((8.0 * Self::get_n() as f64) / Self::get_w() as f64).ceil();
-        let v = ((((2usize.pow(Self::get_w() as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
-            / Self::get_w() as f64)
+        let u = ((8.0 * self.get_n() as f64) / self.get_w() as f64).ceil();
+        let v = ((((2usize.pow(self.get_w() as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
+            / self.get_w() as f64)
             .ceil();
         let p: u16 = (u as u64 + v as u64) as u16;
         p
     }
 
-    fn get_ls() -> u8 {
+    fn get_ls(&self) -> u8 {
         // Compute p and ls depending on n and w (see RFC8554 Appendix B.)
-        let u = ((8.0 * Self::get_n() as f64) / Self::get_w() as f64).ceil();
-        let v = ((((2usize.pow(Self::get_w() as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
-            / Self::get_w() as f64)
+        let u = ((8.0 * self.get_n() as f64) / self.get_w() as f64).ceil();
+        let v = ((((2usize.pow(self.get_w() as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
+            / self.get_w() as f64)
             .ceil();
-        let ls: u8 = (16 - (v as usize * Self::get_w() as usize)) as u8;
+        let ls: u8 = (16 - (v as usize * self.get_w() as usize)) as u8;
 
         ls
     }
@@ -63,7 +63,7 @@ pub trait LmotsParameter: Hasher {
 }
 
 macro_rules! generate_parameter_type {
-    ($name:ident, $n:literal, $w:literal, $p:literal, $ls:literal, $type:literal, $hasher:ident) => {
+    ($name:ident, $n:literal, $w:literal, $type:literal, $hasher:ident) => {
         pub struct $name {
             hasher: $hasher,
         }
@@ -83,15 +83,7 @@ macro_rules! generate_parameter_type {
                 $w
             }
 
-            fn get_p(&self) -> u16 {
-                $p
-            }
-
-            fn get_ls(&self) -> u8 {
-                $ls
-            }
-
-            fn get_type(&self) -> u16 {
+            fn get_type(&self) -> u32 {
                 $type
             }
         }
@@ -112,7 +104,7 @@ macro_rules! generate_parameter_type {
     };
 }
 
-generate_parameter_type!(LmotsSha256N32W1, 32, 1, 265, 7, 1, Sha256Hasher);
-generate_parameter_type!(LmotsSha256N32W2, 32, 2, 133, 6, 2, Sha256Hasher);
-generate_parameter_type!(LmotsSha256N32W4, 32, 4, 67, 4, 3, Sha256Hasher);
-generate_parameter_type!(LmotsSha256N32W8, 32, 8, 34, 0, 4, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W1, 32, 1, 1, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W2, 32, 2, 2, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W4, 32, 4, 3, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W8, 32, 8, 4, Sha256Hasher);

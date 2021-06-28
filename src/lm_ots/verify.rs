@@ -34,56 +34,54 @@ pub fn generate_public_key_canditate<P: LmotsParameter>(
     q: &QType,
     message: &[u8],
 ) -> DynamicArray<u8, MAX_N> {
-    let mut hasher = signature.parameter.get_hasher();
+    let mut parameter = <P>::new();
 
-    hasher.update(I);
-    hasher.update(q);
-    hasher.update(&D_MESG);
-    hasher.update(signature.C.get_slice());
-    hasher.update(message);
+    parameter.update(I);
+    parameter.update(q);
+    parameter.update(&D_MESG);
+    parameter.update(signature.C.get_slice());
+    parameter.update(message);
 
-    let Q = hasher.finalize_reset();
-    let Q_and_checksum = signature
-        .parameter
-        .get_appended_with_checksum(Q.get_slice());
+    let Q = parameter.finalize_reset();
+    let Q_and_checksum = parameter.get_appended_with_checksum(Q.get_slice());
 
     let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
-    let max_w = 2u64.pow(signature.parameter.w as u32) - 1;
+    let max_w = 2u64.pow(parameter.get_w() as u32) - 1;
 
-    for i in 0..signature.parameter.p {
+    for i in 0..parameter.get_p() {
         let a = coef(
             &Q_and_checksum.get_slice(),
             i as u64,
-            signature.parameter.w as u64,
+            parameter.get_w() as u64,
         );
         let mut tmp = signature.y[i as usize];
 
         for j in a..max_w {
-            hasher.update(I);
-            hasher.update(q);
-            hasher.update(&u16str(i));
-            hasher.update(&u8str(j as u8));
-            hasher.update(tmp.get_slice());
-            tmp = hasher.finalize_reset();
+            parameter.update(I);
+            parameter.update(q);
+            parameter.update(&u16str(i));
+            parameter.update(&u8str(j as u8));
+            parameter.update(tmp.get_slice());
+            tmp = parameter.finalize_reset();
         }
         z[i as usize] = tmp;
     }
 
-    hasher.update(I);
-    hasher.update(q);
-    hasher.update(&D_PBLC);
+    parameter.update(I);
+    parameter.update(q);
+    parameter.update(&D_PBLC);
 
     for item in z.into_iter() {
-        hasher.update(item.get_slice());
+        parameter.update(item.get_slice());
     }
 
-    hasher.finalize()
+    parameter.finalize()
 }
 
 #[cfg(test)]
 mod tests {
     use crate::lm_ots::{
-        definitions::{IType, QType, Seed},
+        definitions::{IType, LmotsPublicKey, QType, Seed},
         keygen::{generate_private_key, generate_public_key},
         parameter,
         signing::LmotsSignature,
@@ -118,16 +116,7 @@ mod tests {
 
     generate_test!(lmots_sha256_n32_w1_verify_test, parameter::LmotsSha256N32W1);
 
-    // generate_test!(
-    //     lmots_sha256_n32_w2_verify_test,
-    //     crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W2
-    // );
-    // generate_test!(
-    //     lmots_sha256_n32_w4_verify_test,
-    //     crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W4
-    // );
-    // generate_test!(
-    //     lmots_sha256_n32_w8_verify_test,
-    //     crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W8
-    // );
+    generate_test!(lmots_sha256_n32_w2_verify_test, parameter::LmotsSha256N32W2);
+    generate_test!(lmots_sha256_n32_w4_verify_test, parameter::LmotsSha256N32W4);
+    generate_test!(lmots_sha256_n32_w8_verify_test, parameter::LmotsSha256N32W8);
 }

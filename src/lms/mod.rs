@@ -1,5 +1,4 @@
-use crate::lm_ots::definitions::{LmotsAlgorithmParameter, LmotsAlgorithmType};
-use crate::lms::definitions::LmsAlgorithmType;
+use crate::lm_ots::parameter::LmotsParameter;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
 
@@ -12,19 +11,18 @@ mod keygen;
 pub mod signing;
 mod verify;
 
-pub fn generate_private_key(
+pub fn generate_private_key<P: LmotsParameter>(
     lms_parameter: LmsAlgorithmParameter,
-    lmots_parameter: LmotsAlgorithmParameter,
-) -> LmsPrivateKey {
-    keygen::generate_private_key(lms_parameter, lmots_parameter)
+) -> LmsPrivateKey<P> {
+    keygen::generate_private_key(lms_parameter)
 }
 
-pub fn generate_public_key(private_key: &LmsPrivateKey) -> LmsPublicKey {
+pub fn generate_public_key<P: LmotsParameter>(private_key: &LmsPrivateKey<P>) -> LmsPublicKey<P> {
     keygen::generate_public_key(private_key)
 }
 
-pub fn verify(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
-    let public_key = match LmsPublicKey::from_binary_representation(public_key) {
+pub fn verify<P: LmotsParameter>(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
+    let public_key = match LmsPublicKey::<P>::from_binary_representation(public_key) {
         None => return false,
         Some(x) => x,
     };

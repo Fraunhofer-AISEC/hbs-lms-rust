@@ -15,44 +15,41 @@ pub fn generate_private_key<P: LmotsParameter>(
     let mut key = DynamicArray::new();
 
     let mut lmots_parameter = <P>::new();
-    let mut hasher = &lmots_parameter;
 
     for index in 0..lmots_parameter.get_p() {
-        hasher.update(&i);
-        hasher.update(&q);
-        hasher.update(&u16str(index as u16));
-        hasher.update(&[0xff]);
-        hasher.update(&seed);
+        lmots_parameter.update(&i);
+        lmots_parameter.update(&q);
+        lmots_parameter.update(&u16str(index as u16));
+        lmots_parameter.update(&[0xff]);
+        lmots_parameter.update(&seed);
 
-        key[index as usize] = hasher.finalize_reset();
+        key[index as usize] = lmots_parameter.finalize_reset();
     }
 
-    LmotsPrivateKey::new(i, q, lmots_parameter, key)
+    LmotsPrivateKey::new(i, q, key)
 }
 
 pub fn generate_public_key<P: LmotsParameter>(
     private_key: &LmotsPrivateKey<P>,
 ) -> LmotsPublicKey<P> {
-    let parameter = &private_key.parameter;
+    let mut parameter = <P>::new();
 
-    let max_word_index: usize = (1 << parameter.w) - 1;
+    let max_word_index: usize = (1 << parameter.get_w()) - 1;
     let key = &private_key.key;
-
-    let mut hasher = parameter.get_hasher();
 
     let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
-    for i in 0..parameter.p as usize {
+    for i in 0..parameter.get_p() as usize {
         let mut tmp = key[i];
 
         for j in 0..max_word_index {
-            hasher.update(&private_key.I);
-            hasher.update(&private_key.q);
-            hasher.update(&u16str(i as u16));
-            hasher.update(&u8str(j as u8));
-            hasher.update(tmp.get_slice());
+            parameter.update(&private_key.I);
+            parameter.update(&private_key.q);
+            parameter.update(&u16str(i as u16));
+            parameter.update(&u8str(j as u8));
+            parameter.update(tmp.get_slice());
 
-            for (index, value) in hasher.finalize_reset().into_iter().enumerate() {
+            for (index, value) in parameter.finalize_reset().into_iter().enumerate() {
                 tmp[index] = value;
             }
         }
@@ -60,16 +57,16 @@ pub fn generate_public_key<P: LmotsParameter>(
         y[i] = tmp;
     }
 
-    hasher.update(&private_key.I);
-    hasher.update(&private_key.q);
-    hasher.update(&D_PBLC);
+    parameter.update(&private_key.I);
+    parameter.update(&private_key.q);
+    parameter.update(&D_PBLC);
 
     for item in y.into_iter() {
-        hasher.update(item.get_slice());
+        parameter.update(item.get_slice());
     }
 
     let mut public_key = DynamicArray::new();
-    for (index, value) in hasher.finalize().into_iter().enumerate() {
+    for (index, value) in parameter.finalize().into_iter().enumerate() {
         public_key[index] = value;
     }
 

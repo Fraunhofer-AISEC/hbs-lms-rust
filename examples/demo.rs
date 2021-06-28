@@ -1,10 +1,22 @@
 use clap::{App, Arg, ArgMatches, SubCommand};
-use lms::{hss_keygen, hss_sign, hss_verify, LmotsAlgorithmType, LmsAlgorithmType};
+use lms::{
+    hss_keygen, hss_sign, hss_verify, LmotsSha256N32W1, LmotsSha256N32W2, LmotsSha256N32W4,
+    LmotsSha256N32W8, LmsAlgorithmType,
+};
 use std::{
+    convert::TryInto,
     fs::File,
     io::{Read, Write},
     process::exit,
 };
+
+#[derive(Debug, PartialEq, Eq)]
+enum LmotsAlgorithmType {
+    LmotsSha256N32W1,
+    LmotsSha256N32W2,
+    LmotsSha256N32W4,
+    LmotsSha256N32W8,
+}
 
 type LmsParameterSet = (LmotsAlgorithmType, LmsAlgorithmType);
 
@@ -73,7 +85,25 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let mut private_key_data = read_file(&private_key_name);
     let message_data = read_file(&message_name);
 
-    let result = match hss_sign(&message_data, &mut private_key_data) {
+    let lmots_type = read_lmots_type_from_private_key(&private_key_data)
+        .expect("Lmots type not correctly saved in private key file.");
+
+    let result = match lmots_type {
+        LmotsAlgorithmType::LmotsSha256N32W1 => {
+            hss_sign::<LmotsSha256N32W1>(&message_data, &mut private_key_data)
+        }
+        LmotsAlgorithmType::LmotsSha256N32W2 => {
+            hss_sign::<LmotsSha256N32W2>(&message_data, &mut private_key_data)
+        }
+        LmotsAlgorithmType::LmotsSha256N32W4 => {
+            hss_sign::<LmotsSha256N32W4>(&message_data, &mut private_key_data)
+        }
+        LmotsAlgorithmType::LmotsSha256N32W8 => {
+            hss_sign::<LmotsSha256N32W8>(&message_data, &mut private_key_data)
+        }
+    };
+
+    let result = match result {
         None => {
             print!("Could not sign message.");
             exit(-1)
@@ -82,7 +112,7 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     };
 
     write(&private_key_name, &private_key_data)?;
-    write(&signature_name, &result.get_slice())?;
+    write(&signature_name, &result.signature.get_slice())?;
 
     Ok(())
 }
@@ -98,7 +128,29 @@ fn verify(args: &ArgMatches) -> bool {
     let message_data = read_file(&message_name);
     let public_key_data = read_file(&public_key_name);
 
-    hss_verify(&message_data, &signature_data, &public_key_data)
+    let signature_lmots_type = read_lmots_type_from_signature(&signature_data)
+        .expect("Signature should have a valid lmots type");
+    let public_key_lmots_type = read_lmots_type_from_public_key(&public_key_data)
+        .expect("Public key should have a valid lmots type");
+
+    if signature_lmots_type != public_key_lmots_type {
+        return false;
+    }
+
+    match signature_lmots_type {
+        LmotsAlgorithmType::LmotsSha256N32W1 => {
+            hss_verify::<LmotsSha256N32W1>(&message_data, &signature_data, &public_key_data)
+        }
+        LmotsAlgorithmType::LmotsSha256N32W2 => {
+            hss_verify::<LmotsSha256N32W2>(&message_data, &signature_data, &public_key_data)
+        }
+        LmotsAlgorithmType::LmotsSha256N32W4 => {
+            hss_verify::<LmotsSha256N32W4>(&message_data, &signature_data, &public_key_data)
+        }
+        LmotsAlgorithmType::LmotsSha256N32W8 => {
+            hss_verify::<LmotsSha256N32W8>(&message_data, &signature_data, &public_key_data)
+        }
+    }
 }
 
 fn get_public_key_name(keyname: &String) -> String {
@@ -138,7 +190,12 @@ fn genkey(args: &ArgMatches) -> Result<(), std::io::Error> {
     let lm_ots_parameter_type = parameter.0;
     let lms_parameter_type = parameter.1;
 
-    let keys = hss_keygen(lms_parameter_type, lm_ots_parameter_type);
+    let keys = match lm_ots_parameter_type {
+        LmotsAlgorithmType::LmotsSha256N32W1 => hss_keygen::<LmotsSha256N32W1>(lms_parameter_type),
+        LmotsAlgorithmType::LmotsSha256N32W2 => hss_keygen::<LmotsSha256N32W2>(lms_parameter_type),
+        LmotsAlgorithmType::LmotsSha256N32W4 => hss_keygen::<LmotsSha256N32W4>(lms_parameter_type),
+        LmotsAlgorithmType::LmotsSha256N32W8 => hss_keygen::<LmotsSha256N32W8>(lms_parameter_type),
+    };
 
     let public_key_binary = keys.public_key;
     let public_key_filename = get_public_key_name(&keyname);
@@ -196,4 +253,37 @@ fn write(filename: &str, content: &[u8]) -> Result<(), std::io::Error> {
     let mut file = File::create(filename)?;
     file.write_all(content)?;
     Ok(())
+}
+
+fn read_lmots_type_from_private_key(data: &Vec<u8>) -> Option<LmotsAlgorithmType> {
+    let lm_ots_typecode = &data[4..8];
+    let lm_ots_typecode = str32u(lm_ots_typecode);
+    get_lmots_type(lm_ots_typecode)
+}
+
+fn read_lmots_type_from_public_key(data: &Vec<u8>) -> Option<LmotsAlgorithmType> {
+    let lm_ots_typecode = &data[8..12];
+    let lm_ots_typecode = str32u(lm_ots_typecode);
+    get_lmots_type(lm_ots_typecode)
+}
+
+fn read_lmots_type_from_signature(data: &Vec<u8>) -> Option<LmotsAlgorithmType> {
+    let lm_ots_typecode = &data[8..12];
+    let lm_ots_typecode = str32u(lm_ots_typecode);
+    get_lmots_type(lm_ots_typecode)
+}
+
+fn get_lmots_type(lm_ots_typecode: u32) -> Option<LmotsAlgorithmType> {
+    match lm_ots_typecode {
+        1 => Some(LmotsAlgorithmType::LmotsSha256N32W1),
+        2 => Some(LmotsAlgorithmType::LmotsSha256N32W2),
+        3 => Some(LmotsAlgorithmType::LmotsSha256N32W4),
+        4 => Some(LmotsAlgorithmType::LmotsSha256N32W8),
+        _ => None,
+    }
+}
+
+fn str32u(x: &[u8]) -> u32 {
+    let arr: [u8; 4] = x.try_into().expect("Slice not 4 bytes long");
+    u32::from_be_bytes(arr)
 }

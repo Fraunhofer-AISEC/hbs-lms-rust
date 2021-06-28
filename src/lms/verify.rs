@@ -2,6 +2,7 @@ use crate::constants::D_INTR;
 use crate::constants::D_LEAF;
 use crate::constants::MAX_M;
 use crate::hasher::Hasher;
+use crate::lm_ots::parameter::LmotsParameter;
 use crate::lms::definitions::LmsPublicKey;
 use crate::lms::signing::LmsSignature;
 use crate::util::dynamic_array::DynamicArray;
@@ -9,17 +10,13 @@ use crate::util::helper::is_odd;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 
-pub fn verify(
-    signature: &LmsSignature,
-    public_key: &LmsPublicKey,
+pub fn verify<P: LmotsParameter>(
+    signature: &LmsSignature<P>,
+    public_key: &LmsPublicKey<P>,
     message: &[u8],
 ) -> Result<(), &'static str> {
     if signature.lms_parameter != public_key.lms_parameter {
         return Err("Signature LMS Type does not match public key LMS type");
-    }
-
-    if signature.lmots_signature.parameter != public_key.lm_ots_parameter {
-        return Err("Signature LM OTS Type does not match public key LM OTS type");
     }
 
     let public_key_canditate = generate_public_key_candiate(signature, public_key, message)?;
@@ -31,15 +28,11 @@ pub fn verify(
     }
 }
 
-fn generate_public_key_candiate(
-    signature: &LmsSignature,
-    public_key: &LmsPublicKey,
+fn generate_public_key_candiate<P: LmotsParameter>(
+    signature: &LmsSignature<P>,
+    public_key: &LmsPublicKey<P>,
     message: &[u8],
 ) -> Result<DynamicArray<u8, MAX_M>, &'static str> {
-    if signature.lmots_signature.parameter != public_key.lm_ots_parameter {
-        return Err("LM OTS Signature parameter type does not match public key signature type.");
-    }
-
     if signature.lms_parameter != public_key.lms_parameter {
         return Err("LMS Signature does not match public key signature type.");
     }
@@ -91,15 +84,12 @@ fn generate_public_key_candiate(
 #[cfg(test)]
 mod tests {
 
-    use crate::lms::*;
+    use crate::{lm_ots::parameter, lms::*};
 
     #[test]
     fn test_verification() {
-        let mut private_key = generate_private_key(
+        let mut private_key = generate_private_key::<parameter::LmotsSha256N32W2>(
             LmsAlgorithmParameter::new(crate::lms::definitions::LmsAlgorithmType::LmsSha256M32H5),
-            LmotsAlgorithmParameter::new(
-                crate::lm_ots::definitions::LmotsAlgorithmType::LmotsSha256N32W2,
-            ),
         );
         let public_key = generate_public_key(&private_key);
 

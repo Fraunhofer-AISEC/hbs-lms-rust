@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use crate::{
     constants::{MAX_N, MAX_P},
     util::dynamic_array::DynamicArray,
@@ -15,12 +17,18 @@ pub struct LmotsPrivateKey<P: LmotsParameter> {
     pub I: IType,
     pub q: QType,
     pub key: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>, // [[0u8; n]; p];
+    lmots_parameter: PhantomData<P>,
 }
 
 #[allow(non_snake_case)]
 impl<P: LmotsParameter> LmotsPrivateKey<P> {
     pub fn new(I: IType, q: QType, key: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>) -> Self {
-        LmotsPrivateKey { I, q, key }
+        LmotsPrivateKey {
+            I,
+            q,
+            key,
+            lmots_parameter: PhantomData,
+        }
     }
 }
 
@@ -29,12 +37,18 @@ pub struct LmotsPublicKey<P: LmotsParameter> {
     pub I: IType,
     pub q: QType,
     pub key: DynamicArray<u8, MAX_N>,
+    lmots_parameter: PhantomData<P>,
 }
 
 #[allow(non_snake_case)]
 impl<P: LmotsParameter> LmotsPublicKey<P> {
     pub fn new(I: IType, q: QType, key: DynamicArray<u8, MAX_N>) -> Self {
-        LmotsPublicKey { I, q, key }
+        LmotsPublicKey {
+            I,
+            q,
+            key,
+            lmots_parameter: PhantomData,
+        }
     }
 }
 

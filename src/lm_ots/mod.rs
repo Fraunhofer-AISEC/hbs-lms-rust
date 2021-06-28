@@ -12,16 +12,16 @@ pub mod parameter;
 pub mod signing;
 pub mod verify;
 
-pub fn generate_private_key<P: LmotsParameter>(
+pub fn generate_private_key<OTS: LmotsParameter>(
     q: QType,
     i: IType,
     seed: Seed,
-) -> LmotsPrivateKey<P> {
+) -> LmotsPrivateKey<OTS> {
     keygen::generate_private_key(i, q, seed)
 }
 
-pub fn generate_public_key<P: LmotsParameter>(
-    private_key: &LmotsPrivateKey<P>,
-) -> LmotsPublicKey<P> {
+pub fn generate_public_key<OTS: LmotsParameter>(
+    private_key: &LmotsPrivateKey<OTS>,
+) -> LmotsPublicKey<OTS> {
     keygen::generate_public_key(private_key)
 }

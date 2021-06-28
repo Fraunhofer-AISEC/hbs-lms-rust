@@ -20,7 +20,11 @@ pub struct HssSignResult {
         DynamicArray<u8, { 4 + 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H) }>,
 }
 
-pub fn hss_verify<P: LmotsParameter>(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
+pub fn hss_verify<OTS: LmotsParameter>(
+    message: &[u8],
+    signature: &[u8],
+    public_key: &[u8],
+) -> bool {
     // Todo: Check if HSS Levels = 1 and then forward data;
 
     if public_key.len() <= 4 {
@@ -45,12 +49,12 @@ pub fn hss_verify<P: LmotsParameter>(message: &[u8], signature: &[u8], public_ke
         panic!("HSS Levels greater than 1 are note supported yet.")
     }
 
-    crate::lms::verify::<P>(message, &signature[4..], &public_key[4..])
+    crate::lms::verify::<OTS>(message, &signature[4..], &public_key[4..])
 }
 
-pub fn hss_sign<P: LmotsParameter>(message: &[u8], private_key: &[u8]) -> Option<HssSignResult> {
+pub fn hss_sign<OTS: LmotsParameter>(message: &[u8], private_key: &[u8]) -> Option<HssSignResult> {
     let mut private_key =
-        match lms::definitions::LmsPrivateKey::<P>::from_binary_representation(private_key) {
+        match lms::definitions::LmsPrivateKey::<OTS>::from_binary_representation(private_key) {
             None => return None,
             Some(x) => x,
         };
@@ -77,9 +81,9 @@ pub fn hss_sign<P: LmotsParameter>(message: &[u8], private_key: &[u8]) -> Option
     Some(result)
 }
 
-pub fn hss_keygen<P: LmotsParameter>(lms_type: LmsAlgorithmType) -> HssBinaryData {
+pub fn hss_keygen<OTS: LmotsParameter>(lms_type: LmsAlgorithmType) -> HssBinaryData {
     let lms_parameter = LmsAlgorithmParameter::new(lms_type);
-    let private_key = crate::lms::generate_private_key::<P>(lms_parameter);
+    let private_key = crate::lms::generate_private_key::<OTS>(lms_parameter);
     let public_key = crate::lms::generate_public_key(&private_key);
 
     let private_key = private_key.to_binary_representation();

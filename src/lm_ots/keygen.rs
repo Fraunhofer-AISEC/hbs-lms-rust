@@ -6,14 +6,14 @@ use crate::{
     util::ustr::*,
 };
 
-pub fn generate_private_key<P: LmotsParameter>(
+pub fn generate_private_key<OTS: LmotsParameter>(
     i: IType,
     q: QType,
     seed: Seed,
-) -> LmotsPrivateKey<P> {
+) -> LmotsPrivateKey<OTS> {
     let mut key = DynamicArray::new();
 
-    let mut lmots_parameter = <P>::new();
+    let mut lmots_parameter = <OTS>::new();
 
     for index in 0..lmots_parameter.get_p() {
         lmots_parameter.update(&i);
@@ -28,10 +28,10 @@ pub fn generate_private_key<P: LmotsParameter>(
     LmotsPrivateKey::new(i, q, key)
 }
 
-pub fn generate_public_key<P: LmotsParameter>(
-    private_key: &LmotsPrivateKey<P>,
-) -> LmotsPublicKey<P> {
-    let mut parameter = <P>::new();
+pub fn generate_public_key<OTS: LmotsParameter>(
+    private_key: &LmotsPrivateKey<OTS>,
+) -> LmotsPublicKey<OTS> {
+    let mut parameter = <OTS>::new();
 
     let max_word_index: usize = (1 << parameter.get_w()) - 1;
     let key = &private_key.key;

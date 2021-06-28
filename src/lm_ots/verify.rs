@@ -15,9 +15,9 @@ use super::{
 
 #[allow(non_snake_case)]
 #[allow(dead_code)]
-pub fn verify_signature<P: LmotsParameter>(
-    signature: &LmotsSignature<P>,
-    public_key: &LmotsPublicKey<P>,
+pub fn verify_signature<OTS: LmotsParameter>(
+    signature: &LmotsSignature<OTS>,
+    public_key: &LmotsPublicKey<OTS>,
     message: &[u8],
 ) -> bool {
     let public_key_candidate =
@@ -27,13 +27,13 @@ pub fn verify_signature<P: LmotsParameter>(
 }
 
 #[allow(non_snake_case)]
-pub fn generate_public_key_canditate<P: LmotsParameter>(
-    signature: &LmotsSignature<P>,
+pub fn generate_public_key_canditate<OTS: LmotsParameter>(
+    signature: &LmotsSignature<OTS>,
     I: &IType,
     q: &QType,
     message: &[u8],
 ) -> DynamicArray<u8, MAX_N> {
-    let mut parameter = <P>::new();
+    let mut parameter = <OTS>::new();
 
     parameter.update(I);
     parameter.update(q);

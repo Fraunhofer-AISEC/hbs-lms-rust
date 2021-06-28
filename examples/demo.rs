@@ -1,7 +1,7 @@
 use clap::{App, Arg, ArgMatches, SubCommand};
 use lms::{
     hss_keygen, hss_sign, hss_verify, LmotsSha256N32W1, LmotsSha256N32W2, LmotsSha256N32W4,
-    LmotsSha256N32W8, LmsAlgorithmType,
+    LmotsSha256N32W8,
 };
 use std::{
     convert::TryInto,
@@ -16,6 +16,16 @@ enum LmotsAlgorithmType {
     LmotsSha256N32W2,
     LmotsSha256N32W4,
     LmotsSha256N32W8,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LmsAlgorithmType {
+    LmsReserved = 0,
+    LmsSha256M32H5 = 5,
+    LmsSha256M32H10 = 6,
+    LmsSha256M32H15 = 7,
+    LmsSha256M32H20 = 8,
+    LmsSha256M32H25 = 9,
 }
 
 type LmsParameterSet = (LmotsAlgorithmType, LmsAlgorithmType);

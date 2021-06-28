@@ -16,14 +16,14 @@ use crate::LmsAlgorithmType;
 use super::helper::get_tree_element;
 
 #[derive(Debug)]
-pub struct LmsSignature<P: LmotsParameter> {
+pub struct LmsSignature<OTS: LmotsParameter> {
     pub lms_parameter: LmsAlgorithmParameter,
     pub q: QType,
-    pub lmots_signature: LmotsSignature<P>,
+    pub lmots_signature: LmotsSignature<OTS>,
     pub path: DynamicArray<DynamicArray<u8, MAX_M>, MAX_H>,
 }
 
-impl<P: LmotsParameter> PartialEq for LmsSignature<P> {
+impl<OTS: LmotsParameter> PartialEq for LmsSignature<OTS> {
     fn eq(&self, other: &Self) -> bool {
         self.lms_parameter == other.lms_parameter
             && self.q == other.q
@@ -32,13 +32,13 @@ impl<P: LmotsParameter> PartialEq for LmsSignature<P> {
     }
 }
 
-impl<P: LmotsParameter> Eq for LmsSignature<P> {}
+impl<OTS: LmotsParameter> Eq for LmsSignature<OTS> {}
 
-impl<P: LmotsParameter> LmsSignature<P> {
+impl<OTS: LmotsParameter> LmsSignature<OTS> {
     pub fn sign(
-        lms_private_key: &mut LmsPrivateKey<P>,
+        lms_private_key: &mut LmsPrivateKey<OTS>,
         message: &[u8],
-    ) -> Result<LmsSignature<P>, &'static str> {
+    ) -> Result<LmsSignature<OTS>, &'static str> {
         let lms_parameter = lms_private_key.lms_parameter;
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
@@ -101,13 +101,13 @@ impl<P: LmotsParameter> LmsSignature<P> {
         let lm_ots_type = str32u(&consumed_data[..4]);
         // consumed_data = &consumed_data[4..];
 
-        let lm_ots_parameter = <P>::new();
+        let lm_ots_parameter = <OTS>::new();
 
         if !lm_ots_parameter.is_type_correct(lm_ots_type) {
             return None;
         }
 
-        let lm_ots_parameter = <P>::new();
+        let lm_ots_parameter = <OTS>::new();
 
         let n = lm_ots_parameter.get_n();
         let p = lm_ots_parameter.get_p();

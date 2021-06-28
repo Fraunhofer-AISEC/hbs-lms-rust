@@ -13,15 +13,15 @@ pub type Seed = [u8; 32];
 
 #[allow(non_snake_case)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct LmotsPrivateKey<P: LmotsParameter> {
+pub struct LmotsPrivateKey<OTS: LmotsParameter> {
     pub I: IType,
     pub q: QType,
     pub key: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>, // [[0u8; n]; p];
-    lmots_parameter: PhantomData<P>,
+    lmots_parameter: PhantomData<OTS>,
 }
 
 #[allow(non_snake_case)]
-impl<P: LmotsParameter> LmotsPrivateKey<P> {
+impl<OTS: LmotsParameter> LmotsPrivateKey<OTS> {
     pub fn new(I: IType, q: QType, key: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>) -> Self {
         LmotsPrivateKey {
             I,
@@ -33,15 +33,15 @@ impl<P: LmotsParameter> LmotsPrivateKey<P> {
 }
 
 #[allow(non_snake_case)]
-pub struct LmotsPublicKey<P: LmotsParameter> {
+pub struct LmotsPublicKey<OTS: LmotsParameter> {
     pub I: IType,
     pub q: QType,
     pub key: DynamicArray<u8, MAX_N>,
-    lmots_parameter: PhantomData<P>,
+    lmots_parameter: PhantomData<OTS>,
 }
 
 #[allow(non_snake_case)]
-impl<P: LmotsParameter> LmotsPublicKey<P> {
+impl<OTS: LmotsParameter> LmotsPublicKey<OTS> {
     pub fn new(I: IType, q: QType, key: DynamicArray<u8, MAX_N>) -> Self {
         LmotsPublicKey {
             I,

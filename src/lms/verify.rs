@@ -10,9 +10,9 @@ use crate::util::helper::is_odd;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 
-pub fn verify<P: LmotsParameter>(
-    signature: &LmsSignature<P>,
-    public_key: &LmsPublicKey<P>,
+pub fn verify<OTS: LmotsParameter>(
+    signature: &LmsSignature<OTS>,
+    public_key: &LmsPublicKey<OTS>,
     message: &[u8],
 ) -> Result<(), &'static str> {
     if signature.lms_parameter != public_key.lms_parameter {
@@ -28,9 +28,9 @@ pub fn verify<P: LmotsParameter>(
     }
 }
 
-fn generate_public_key_candiate<P: LmotsParameter>(
-    signature: &LmsSignature<P>,
-    public_key: &LmsPublicKey<P>,
+fn generate_public_key_candiate<OTS: LmotsParameter>(
+    signature: &LmsSignature<OTS>,
+    public_key: &LmsPublicKey<OTS>,
     message: &[u8],
 ) -> Result<DynamicArray<u8, MAX_M>, &'static str> {
     if signature.lms_parameter != public_key.lms_parameter {

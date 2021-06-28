@@ -8,21 +8,24 @@ use self::signing::LmsSignature;
 pub mod definitions;
 mod helper;
 mod keygen;
+pub mod parameter;
 pub mod signing;
 mod verify;
 
-pub fn generate_private_key<P: LmotsParameter>(
+pub fn generate_private_key<OTS: LmotsParameter>(
     lms_parameter: LmsAlgorithmParameter,
-) -> LmsPrivateKey<P> {
+) -> LmsPrivateKey<OTS> {
     keygen::generate_private_key(lms_parameter)
 }
 
-pub fn generate_public_key<P: LmotsParameter>(private_key: &LmsPrivateKey<P>) -> LmsPublicKey<P> {
+pub fn generate_public_key<OTS: LmotsParameter>(
+    private_key: &LmsPrivateKey<OTS>,
+) -> LmsPublicKey<OTS> {
     keygen::generate_public_key(private_key)
 }
 
-pub fn verify<P: LmotsParameter>(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
-    let public_key = match LmsPublicKey::<P>::from_binary_representation(public_key) {
+pub fn verify<OTS: LmotsParameter>(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
+    let public_key = match LmsPublicKey::<OTS>::from_binary_representation(public_key) {
         None => return false,
         Some(x) => x,
     };

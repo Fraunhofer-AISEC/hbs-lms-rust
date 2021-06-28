@@ -91,15 +91,15 @@ impl LmsAlgorithmParameter {
 
 #[allow(non_snake_case)]
 #[derive(Debug, Clone, Copy)]
-pub struct LmsPrivateKey<P: LmotsParameter> {
+pub struct LmsPrivateKey<OTS: LmotsParameter> {
     pub lms_parameter: LmsAlgorithmParameter,
     pub I: IType,
     pub q: u32,
     pub seed: Seed,
-    lmots_parameter: PhantomData<P>,
+    lmots_parameter: PhantomData<OTS>,
 }
 
-impl<P: LmotsParameter> PartialEq for LmsPrivateKey<P> {
+impl<OTS: LmotsParameter> PartialEq for LmsPrivateKey<OTS> {
     fn eq(&self, other: &Self) -> bool {
         self.lms_parameter == other.lms_parameter
             && self.I == other.I
@@ -109,10 +109,10 @@ impl<P: LmotsParameter> PartialEq for LmsPrivateKey<P> {
     }
 }
 
-impl<P: LmotsParameter> Eq for LmsPrivateKey<P> {}
+impl<OTS: LmotsParameter> Eq for LmsPrivateKey<OTS> {}
 
 #[allow(non_snake_case)]
-impl<P: LmotsParameter> LmsPrivateKey<P> {
+impl<OTS: LmotsParameter> LmsPrivateKey<OTS> {
     pub fn new(lms_parameter: LmsAlgorithmParameter, seed: Seed, I: IType) -> Self {
         LmsPrivateKey {
             lms_parameter,
@@ -123,7 +123,7 @@ impl<P: LmotsParameter> LmsPrivateKey<P> {
         }
     }
 
-    pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey<P>, &'static str> {
+    pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey<OTS>, &'static str> {
         if self.q as usize >= self.lms_parameter.number_of_lm_ots_keys() {
             return Err("All private keys already used.");
         }
@@ -135,7 +135,7 @@ impl<P: LmotsParameter> LmsPrivateKey<P> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH> {
         let mut result = DynamicArray::new();
 
-        let lm_ots_parameter = <P>::new();
+        let lm_ots_parameter = <OTS>::new();
 
         result.append(&u32str(self.lms_parameter._type as u32));
         result.append(&u32str(lm_ots_parameter.get_type()));
@@ -161,7 +161,7 @@ impl<P: LmotsParameter> LmsPrivateKey<P> {
         let lm_ots_type = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        let lm_ots_parameter = <P>::new();
+        let lm_ots_parameter = <OTS>::new();
 
         if !lm_ots_parameter.is_type_correct(lm_ots_type) {
             return None;
@@ -192,14 +192,14 @@ impl<P: LmotsParameter> LmsPrivateKey<P> {
 
 #[allow(non_snake_case)]
 #[derive(Debug)]
-pub struct LmsPublicKey<P: LmotsParameter> {
+pub struct LmsPublicKey<OTS: LmotsParameter> {
     pub lms_parameter: LmsAlgorithmParameter,
     pub key: DynamicArray<u8, MAX_M>,
     pub I: IType,
-    lmots_parameter: PhantomData<P>,
+    lmots_parameter: PhantomData<OTS>,
 }
 
-impl<P: LmotsParameter> PartialEq for LmsPublicKey<P> {
+impl<OTS: LmotsParameter> PartialEq for LmsPublicKey<OTS> {
     fn eq(&self, other: &Self) -> bool {
         self.lms_parameter == other.lms_parameter
             && self.key == other.key
@@ -208,10 +208,10 @@ impl<P: LmotsParameter> PartialEq for LmsPublicKey<P> {
     }
 }
 
-impl<P: LmotsParameter> Eq for LmsPublicKey<P> {}
+impl<OTS: LmotsParameter> Eq for LmsPublicKey<OTS> {}
 
 #[allow(non_snake_case)]
-impl<P: LmotsParameter> LmsPublicKey<P> {
+impl<OTS: LmotsParameter> LmsPublicKey<OTS> {
     pub fn new(
         public_key: DynamicArray<u8, MAX_M>,
         lms_parameter: LmsAlgorithmParameter,
@@ -228,7 +228,7 @@ impl<P: LmotsParameter> LmsPublicKey<P> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + 4 + 16 + MAX_M }> {
         let mut result = DynamicArray::new();
 
-        let lm_ots_parameter = <P>::new();
+        let lm_ots_parameter = <OTS>::new();
 
         result.append(&u32str(self.lms_parameter.get_binary_identifier()));
         result.append(&u32str(lm_ots_parameter.get_type()));
@@ -256,7 +256,7 @@ impl<P: LmotsParameter> LmsPublicKey<P> {
 
         let lm_ots_typecode = str32u(read_and_advance(data, 4, &mut data_index));
 
-        let lm_ots_parameter = <P>::new();
+        let lm_ots_parameter = <OTS>::new();
 
         if !lm_ots_parameter.is_type_correct(lm_ots_typecode) {
             return None;

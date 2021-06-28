@@ -15,26 +15,26 @@ use super::parameter::LmotsParameter;
 
 #[allow(non_snake_case)]
 #[derive(Debug)]
-pub struct LmotsSignature<P: LmotsParameter> {
+pub struct LmotsSignature<OTS: LmotsParameter> {
     pub C: DynamicArray<u8, MAX_N>,
     pub y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>,
-    lmots_parameter: PhantomData<P>,
+    lmots_parameter: PhantomData<OTS>,
 }
 
-impl<P: LmotsParameter> PartialEq for LmotsSignature<P> {
+impl<OTS: LmotsParameter> PartialEq for LmotsSignature<OTS> {
     fn eq(&self, other: &Self) -> bool {
         self.C == other.C && self.y == other.y && self.lmots_parameter == other.lmots_parameter
     }
 }
 
-impl<P: LmotsParameter> Eq for LmotsSignature<P> {}
+impl<OTS: LmotsParameter> Eq for LmotsSignature<OTS> {}
 
-impl<P: LmotsParameter> LmotsSignature<P> {
+impl<OTS: LmotsParameter> LmotsSignature<OTS> {
     #[allow(non_snake_case)]
-    pub fn sign(private_key: &LmotsPrivateKey<P>, message: &[u8]) -> Self {
+    pub fn sign(private_key: &LmotsPrivateKey<OTS>, message: &[u8]) -> Self {
         let mut C = DynamicArray::new();
 
-        let mut parameter = <P>::new();
+        let mut parameter = <OTS>::new();
 
         C.set_size(parameter.get_n() as usize);
 
@@ -79,7 +79,7 @@ impl<P: LmotsParameter> LmotsSignature<P> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + MAX_N + (MAX_N * MAX_P) }> {
         let mut result = DynamicArray::new();
 
-        let parameter = <P>::new();
+        let parameter = <OTS>::new();
 
         result.append(&u32str(parameter.get_type()));
         result.append(self.C.get_slice());
@@ -104,7 +104,7 @@ impl<P: LmotsParameter> LmotsSignature<P> {
         let lm_ots_type = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        let parameter = <P>::new();
+        let parameter = <OTS>::new();
 
         if !parameter.is_type_correct(lm_ots_type) {
             return None;

@@ -6,9 +6,9 @@ use crate::lm_ots::parameter::LmotsParameter;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
 
-pub fn generate_private_key<P: LmotsParameter>(
+pub fn generate_private_key<OTS: LmotsParameter>(
     lms_parameter: LmsAlgorithmParameter,
-) -> LmsPrivateKey<P> {
+) -> LmsPrivateKey<OTS> {
     let mut i: IType = [0u8; 16];
     crate::util::random::get_random(&mut i);
 
@@ -18,7 +18,9 @@ pub fn generate_private_key<P: LmotsParameter>(
     LmsPrivateKey::new(lms_parameter, seed, i)
 }
 
-pub fn generate_public_key<P: LmotsParameter>(private_key: &LmsPrivateKey<P>) -> LmsPublicKey<P> {
+pub fn generate_public_key<OTS: LmotsParameter>(
+    private_key: &LmsPrivateKey<OTS>,
+) -> LmsPublicKey<OTS> {
     let public_key = get_tree_element(1, private_key);
 
     LmsPublicKey::new(public_key, private_key.lms_parameter, private_key.I)

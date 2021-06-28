@@ -1,6 +1,5 @@
 use crate::{
     constants::{D_MESG, D_PBLC, MAX_N, MAX_P},
-    hasher::Hasher,
     util::{
         coef::coef,
         dynamic_array::DynamicArray,

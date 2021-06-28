@@ -14,5 +14,5 @@ pub const MAX_M: usize = 32;
 pub const MAX_H: usize = 25;
 
 pub const MAX_PRIVATE_KEY_LENGTH: usize = 4 + 4 + size_of::<IType>() + 4 + size_of::<Seed>();
-pub const MAX_SIGNATURE_LENGTH: usize = 4 + 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H);
-pub const MAX_PUBLIC_KEY_LENGTH: usize = 4 + 4 + 4 + 16 + MAX_M;
+// pub const MAX_SIGNATURE_LENGTH: usize = 4 + 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H);
+// pub const MAX_PUBLIC_KEY_LENGTH: usize = 4 + 4 + 4 + 16 + MAX_M;

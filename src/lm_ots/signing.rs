@@ -1,4 +1,3 @@
-use crate::hasher::Hasher;
 use crate::util::dynamic_array::DynamicArray;
 use crate::{
     constants::{D_MESG, MAX_N, MAX_P},
@@ -157,7 +156,6 @@ mod tests {
 
     #[test]
     fn test_binary_representation() {
-
         type LmotsType = crate::lm_ots::parameter::LmotsSha256N32W2;
 
         let parameter = LmotsType::new();

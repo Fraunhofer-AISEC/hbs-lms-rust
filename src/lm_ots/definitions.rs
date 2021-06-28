@@ -72,10 +72,6 @@ mod tests {
         };
     }
 
-    fn test() {
-        let x = parameter::LmotsSha256N32W1::new();
-    }
-
     generate_parameter_test!(
         lmots_sha256_n32_w1_parameter_test,
         parameter::LmotsSha256N32W1::new(),

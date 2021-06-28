@@ -47,11 +47,11 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
         parameter.update(message);
 
         let Q: DynamicArray<u8, MAX_N> = parameter.finalize_reset();
-        let Q_and_checksum = parameter.get_appended_with_checksum(&Q.get_slice());
+        let Q_and_checksum = <OTS>::get_appended_with_checksum(&Q.get_slice());
 
         let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
-        for i in 0..parameter.get_p() {
+        for i in 0..<OTS>::get_p() {
             let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64);
             let mut tmp = private_key.key[i as usize];
             for j in 0..a {
@@ -105,7 +105,7 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
         }
 
         let n = <OTS>::N;
-        let p = parameter.get_p();
+        let p = <OTS>::get_p();
 
         if data.len() != 4 + n as usize * (p as usize + 1) {
             return None;
@@ -152,8 +152,6 @@ mod tests {
     fn test_binary_representation() {
         type LmotsType = crate::lm_ots::parameter::LmotsSha256N32W2;
 
-        let parameter = LmotsType::new();
-
         let mut c = DynamicArray::new();
         let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
@@ -161,7 +159,7 @@ mod tests {
             c[i] = i as u8;
         }
 
-        for i in 0..parameter.get_p() as usize {
+        for i in 0..<LmotsType>::get_p() as usize {
             for j in 0..<LmotsType>::N as usize {
                 y[i][j] = j as u8;
             }

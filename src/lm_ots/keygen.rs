@@ -15,7 +15,7 @@ pub fn generate_private_key<OTS: LmotsParameter>(
 
     let mut lmots_parameter = <OTS>::new();
 
-    for index in 0..lmots_parameter.get_p() {
+    for index in 0..<OTS>::get_p() {
         lmots_parameter.update(&i);
         lmots_parameter.update(&q);
         lmots_parameter.update(&u16str(index as u16));
@@ -38,7 +38,7 @@ pub fn generate_public_key<OTS: LmotsParameter>(
 
     let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
-    for i in 0..parameter.get_p() as usize {
+    for i in 0..<OTS>::get_p() as usize {
         let mut tmp = key[i];
 
         for j in 0..max_word_index {

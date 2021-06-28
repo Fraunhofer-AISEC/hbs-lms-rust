@@ -552,10 +552,10 @@ fn read_lms_type_from_signature(data: &Vec<u8>) -> Option<LmsAlgorithmType> {
 
     // Stupid... Need better solution
     let p = match lm_ots_type {
-        LmotsAlgorithmType::LmotsSha256N32W1 => <LmotsSha256N32W1>::new().get_p(),
-        LmotsAlgorithmType::LmotsSha256N32W2 => <LmotsSha256N32W2>::new().get_p(),
-        LmotsAlgorithmType::LmotsSha256N32W4 => <LmotsSha256N32W4>::new().get_p(),
-        LmotsAlgorithmType::LmotsSha256N32W8 => <LmotsSha256N32W8>::new().get_p(),
+        LmotsAlgorithmType::LmotsSha256N32W1 => <LmotsSha256N32W1>::get_p(),
+        LmotsAlgorithmType::LmotsSha256N32W2 => <LmotsSha256N32W2>::get_p(),
+        LmotsAlgorithmType::LmotsSha256N32W4 => <LmotsSha256N32W4>::get_p(),
+        LmotsAlgorithmType::LmotsSha256N32W8 => <LmotsSha256N32W8>::get_p(),
     };
 
     // Stupid... Need better solution

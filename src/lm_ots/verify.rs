@@ -42,12 +42,12 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
     parameter.update(message);
 
     let Q = parameter.finalize_reset();
-    let Q_and_checksum = parameter.get_appended_with_checksum(Q.get_slice());
+    let Q_and_checksum = <OTS>::get_appended_with_checksum(Q.get_slice());
 
     let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
     let max_w = 2u64.pow(<OTS>::W as u32) - 1;
 
-    for i in 0..parameter.get_p() {
+    for i in 0..<OTS>::get_p() {
         let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64);
         let mut tmp = signature.y[i as usize];
 

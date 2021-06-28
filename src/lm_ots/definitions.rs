@@ -62,11 +62,10 @@ mod tests {
         ($name:ident, $parameter:ty, $n:literal, $w:literal, $p:literal, $ls:literal, $type:literal) => {
             #[test]
             fn $name() {
-                let parameter = <$parameter>::new();
                 assert_eq!(<$parameter>::N, $n);
                 assert_eq!(<$parameter>::W, $w);
-                assert_eq!(parameter.get_p(), $p);
-                assert_eq!(parameter.get_ls(), $ls);
+                assert_eq!(<$parameter>::get_p(), $p);
+                assert_eq!(<$parameter>::get_ls(), $ls);
                 assert_eq!(<$parameter>::TYPE, $type);
             }
         };

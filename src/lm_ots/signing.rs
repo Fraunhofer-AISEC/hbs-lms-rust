@@ -7,23 +7,22 @@ use crate::{
         random::get_random,
         ustr::{str32u, u16str, u32str, u8str},
     },
-    LmotsAlgorithmType,
 };
 use core::usize;
 
-use super::definitions::{LmotsAlgorithmParameter, LmotsPrivateKey};
+use super::definitions::LmotsPrivateKey;
+use super::parameter::LmotsParameter;
 
 #[allow(non_snake_case)]
 #[derive(Debug, PartialEq, Eq)]
-pub struct LmotsSignature {
-    pub parameter: LmotsAlgorithmParameter,
+pub struct LmotsSignature<P: LmotsParameter> {
     pub C: DynamicArray<u8, MAX_N>,
     pub y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>,
 }
 
-impl LmotsSignature {
+impl<P: LmotsParameter> LmotsSignature<P> {
     #[allow(non_snake_case)]
-    pub fn sign(private_key: &LmotsPrivateKey, message: &[u8]) -> Self {
+    pub fn sign(private_key: &LmotsPrivateKey<P>, message: &[u8]) -> Self {
         let mut C = DynamicArray::new();
 
         C.set_size(private_key.parameter.n as usize);
@@ -63,11 +62,7 @@ impl LmotsSignature {
             y[i as usize] = tmp;
         }
 
-        LmotsSignature {
-            parameter: private_key.parameter,
-            C,
-            y,
-        }
+        LmotsSignature { C, y }
     }
 
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + MAX_N + (MAX_N * MAX_P) }> {
@@ -96,37 +91,33 @@ impl LmotsSignature {
         let lm_ots_type = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
-        let lm_ots_type = match LmotsAlgorithmType::from_u32(lm_ots_type) {
-            None => return None,
-            Some(x) => x,
-        };
+        if !<P>::is_type_correct(lm_ots_type) {
+            return None;
+        }
 
-        let lm_ots_parameter = LmotsAlgorithmParameter::new(lm_ots_type);
+        let n = <P>::get_n();
+        let p = <P>::get_p();
 
-        if data.len() != 4 + lm_ots_parameter.n as usize * (lm_ots_parameter.p as usize + 1) {
+        if data.len() != 4 + n as usize * (p as usize + 1) {
             return None;
         }
 
         let mut C = DynamicArray::new();
 
-        C.append(&consumed_data[..lm_ots_parameter.n as usize]);
-        consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
+        C.append(&consumed_data[..n as usize]);
+        consumed_data = &consumed_data[n as usize..];
 
         let mut y = DynamicArray::new();
 
-        for i in 0..lm_ots_parameter.p {
+        for i in 0..<P>::get_p() {
             let mut temp = DynamicArray::new();
-            temp.append(&consumed_data[..lm_ots_parameter.n as usize]);
+            temp.append(&consumed_data[..n as usize]);
             y[i as usize] = temp;
 
-            consumed_data = &consumed_data[lm_ots_parameter.n as usize..];
+            consumed_data = &consumed_data[n as usize..];
         }
 
-        let signature = Self {
-            parameter: lm_ots_parameter,
-            C,
-            y,
-        };
+        let signature = Self { C, y };
 
         Some(signature)
     }
@@ -139,7 +130,6 @@ mod tests {
         util::dynamic_array::DynamicArray,
     };
 
-    use super::LmotsAlgorithmParameter;
     use super::LmotsSignature;
 
     #[test]
@@ -157,13 +147,8 @@ mod tests {
             }
         }
 
-        let signature = LmotsSignature {
-            parameter: LmotsAlgorithmParameter::new(
-                crate::lm_ots::LmotsAlgorithmType::LmotsSha256N32W1,
-            ),
-            C: c,
-            y,
-        };
+        let signature: LmotsSignature<crate::lm_ots::parameter::LmotsSha256N32W2> =
+            LmotsSignature { C: c, y };
 
         let binary_rep = signature.to_binary_representation();
         let deserialized_signature =

@@ -1,31 +1,37 @@
 use crate::{
     constants::MAX_N,
     hasher::{sha256::Sha256Hasher, Hasher},
-    util::coef::coef,
+    util::{coef::coef, dynamic_array::DynamicArray},
 };
 
 pub trait LmotsParameter: Hasher {
-    fn get_n(&self) -> u16;
-    fn get_w(&self) -> u8;
-    fn get_type(&self) -> u16;
+    fn new() -> Self;
 
-    fn get_p(&self) -> u16 {
+    fn is_type_correct(_type: u16) -> bool {
+        Self::new().get_type() == _type
+    }
+
+    fn get_n() -> u16;
+    fn get_w() -> u8;
+    fn get_type() -> u16;
+
+    fn get_p() -> u16 {
         // Compute p and ls depending on n and w (see RFC8554 Appendix B.)
-        let u = ((8.0 * self.get_n() as f64) / self.get_w() as f64).ceil();
-        let v = ((((2usize.pow(self.get_w() as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
-            / self.get_w() as f64)
+        let u = ((8.0 * Self::get_n() as f64) / Self::get_w() as f64).ceil();
+        let v = ((((2usize.pow(Self::get_w() as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
+            / Self::get_w() as f64)
             .ceil();
         let p: u16 = (u as u64 + v as u64) as u16;
         p
     }
 
-    fn get_ls(&self) -> u8 {
+    fn get_ls() -> u8 {
         // Compute p and ls depending on n and w (see RFC8554 Appendix B.)
-        let u = ((8.0 * self.get_n() as f64) / self.get_w() as f64).ceil();
-        let v = ((((2usize.pow(self.get_w() as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
-            / self.get_w() as f64)
+        let u = ((8.0 * Self::get_n() as f64) / Self::get_w() as f64).ceil();
+        let v = ((((2usize.pow(Self::get_w() as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
+            / Self::get_w() as f64)
             .ceil();
-        let ls: u8 = (16 - (v as usize * self.get_w() as usize)) as u8;
+        let ls: u8 = (16 - (v as usize * Self::get_w() as usize)) as u8;
 
         ls
     }
@@ -41,6 +47,19 @@ pub trait LmotsParameter: Hasher {
 
         sum << self.get_ls()
     }
+
+    fn get_appended_with_checksum(&self, byte_string: &[u8]) -> DynamicArray<u8, { MAX_N + 2 }> {
+        let mut result = DynamicArray::new();
+
+        let checksum = self.checksum(byte_string);
+
+        result.append(byte_string);
+
+        result.append(&[(checksum >> 8 & 0xff) as u8]);
+        result.append(&[(checksum & 0xff) as u8]);
+
+        result
+    }
 }
 
 macro_rules! generate_parameter_type {
@@ -50,6 +69,12 @@ macro_rules! generate_parameter_type {
         }
 
         impl LmotsParameter for $name {
+            fn new() -> Self {
+                $name {
+                    hasher: $hasher::new(),
+                }
+            }
+
             fn get_n(&self) -> u16 {
                 $n
             }

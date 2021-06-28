@@ -1,217 +1,101 @@
 use crate::{
     constants::{MAX_N, MAX_P},
-    hasher::{sha256::Sha256Hasher, Hasher},
-    util::{coef::coef, dynamic_array::DynamicArray},
+    util::dynamic_array::DynamicArray,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LmotsAlgorithmType {
-    LmotsReserved = 0,
-    LmotsSha256N32W1 = 1,
-    LmotsSha256N32W2 = 2,
-    LmotsSha256N32W4 = 3,
-    LmotsSha256N32W8 = 4,
-}
-
-impl LmotsAlgorithmType {
-    pub fn from_u32(x: u32) -> Option<Self> {
-        match x {
-            0 => Some(LmotsAlgorithmType::LmotsReserved),
-            1 => Some(LmotsAlgorithmType::LmotsSha256N32W1),
-            2 => Some(LmotsAlgorithmType::LmotsSha256N32W2),
-            3 => Some(LmotsAlgorithmType::LmotsSha256N32W4),
-            4 => Some(LmotsAlgorithmType::LmotsSha256N32W8),
-            _ => None,
-        }
-    }
-}
+use super::parameter::LmotsParameter;
 
 pub type IType = [u8; 16];
 pub type QType = [u8; 4];
 pub type Seed = [u8; 32];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct LmotsAlgorithmParameter {
-    pub n: u16,
-    pub w: u8,
-    pub p: u16,
-    pub ls: u8,
-    pub _type: LmotsAlgorithmType,
-}
-
-impl LmotsAlgorithmParameter {
-    pub fn new(_type: LmotsAlgorithmType) -> Self {
-        match _type {
-            LmotsAlgorithmType::LmotsReserved => panic!("Reserved parameter type."),
-            LmotsAlgorithmType::LmotsSha256N32W1 => {
-                LmotsAlgorithmParameter::internal_get(32, 1, LmotsAlgorithmType::LmotsSha256N32W1)
-            }
-            LmotsAlgorithmType::LmotsSha256N32W2 => {
-                LmotsAlgorithmParameter::internal_get(32, 2, LmotsAlgorithmType::LmotsSha256N32W2)
-            }
-            LmotsAlgorithmType::LmotsSha256N32W4 => {
-                LmotsAlgorithmParameter::internal_get(32, 4, LmotsAlgorithmType::LmotsSha256N32W4)
-            }
-            LmotsAlgorithmType::LmotsSha256N32W8 => {
-                LmotsAlgorithmParameter::internal_get(32, 8, LmotsAlgorithmType::LmotsSha256N32W8)
-            }
-        }
-    }
-
-    #[allow(clippy::many_single_char_names)]
-    fn internal_get(n: u16, w: u8, _type: LmotsAlgorithmType) -> Self {
-        // Compute p and ls depending on n and w (see RFC8554 Appendix B.)
-        let u = ((8.0 * n as f64) / w as f64).ceil();
-        let v =
-            ((((2usize.pow(w as u32) - 1) as f64 * u).log2() + 1.0f64).floor() / w as f64).ceil();
-        let ls: u8 = (16 - (v as usize * w as usize)) as u8;
-        let p: u16 = (u as u64 + v as u64) as u16;
-
-        LmotsAlgorithmParameter { n, w, p, ls, _type }
-    }
-
-    pub fn checksum(&self, byte_string: &[u8]) -> u16 {
-        let mut sum = 0_u16;
-        let max: u64 = ((self.n * 8) as f64 / self.w as f64) as u64;
-        let max_word_size: u64 = (1 << self.w) - 1;
-
-        for i in 0..max {
-            sum += (max_word_size - coef(byte_string, i, self.w as u64)) as u16;
-        }
-
-        sum << self.ls
-    }
-
-    pub fn get_appended_with_checksum(
-        &self,
-        byte_string: &[u8],
-    ) -> DynamicArray<u8, { MAX_N + 2 }> {
-        let mut result = DynamicArray::new();
-
-        let checksum = self.checksum(byte_string);
-
-        result.append(byte_string);
-
-        result.append(&[(checksum >> 8 & 0xff) as u8]);
-        result.append(&[(checksum & 0xff) as u8]);
-
-        result
-    }
-
-    pub fn get_hasher(&self) -> impl Hasher {
-        match self._type {
-            LmotsAlgorithmType::LmotsReserved => panic!("Reserved parameter type."),
-            LmotsAlgorithmType::LmotsSha256N32W1 => Sha256Hasher::new(),
-            LmotsAlgorithmType::LmotsSha256N32W2 => Sha256Hasher::new(),
-            LmotsAlgorithmType::LmotsSha256N32W4 => Sha256Hasher::new(),
-            LmotsAlgorithmType::LmotsSha256N32W8 => Sha256Hasher::new(),
-        }
-    }
-
-    pub fn get_binary_identifier(&self) -> u32 {
-        self._type as u32
-    }
-}
-
 #[allow(non_snake_case)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct LmotsPrivateKey {
-    pub parameter: LmotsAlgorithmParameter,
+pub struct LmotsPrivateKey<P: LmotsParameter> {
     pub I: IType,
     pub q: QType,
     pub key: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>, // [[0u8; n]; p];
 }
 
 #[allow(non_snake_case)]
-impl LmotsPrivateKey {
-    pub fn new(
-        I: IType,
-        q: QType,
-        parameter: LmotsAlgorithmParameter,
-        key: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>,
-    ) -> Self {
-        LmotsPrivateKey {
-            parameter,
-            I,
-            q,
-            key,
-        }
+impl<P: LmotsParameter> LmotsPrivateKey<P> {
+    pub fn new(I: IType, q: QType, key: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>) -> Self {
+        LmotsPrivateKey { I, q, key }
     }
 }
 
 #[allow(non_snake_case)]
-pub struct LmotsPublicKey {
-    pub parameter: LmotsAlgorithmParameter,
+pub struct LmotsPublicKey<P: LmotsParameter> {
     pub I: IType,
     pub q: QType,
     pub key: DynamicArray<u8, MAX_N>,
 }
 
 #[allow(non_snake_case)]
-impl LmotsPublicKey {
-    pub fn new(
-        I: IType,
-        q: QType,
-        parameter: LmotsAlgorithmParameter,
-        key: DynamicArray<u8, MAX_N>,
-    ) -> Self {
-        LmotsPublicKey {
-            parameter,
-            I,
-            q,
-            key,
-        }
+impl<P: LmotsParameter> LmotsPublicKey<P> {
+    pub fn new(I: IType, q: QType, key: DynamicArray<u8, MAX_N>) -> Self {
+        LmotsPublicKey { I, q, key }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::lm_ots::parameter;
+
     use super::*;
 
     macro_rules! generate_parameter_test {
-        ($name:ident, $type:expr, $n:literal, $w:literal, $p:literal, $ls:literal) => {
+        ($name:ident, $parameter:expr, $n:literal, $w:literal, $p:literal, $ls:literal, $type:literal) => {
             #[test]
             fn $name() {
-                let parameter = LmotsAlgorithmParameter::new($type);
-                assert_eq!(parameter._type, $type);
-                assert_eq!(parameter.n, $n);
-                assert_eq!(parameter.w, $w);
-                assert_eq!(parameter.p, $p);
-                assert_eq!(parameter.ls, $ls);
+                let parameter = $parameter;
+                assert_eq!(parameter.get_n(), $n);
+                assert_eq!(parameter.get_w(), $w);
+                assert_eq!(parameter.get_p(), $p);
+                assert_eq!(parameter.get_ls(), $ls);
+                assert_eq!(parameter.get_type(), $type);
             }
         };
     }
 
+    fn test() {
+        let x = parameter::LmotsSha256N32W1::new();
+    }
+
     generate_parameter_test!(
         lmots_sha256_n32_w1_parameter_test,
-        LmotsAlgorithmType::LmotsSha256N32W1,
+        parameter::LmotsSha256N32W1::new(),
         32,
         1,
         265,
-        7
+        7,
+        1
     );
     generate_parameter_test!(
         lmots_sha256_n32_w2_parameter_test,
-        LmotsAlgorithmType::LmotsSha256N32W2,
+        parameter::LmotsSha256N32W2::new(),
         32,
         2,
         133,
-        6
+        6,
+        2
     );
     generate_parameter_test!(
         lmots_sha256_n32_w4_parameter_test,
-        LmotsAlgorithmType::LmotsSha256N32W4,
+        parameter::LmotsSha256N32W4::new(),
         32,
         4,
         67,
-        4
+        4,
+        3
     );
     generate_parameter_test!(
         lmots_sha256_n32_w8_parameter_test,
-        LmotsAlgorithmType::LmotsSha256N32W8,
+        parameter::LmotsSha256N32W8::new(),
         32,
         8,
         34,
-        0
+        0,
+        4
     );
 }

@@ -1,7 +1,8 @@
-use crate::{LmotsParameter, LmsParameter, LmsPublicKey, LmsSignature, util::ustr::str32u};
+use crate::{util::ustr::str32u, LmotsParameter, LmsParameter, LmsPublicKey, LmsSignature};
 
-pub fn parse_public_key<OTS: LmotsParameter, LMS: LmsParameter>(public_key: &[u8]) -> Option<LmsPublicKey<OTS, LMS>> {
-
+pub fn parse_public_key<OTS: LmotsParameter, LMS: LmsParameter>(
+    public_key: &[u8],
+) -> Option<LmsPublicKey<OTS, LMS>> {
     if public_key.len() <= 4 {
         return None;
     }
@@ -16,8 +17,9 @@ pub fn parse_public_key<OTS: LmotsParameter, LMS: LmsParameter>(public_key: &[u8
     LmsPublicKey::<OTS, LMS>::from_binary_representation(&public_key[4..])
 }
 
-pub fn parse_signature<OTS: LmotsParameter, LMS: LmsParameter>(signature: &[u8]) -> Option<LmsSignature<OTS, LMS>> {
-
+pub fn parse_signature<OTS: LmotsParameter, LMS: LmsParameter>(
+    signature: &[u8],
+) -> Option<LmsSignature<OTS, LMS>> {
     if signature.len() <= 4 {
         return None;
     }
@@ -31,4 +33,3 @@ pub fn parse_signature<OTS: LmotsParameter, LMS: LmsParameter>(signature: &[u8])
 
     LmsSignature::<OTS, LMS>::from_binary_representation(&signature[4..])
 }
-

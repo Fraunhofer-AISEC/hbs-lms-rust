@@ -52,7 +52,6 @@ pub fn hss_verify<OTS: LmotsParameter, LMS: LmsParameter>(
     crate::lms::verify::<OTS, LMS>(message, &signature[4..], &public_key[4..])
 }
 
-#[cfg(target_arch = "x86_64")]
 pub fn hss_sign<OTS: LmotsParameter, LMS: LmsParameter>(
     message: &[u8],
     private_key: &[u8],
@@ -85,7 +84,6 @@ pub fn hss_sign<OTS: LmotsParameter, LMS: LmsParameter>(
     Some(result)
 }
 
-#[cfg(target_arch = "x86_64")]
 pub fn hss_keygen<OTS: LmotsParameter, LMS: LmsParameter>() -> HssBinaryData {
     let private_key = crate::lms::generate_private_key::<OTS, LMS>();
     let public_key = crate::lms::generate_public_key(&private_key);

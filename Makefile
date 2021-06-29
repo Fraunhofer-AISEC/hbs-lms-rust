@@ -11,3 +11,6 @@ test:
 
 clean:
 	cargo clean
+
+riscv:
+	cargo build --target riscv32imac-unknown-none-elf

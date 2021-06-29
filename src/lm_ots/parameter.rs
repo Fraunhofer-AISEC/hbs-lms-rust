@@ -9,29 +9,34 @@ pub trait LmotsParameter: Hasher {
     const W: u8;
     const TYPE: u32;
 
+    const LS: u8;
+    const P: u16;
+
     fn is_type_correct(_type: u32) -> bool {
         Self::TYPE == _type
     }
 
     fn get_p() -> u16 {
         // Compute p and ls depending on n and w (see RFC8554 Appendix B.)
-        let u = ((8.0 * Self::N as f64) / Self::W as f64).ceil();
-        let v = ((((2usize.pow(Self::W as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
-            / Self::W as f64)
-            .ceil();
-        let p: u16 = (u as u64 + v as u64) as u16;
-        p
+        // let u = ((8.0 * Self::N as f64) / Self::W as f64).ceil();
+        // let v = ((((2usize.pow(Self::W as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
+        //     / Self::W as f64)
+        //     .ceil();
+        // let p: u16 = (u as u64 + v as u64) as u16;
+        // p
+        Self::P
     }
 
     fn get_ls() -> u8 {
         // Compute p and ls depending on n and w (see RFC8554 Appendix B.)
-        let u = ((8.0 * Self::N as f64) / Self::W as f64).ceil();
-        let v = ((((2usize.pow(Self::W as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
-            / Self::W as f64)
-            .ceil();
-        let ls: u8 = (16 - (v as usize * Self::W as usize)) as u8;
+        // let u = ((8.0 * Self::N as f64) / Self::W as f64).ceil();
+        // let v = ((((2usize.pow(Self::W as u32) - 1) as f64 * u).log2() + 1.0f64).floor()
+        //     / Self::W as f64)
+        //     .ceil();
+        // let ls: u8 = (16 - (v as usize * Self::W as usize)) as u8;
 
-        ls
+        // ls
+        Self::LS
     }
 
     fn checksum(byte_string: &[u8]) -> u16 {
@@ -61,7 +66,7 @@ pub trait LmotsParameter: Hasher {
 }
 
 macro_rules! generate_parameter_type {
-    ($name:ident, $w:literal, $type:literal, $hasher:ident) => {
+    ($name:ident, $w:literal, $p:literal, $ls:literal, $type:literal, $hasher:ident) => {
         pub struct $name {
             hasher: $hasher,
         }
@@ -69,6 +74,8 @@ macro_rules! generate_parameter_type {
         impl LmotsParameter for $name {
             const W: u8 = $w;
             const TYPE: u32 = $type;
+            const P: u16 = $p;
+            const LS: u8 = $ls;
         }
 
         impl Hasher for $name {
@@ -95,7 +102,7 @@ macro_rules! generate_parameter_type {
     };
 }
 
-generate_parameter_type!(LmotsSha256N32W1, 1, 1, Sha256Hasher);
-generate_parameter_type!(LmotsSha256N32W2, 2, 2, Sha256Hasher);
-generate_parameter_type!(LmotsSha256N32W4, 4, 3, Sha256Hasher);
-generate_parameter_type!(LmotsSha256N32W8, 8, 4, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W1, 1, 265, 7, 1, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W2, 2, 133, 6, 2, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W4, 4, 67, 4, 3, Sha256Hasher);
+generate_parameter_type!(LmotsSha256N32W8, 8, 34, 0, 4, Sha256Hasher);

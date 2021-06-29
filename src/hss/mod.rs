@@ -1,3 +1,5 @@
+pub mod parser;
+
 use crate::{
     constants::{MAX_H, MAX_M, MAX_N, MAX_P, MAX_PRIVATE_KEY_LENGTH},
     lm_ots::parameter::LmotsParameter,

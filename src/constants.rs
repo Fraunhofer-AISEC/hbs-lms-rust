@@ -8,10 +8,10 @@ pub const D_LEAF: [u8; 2] = [0x82, 0x82];
 pub const D_INTR: [u8; 2] = [0x83, 0x83];
 
 pub const MAX_N: usize = 32;
-pub const MAX_P: usize = 265;
+pub const MAX_P: usize = 34;
 
 pub const MAX_M: usize = 32;
-pub const MAX_H: usize = 25;
+pub const MAX_H: usize = 5;
 
 pub const MAX_PRIVATE_KEY_LENGTH: usize = 4 + 4 + size_of::<IType>() + 4 + size_of::<Seed>();
 // pub const MAX_SIGNATURE_LENGTH: usize = 4 + 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H);

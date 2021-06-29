@@ -10,7 +10,7 @@ mod helper;
 mod keygen;
 pub mod parameter;
 pub mod signing;
-mod verify;
+pub mod verify;
 
 pub fn generate_private_key<OTS: LmotsParameter, LMS: LmsParameter>() -> LmsPrivateKey<OTS, LMS> {
     keygen::generate_private_key()

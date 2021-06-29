@@ -19,3 +19,5 @@ pub use crate::hss::hss_verify;
 
 pub use crate::hss::parser::parse_public_key as hss_parse_public_key;
 pub use crate::hss::parser::parse_signature as hss_parse_signature;
+
+pub use crate::lms::verify::verify;

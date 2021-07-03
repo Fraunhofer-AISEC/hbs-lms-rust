@@ -4,7 +4,7 @@ use crate::{
     util::{
         coef::coef,
         random::get_random,
-        ustr::{str32u, u16str, u32str, u8str},
+        ustr::{str32u, u32str},
     },
 };
 use core::marker::PhantomData;
@@ -52,16 +52,11 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
         let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
         for i in 0..<OTS>::get_p() {
-            let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64);
+            let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64) as usize;
             let mut tmp = private_key.key[i as usize];
-            for j in 0..a {
-                hasher.update(&private_key.I);
-                hasher.update(&private_key.q);
-                hasher.update(&u16str(i));
-                hasher.update(&u8str(j as u8));
-                hasher.update(tmp.get_slice());
-                tmp = hasher.finalize_reset();
-            }
+
+            hasher.do_hash_chain(&private_key.I, &private_key.q, i, 0, a, tmp.get_mut_slice());
+
             y[i as usize] = tmp;
         }
 

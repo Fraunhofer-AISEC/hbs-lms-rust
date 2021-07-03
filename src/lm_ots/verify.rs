@@ -1,10 +1,8 @@
+use core::usize;
+
 use crate::{
     constants::{D_MESG, D_PBLC, MAX_N, MAX_P},
-    util::{
-        coef::coef,
-        dynamic_array::DynamicArray,
-        ustr::{u16str, u8str},
-    },
+    util::{coef::coef, dynamic_array::DynamicArray},
 };
 
 use super::{
@@ -45,20 +43,14 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
     let Q_and_checksum = <OTS>::get_appended_with_checksum(Q.get_slice());
 
     let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
-    let max_w = 2u64.pow(<OTS>::W as u32) - 1;
+    let max_w = 2usize.pow(<OTS>::W as u32) - 1;
 
     for i in 0..<OTS>::get_p() {
-        let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64);
+        let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64) as usize;
         let mut tmp = signature.y[i as usize];
 
-        for j in a..max_w {
-            hasher.update(I);
-            hasher.update(q);
-            hasher.update(&u16str(i));
-            hasher.update(&u8str(j as u8));
-            hasher.update(tmp.get_slice());
-            tmp = hasher.finalize_reset();
-        }
+        hasher.do_hash_chain(&I, &q, i, a, max_w, tmp.get_mut_slice());
+
         z[i as usize] = tmp;
     }
 

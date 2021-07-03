@@ -4,6 +4,8 @@ use crate::{
     util::{coef::coef, dynamic_array::DynamicArray},
 };
 
+use super::definitions::{IType, QType};
+
 pub trait LmotsParameter: Hasher {
     const N: usize = Self::OUTPUT_SIZE;
     const W: u8;
@@ -90,6 +92,19 @@ macro_rules! generate_parameter_type {
 
             fn finalize_reset(&mut self) -> crate::util::dynamic_array::DynamicArray<u8, MAX_N> {
                 self.hasher.finalize_reset()
+            }
+
+            #[allow(non_snake_case)]
+            fn do_hash_chain(
+                &mut self,
+                I: &IType,
+                q: &QType,
+                i: u16,
+                from: usize,
+                to: usize,
+                start: &mut [u8],
+            ) {
+                self.hasher.do_hash_chain(I, q, i, from, to, start);
             }
         }
     };

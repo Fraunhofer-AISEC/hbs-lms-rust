@@ -1,11 +1,11 @@
 use core::marker::PhantomData;
 
+use crate::constants::QType;
 use crate::constants::MAX_H;
 use crate::constants::MAX_M;
 use crate::constants::MAX_N;
 use crate::constants::MAX_P;
 use crate::lm_ots;
-use crate::lm_ots::definitions::QType;
 use crate::lm_ots::parameter::LmotsParameter;
 use crate::lm_ots::signing::LmotsSignature;
 use crate::lms::definitions::LmsPrivateKey;

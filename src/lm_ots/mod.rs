@@ -1,10 +1,8 @@
-use crate::lm_ots::definitions::IType;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::definitions::LmotsPublicKey;
-use crate::lm_ots::definitions::QType;
 
-use self::definitions::Seed;
 use self::parameter::LmotsParameter;
+use crate::constants::*;
 
 pub mod definitions;
 mod keygen;

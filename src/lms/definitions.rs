@@ -1,9 +1,8 @@
 use core::marker::PhantomData;
 
-use crate::constants::{MAX_M, MAX_PRIVATE_KEY_LENGTH};
+use crate::constants::*;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
-use crate::lm_ots::definitions::{IType, Seed};
 use crate::lm_ots::parameter::LmotsParameter;
 use crate::util::dynamic_array::DynamicArray;
 use crate::util::helper::read_and_advance;

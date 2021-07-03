@@ -1,5 +1,6 @@
 use super::definitions::*;
 use super::parameter::LmotsParameter;
+use crate::constants::*;
 use crate::util::dynamic_array::DynamicArray;
 use crate::{
     constants::{D_PBLC, MAX_N, MAX_P},

@@ -2,7 +2,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     constants::MAX_N,
-    lm_ots::definitions::{IType, QType},
+    constants::{IType, QType},
     util::{
         dynamic_array::DynamicArray,
         ustr::{u16str, u8str},

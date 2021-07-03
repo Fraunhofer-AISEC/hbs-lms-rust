@@ -1,7 +1,7 @@
 use crate::{
     constants::MAX_N,
+    constants::{IType, QType},
     hasher::{sha256::Sha256Hasher, Hasher},
-    lm_ots::definitions::{IType, QType},
 };
 
 pub trait LmsParameter: Hasher {

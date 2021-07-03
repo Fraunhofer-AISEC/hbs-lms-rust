@@ -4,7 +4,7 @@ use crate::{
     util::{coef::coef, dynamic_array::DynamicArray},
 };
 
-use super::definitions::{IType, QType};
+use crate::constants::{IType, QType};
 
 pub trait LmotsParameter: Hasher {
     const N: usize = Self::OUTPUT_SIZE;

@@ -1,15 +1,11 @@
 use core::usize;
 
 use crate::{
-    constants::{D_MESG, D_PBLC, MAX_N, MAX_P},
+    constants::*,
     util::{coef::coef, dynamic_array::DynamicArray},
 };
 
-use super::{
-    definitions::{IType, LmotsPublicKey, QType},
-    parameter::LmotsParameter,
-    signing::LmotsSignature,
-};
+use super::{definitions::LmotsPublicKey, parameter::LmotsParameter, signing::LmotsSignature};
 
 #[allow(non_snake_case)]
 #[allow(dead_code)]
@@ -67,8 +63,9 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
 
 #[cfg(test)]
 mod tests {
+    use crate::constants::*;
     use crate::lm_ots::{
-        definitions::{IType, LmotsPublicKey, QType, Seed},
+        definitions::LmotsPublicKey,
         keygen::{generate_private_key, generate_public_key},
         parameter,
         signing::LmotsSignature,

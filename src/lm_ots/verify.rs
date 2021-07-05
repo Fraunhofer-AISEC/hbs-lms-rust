@@ -43,11 +43,11 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
 
     for i in 0..<OTS>::get_p() {
         let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64) as usize;
-        let mut tmp = signature.y[i as usize];
+        let mut tmp = signature.y[i as usize].clone();
 
         hasher.do_hash_chain(&I, &q, i, a, max_w, tmp.get_mut_slice());
 
-        z[i as usize] = tmp;
+        z.push(tmp);
     }
 
     hasher.update(I);

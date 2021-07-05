@@ -8,7 +8,7 @@ use crate::{
 use super::parameter::LmotsParameter;
 
 #[allow(non_snake_case)]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LmotsPrivateKey<OTS: LmotsParameter> {
     pub I: IType,
     pub q: QType,

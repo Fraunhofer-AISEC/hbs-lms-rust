@@ -36,7 +36,9 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
 
         let mut hasher = <OTS>::get_hasher();
 
-        C.set_size(<OTS>::N as usize);
+        unsafe {
+            C.set_size(<OTS>::N as usize);
+        }
 
         get_random(C.get_mut_slice());
 
@@ -53,11 +55,11 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
 
         for i in 0..<OTS>::get_p() {
             let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64) as usize;
-            let mut tmp = private_key.key[i as usize];
+            let mut tmp = private_key.key[i as usize].clone();
 
             hasher.do_hash_chain(&private_key.I, &private_key.q, i, 0, a, tmp.get_mut_slice());
 
-            y[i as usize] = tmp;
+            y.push(tmp);
         }
 
         LmotsSignature {
@@ -73,9 +75,9 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
         result.append(&u32str(<OTS>::TYPE));
         result.append(self.C.get_slice());
 
-        for x in self.y.into_iter() {
-            for y in x.into_iter() {
-                result.append(&[y]);
+        for x in self.y.iter() {
+            for y in x.iter() {
+                result.append(&[*y]);
             }
         }
 
@@ -111,10 +113,10 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
 
         let mut y = DynamicArray::new();
 
-        for i in 0..p {
+        for _ in 0..p {
             let mut temp = DynamicArray::new();
             temp.append(&consumed_data[..n as usize]);
-            y[i as usize] = temp;
+            y.push(temp);
 
             consumed_data = &consumed_data[n as usize..];
         }
@@ -149,12 +151,13 @@ mod tests {
         let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
         for i in 0..<LmotsType>::N as usize {
-            c[i] = i as u8;
+            c.push(i as u8);
         }
 
         for i in 0..<LmotsType>::get_p() as usize {
+            y.push(DynamicArray::new());
             for j in 0..<LmotsType>::N as usize {
-                y[i][j] = j as u8;
+                y[i].push(j as u8);
             }
         }
 

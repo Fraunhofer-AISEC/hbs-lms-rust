@@ -4,7 +4,7 @@ use crate::{
     hasher::{sha256::Sha256Hasher, Hasher},
 };
 
-pub trait LmsParameter: Hasher {
+pub trait LmsParameter: Hasher + Default + Clone {
     const H: u8;
     const M: usize = Self::OUTPUT_SIZE;
     const TYPE: u32;
@@ -20,6 +20,7 @@ pub trait LmsParameter: Hasher {
 
 macro_rules! generate_parameter_type {
     ($name:ident, $h:literal, $m:literal, $type:literal, $hasher:ident) => {
+        #[derive(Default, Clone)]
         pub struct $name {
             hasher: $hasher,
         }

@@ -11,6 +11,7 @@ use crate::{
 
 use super::Hasher;
 
+#[derive(Default, Clone)]
 pub struct Sha256Hasher {
     hasher: Sha256,
 }

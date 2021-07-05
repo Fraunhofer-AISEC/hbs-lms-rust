@@ -38,17 +38,17 @@ fn create_signature_with_own_implementation() {
 
     save_file(
         path.join(PUBLIC_KEY_NAME).to_str().unwrap(),
-        keys.public_key.get_slice(),
+        keys.public_key.as_slice(),
     );
 
     create_message_file(&tempdir);
     let message_data = read_file(path.join(MESSAGE_FILE_NAME).to_str().unwrap());
 
-    own_signing(&tempdir, &message_data, keys.private_key.get_mut_slice());
+    own_signing(&tempdir, &message_data, keys.private_key.as_mut_slice());
 
     reference_verify(&tempdir);
 
-    own_signing(&tempdir, &message_data, keys.private_key.get_mut_slice());
+    own_signing(&tempdir, &message_data, keys.private_key.as_mut_slice());
 
     reference_verify(&tempdir);
 }
@@ -75,7 +75,7 @@ fn own_signing(temp_path: &TempDir, message_data: &[u8], private_key: &mut [u8])
         .expect("Signing should succed.");
     save_file(
         temp_path.path().join(SIGNATURE_FILE_NAME).to_str().unwrap(),
-        result.signature.get_slice(),
+        result.signature.as_slice(),
     );
 }
 

@@ -169,7 +169,7 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     };
 
     write(&private_key_name, &private_key_data)?;
-    write(&signature_name, &result.signature.get_slice())?;
+    write(&signature_name, &result.signature.as_slice())?;
 
     Ok(())
 }
@@ -455,10 +455,10 @@ fn genkey(args: &ArgMatches) -> Result<(), std::io::Error> {
     let private_key_binary = keys.private_key;
     let private_key_filename = get_private_key_name(&keyname);
 
-    write(public_key_filename.as_str(), &public_key_binary.get_slice())?;
+    write(public_key_filename.as_str(), &public_key_binary.as_slice())?;
     write(
         private_key_filename.as_str(),
-        &private_key_binary.get_slice(),
+        &private_key_binary.as_slice(),
     )?;
 
     Ok(())

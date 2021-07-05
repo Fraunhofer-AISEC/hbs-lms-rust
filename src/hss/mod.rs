@@ -77,7 +77,7 @@ pub fn hss_sign<OTS: LmotsParameter, LMS: LmsParameter>(
     let hss_levels = u32str(0); // Needed to be compatible with reference implementation
 
     hss_signature.append(&hss_levels);
-    hss_signature.append(&signature.to_binary_representation().get_slice());
+    hss_signature.append(&signature.to_binary_representation().as_slice());
 
     let result = HssSignResult {
         advanced_private_key: private_key.to_binary_representation(),
@@ -98,7 +98,7 @@ pub fn hss_keygen<OTS: LmotsParameter, LMS: LmsParameter>() -> HssBinaryData {
     let hss_levels = u32str(1); // Needed to be compatible with reference implementation
 
     hss_public_key.append(&hss_levels);
-    hss_public_key.append(&public_key.get_slice());
+    hss_public_key.append(&public_key.as_slice());
 
     HssBinaryData {
         private_key,
@@ -124,14 +124,14 @@ mod tests {
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
 
-        let signature = hss_sign::<LmotsType, LmsType>(&message, &keys.private_key.get_slice())
+        let signature = hss_sign::<LmotsType, LmsType>(&message, &keys.private_key.as_slice())
             .expect("Signing should complete without error.")
             .signature;
 
         assert!(hss_verify::<LmotsType, LmsType>(
             &message,
-            signature.get_slice(),
-            keys.public_key.get_slice()
+            signature.as_slice(),
+            keys.public_key.as_slice()
         ));
 
         message[0] = 33;
@@ -139,8 +139,8 @@ mod tests {
         assert!(
             hss_verify::<LmotsType, LmsType>(
                 &message,
-                signature.get_slice(),
-                keys.public_key.get_slice()
+                signature.as_slice(),
+                keys.public_key.as_slice()
             ) == false
         );
     }

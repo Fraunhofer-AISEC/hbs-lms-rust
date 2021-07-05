@@ -35,7 +35,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPrivateKey<OTS, 
                 &mut hss_private_key.private_key[i],
                 hss_private_key.public_key[i]
                     .to_binary_representation()
-                    .get_slice(),
+                    .as_slice(),
             );
         }
 

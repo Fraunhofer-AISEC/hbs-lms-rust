@@ -40,24 +40,24 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
             C.set_size(<OTS>::N as usize);
         }
 
-        get_random(C.get_mut_slice());
+        get_random(C.as_mut_slice());
 
         hasher.update(&private_key.I);
         hasher.update(&private_key.q);
         hasher.update(&D_MESG);
-        hasher.update(&C.get_slice());
+        hasher.update(&C.as_slice());
         hasher.update(message);
 
         let Q: DynamicArray<u8, MAX_N> = hasher.finalize_reset();
-        let Q_and_checksum = <OTS>::get_appended_with_checksum(&Q.get_slice());
+        let Q_and_checksum = <OTS>::get_appended_with_checksum(&Q.as_slice());
 
         let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
         for i in 0..<OTS>::get_p() {
-            let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64) as usize;
+            let a = coef(&Q_and_checksum.as_slice(), i as u64, <OTS>::W as u64) as usize;
             let mut tmp = private_key.key[i as usize].clone();
 
-            hasher.do_hash_chain(&private_key.I, &private_key.q, i, 0, a, tmp.get_mut_slice());
+            hasher.do_hash_chain(&private_key.I, &private_key.q, i, 0, a, tmp.as_mut_slice());
 
             y.push(tmp);
         }
@@ -73,7 +73,7 @@ impl<OTS: LmotsParameter> LmotsSignature<OTS> {
         let mut result = DynamicArray::new();
 
         result.append(&u32str(<OTS>::TYPE));
-        result.append(self.C.get_slice());
+        result.append(self.C.as_slice());
 
         for x in self.y.iter() {
             for y in x.iter() {
@@ -170,7 +170,7 @@ mod tests {
 
         let binary_rep = signature.to_binary_representation();
         let deserialized_signature =
-            LmotsSignature::<crate::lm_ots::parameter::LmotsSha256N32W2>::from_binary_representation(binary_rep.get_slice())
+            LmotsSignature::<crate::lm_ots::parameter::LmotsSha256N32W2>::from_binary_representation(binary_rep.as_slice())
                 .expect("Deserialization must succeed.");
 
         assert!(signature == deserialized_signature);

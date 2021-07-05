@@ -28,14 +28,14 @@ pub fn get_tree_element<OTS: LmotsParameter, LMS: LmsParameter>(
             private_key.seed,
         );
         let lm_ots_public_key = crate::lm_ots::generate_public_key(&lms_ots_private_key);
-        hasher.update(&lm_ots_public_key.key.get_slice());
+        hasher.update(&lm_ots_public_key.key.as_slice());
     } else {
         hasher.update(&D_INTR);
         let left = get_tree_element(2 * index, private_key);
         let right = get_tree_element(2 * index + 1, private_key);
 
-        hasher.update(&left.get_slice());
-        hasher.update(&right.get_slice());
+        hasher.update(&left.as_slice());
+        hasher.update(&right.as_slice());
     }
 
     hasher.finalize()

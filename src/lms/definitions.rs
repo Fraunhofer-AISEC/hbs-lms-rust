@@ -145,7 +145,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPublicKey<OTS, LMS> {
         result.append(&u32str(<OTS>::TYPE));
 
         result.append(&self.I);
-        result.append(&self.key.get_slice());
+        result.append(&self.key.as_slice());
 
         result
     }
@@ -213,7 +213,7 @@ mod tests {
 
         let serialized = private_key.to_binary_representation();
         let deserialized =
-            LmsPrivateKey::from_binary_representation(&serialized.get_slice()).unwrap();
+            LmsPrivateKey::from_binary_representation(&serialized.as_slice()).unwrap();
 
         assert!(private_key == deserialized);
     }
@@ -228,7 +228,7 @@ mod tests {
         let public_key = generate_public_key(&private_key);
 
         let serialized = public_key.to_binary_representation();
-        let deserialized = LmsPublicKey::from_binary_representation(serialized.get_slice())
+        let deserialized = LmsPublicKey::from_binary_representation(serialized.as_slice())
             .expect("Deserialization must succeed.");
 
         assert!(public_key == deserialized);

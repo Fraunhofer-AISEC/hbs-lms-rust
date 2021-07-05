@@ -75,12 +75,12 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
 
         let lmots_signature = self.lmots_signature.to_binary_representation();
 
-        result.append(&lmots_signature.get_slice());
+        result.append(&lmots_signature.as_slice());
 
         result.append(&u32str(<LMS>::TYPE as u32));
 
         for element in self.path.iter() {
-            result.append(element.get_slice());
+            result.append(element.as_slice());
         }
 
         result
@@ -186,7 +186,7 @@ mod tests {
 
         let binary = signature.to_binary_representation();
 
-        let deserialized = LmsSignature::from_binary_representation(&binary.get_slice())
+        let deserialized = LmsSignature::from_binary_representation(&binary.as_slice())
             .expect("Deserialization must succeed.");
 
         assert!(signature == deserialized);

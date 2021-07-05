@@ -27,11 +27,11 @@ impl<T: Clone + Default, const ELEMENTS: usize> DynamicArray<T, ELEMENTS> {
         Self { data }
     }
 
-    pub fn get_slice(&self) -> &[T] {
+    pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
 
-    pub fn get_mut_slice(&mut self) -> &mut [T] {
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
 

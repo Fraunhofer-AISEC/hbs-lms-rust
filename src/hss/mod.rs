@@ -1,5 +1,5 @@
-pub mod parameter;
 pub mod definitions;
+pub mod parameter;
 
 use crate::{
     constants::{MAX_H, MAX_M, MAX_N, MAX_P, MAX_PRIVATE_KEY_LENGTH},

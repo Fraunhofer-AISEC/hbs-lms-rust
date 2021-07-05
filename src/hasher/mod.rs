@@ -6,7 +6,7 @@ use crate::{
 
 pub mod sha256;
 
-pub trait Hasher {
+pub trait Hasher: Default + Clone {
     const OUTPUT_SIZE: usize;
     fn get_hasher() -> Self;
     fn update(&mut self, data: &[u8]);

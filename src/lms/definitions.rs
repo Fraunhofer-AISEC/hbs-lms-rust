@@ -12,7 +12,7 @@ use crate::util::ustr::u32str;
 use super::parameter::LmsParameter;
 
 #[allow(non_snake_case)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct LmsPrivateKey<OTS: LmotsParameter, LMS: LmsParameter> {
     pub I: IType,
     pub q: u32,
@@ -108,7 +108,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct LmsPublicKey<OTS: LmotsParameter, LMS: LmsParameter> {
     pub key: DynamicArray<u8, MAX_M>,
     pub I: IType,

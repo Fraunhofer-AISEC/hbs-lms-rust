@@ -14,7 +14,7 @@ use super::definitions::LmotsPrivateKey;
 use super::parameter::LmotsParameter;
 
 #[allow(non_snake_case)]
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct LmotsSignature<OTS: LmotsParameter> {
     pub C: DynamicArray<u8, MAX_N>,
     pub y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>,

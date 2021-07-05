@@ -16,7 +16,7 @@ use crate::util::ustr::u32str;
 use super::helper::get_tree_element;
 use super::parameter::LmsParameter;
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct LmsSignature<OTS: LmotsParameter, LMS: LmsParameter> {
     pub q: QType,
     pub lmots_signature: LmotsSignature<OTS>,

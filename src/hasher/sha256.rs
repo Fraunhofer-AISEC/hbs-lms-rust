@@ -1,6 +1,13 @@
 use sha2::{Digest, Sha256};
 
-use crate::{constants::MAX_N, util::dynamic_array::DynamicArray};
+use crate::{
+    constants::MAX_N,
+    constants::{IType, QType},
+    util::{
+        dynamic_array::DynamicArray,
+        ustr::{u16str, u8str},
+    },
+};
 
 use super::Hasher;
 
@@ -33,5 +40,25 @@ impl Hasher for Sha256Hasher {
 
     fn finalize_reset(&mut self) -> DynamicArray<u8, MAX_N> {
         DynamicArray::from_slice(self.hasher.finalize_reset().iter().as_slice())
+    }
+
+    #[allow(non_snake_case)]
+    fn do_hash_chain<'a>(
+        &mut self,
+        I: &IType,
+        q: &QType,
+        i: u16,
+        from: usize,
+        to: usize,
+        start: &'a mut [u8],
+    ) {
+        for j in from..to {
+            self.update(I);
+            self.update(q);
+            self.update(&u16str(i));
+            self.update(&u8str(j as u8));
+            self.update(start);
+            start.copy_from_slice(self.finalize_reset().get_slice());
+        }
     }
 }

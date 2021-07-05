@@ -1,6 +1,8 @@
 use core::mem::size_of;
 
-use crate::lm_ots::definitions::{IType, Seed};
+pub type IType = [u8; 16];
+pub type QType = [u8; 4];
+pub type Seed = [u8; 32];
 
 pub const D_PBLC: [u8; 2] = [0x80, 0x80];
 pub const D_MESG: [u8; 2] = [0x81, 0x81];

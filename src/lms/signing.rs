@@ -1,11 +1,11 @@
 use core::marker::PhantomData;
 
+use crate::constants::QType;
 use crate::constants::MAX_H;
 use crate::constants::MAX_M;
 use crate::constants::MAX_N;
 use crate::constants::MAX_P;
 use crate::lm_ots;
-use crate::lm_ots::definitions::QType;
 use crate::lm_ots::parameter::LmotsParameter;
 use crate::lm_ots::signing::LmotsSignature;
 use crate::lms::definitions::LmsPrivateKey;
@@ -52,7 +52,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
 
         while i < h.into() {
             let tree_index = (r / (2usize.pow(i as u32))) ^ 0x1;
-            path[i] = get_tree_element(tree_index, &lms_private_key);
+            path.push(get_tree_element(tree_index, &lms_private_key));
             i += 1;
         }
 
@@ -79,7 +79,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
 
         result.append(&u32str(<LMS>::TYPE as u32));
 
-        for element in self.path.into_iter() {
+        for element in self.path.iter() {
             result.append(element.get_slice());
         }
 
@@ -144,10 +144,10 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
 
         let mut trees: DynamicArray<DynamicArray<u8, MAX_M>, MAX_H> = DynamicArray::new();
 
-        for i in 0..<LMS>::H {
+        for _ in 0..<LMS>::H {
             let mut path = DynamicArray::new();
             path.append(&tree_slice[..<LMS>::M as usize]);
-            trees[i as usize] = path;
+            trees.push(path);
 
             tree_slice = &tree_slice[<LMS>::M as usize..];
         }

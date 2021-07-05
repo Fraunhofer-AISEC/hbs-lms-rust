@@ -1,18 +1,14 @@
 use core::marker::PhantomData;
 
 use crate::{
-    constants::{MAX_N, MAX_P},
+    constants::{IType, QType, MAX_N, MAX_P},
     util::dynamic_array::DynamicArray,
 };
 
 use super::parameter::LmotsParameter;
 
-pub type IType = [u8; 16];
-pub type QType = [u8; 4];
-pub type Seed = [u8; 32];
-
 #[allow(non_snake_case)]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LmotsPrivateKey<OTS: LmotsParameter> {
     pub I: IType,
     pub q: QType,

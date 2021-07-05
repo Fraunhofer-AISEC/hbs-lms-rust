@@ -1,17 +1,11 @@
+use core::usize;
+
 use crate::{
-    constants::{D_MESG, D_PBLC, MAX_N, MAX_P},
-    util::{
-        coef::coef,
-        dynamic_array::DynamicArray,
-        ustr::{u16str, u8str},
-    },
+    constants::*,
+    util::{coef::coef, dynamic_array::DynamicArray},
 };
 
-use super::{
-    definitions::{IType, LmotsPublicKey, QType},
-    parameter::LmotsParameter,
-    signing::LmotsSignature,
-};
+use super::{definitions::LmotsPublicKey, parameter::LmotsParameter, signing::LmotsSignature};
 
 #[allow(non_snake_case)]
 #[allow(dead_code)]
@@ -45,21 +39,15 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
     let Q_and_checksum = <OTS>::get_appended_with_checksum(Q.get_slice());
 
     let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
-    let max_w = 2u64.pow(<OTS>::W as u32) - 1;
+    let max_w = 2usize.pow(<OTS>::W as u32) - 1;
 
     for i in 0..<OTS>::get_p() {
-        let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64);
-        let mut tmp = signature.y[i as usize];
+        let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64) as usize;
+        let mut tmp = signature.y[i as usize].clone();
 
-        for j in a..max_w {
-            hasher.update(I);
-            hasher.update(q);
-            hasher.update(&u16str(i));
-            hasher.update(&u8str(j as u8));
-            hasher.update(tmp.get_slice());
-            tmp = hasher.finalize_reset();
-        }
-        z[i as usize] = tmp;
+        hasher.do_hash_chain(&I, &q, i, a, max_w, tmp.get_mut_slice());
+
+        z.push(tmp);
     }
 
     hasher.update(I);
@@ -75,8 +63,9 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
 
 #[cfg(test)]
 mod tests {
+    use crate::constants::*;
     use crate::lm_ots::{
-        definitions::{IType, LmotsPublicKey, QType, Seed},
+        definitions::LmotsPublicKey,
         keygen::{generate_private_key, generate_public_key},
         parameter,
         signing::LmotsSignature,

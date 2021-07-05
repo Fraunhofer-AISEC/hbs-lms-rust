@@ -1,7 +1,6 @@
 use super::helper::get_tree_element;
 use super::parameter::LmsParameter;
-use crate::lm_ots::definitions::IType;
-use crate::lm_ots::definitions::Seed;
+use crate::constants::*;
 use crate::lm_ots::parameter::LmotsParameter;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;

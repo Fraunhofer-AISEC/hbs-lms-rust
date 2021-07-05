@@ -1,5 +1,6 @@
 use super::definitions::*;
 use super::parameter::LmotsParameter;
+use crate::constants::*;
 use crate::util::dynamic_array::DynamicArray;
 use crate::{
     constants::{D_PBLC, MAX_N, MAX_P},
@@ -22,7 +23,7 @@ pub fn generate_private_key<OTS: LmotsParameter>(
         hasher.update(&[0xff]);
         hasher.update(&seed);
 
-        key[index as usize] = hasher.finalize_reset();
+        key.push(hasher.finalize_reset());
     }
 
     LmotsPrivateKey::new(i, q, key)
@@ -39,7 +40,7 @@ pub fn generate_public_key<OTS: LmotsParameter>(
     let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
 
     for i in 0..<OTS>::get_p() as usize {
-        let mut tmp = key[i];
+        let mut tmp = key[i].clone();
 
         for j in 0..max_word_index {
             hasher.update(&private_key.I);
@@ -53,7 +54,7 @@ pub fn generate_public_key<OTS: LmotsParameter>(
             }
         }
 
-        y[i] = tmp;
+        y.push(tmp);
     }
 
     hasher.update(&private_key.I);
@@ -65,8 +66,8 @@ pub fn generate_public_key<OTS: LmotsParameter>(
     }
 
     let mut public_key = DynamicArray::new();
-    for (index, value) in hasher.finalize().into_iter().enumerate() {
-        public_key[index] = value;
+    for value in hasher.finalize().into_iter() {
+        public_key.push(value);
     }
 
     LmotsPublicKey::new(private_key.I, private_key.q, public_key)

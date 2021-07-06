@@ -40,7 +40,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPrivateKey<OTS, 
             hss_private_key.public_key.push(lms_keypair.public_key);
 
             let signature = lms::signing::LmsSignature::sign(
-                &mut hss_private_key.private_key[i-1],
+                &mut hss_private_key.private_key[i - 1],
                 hss_private_key.public_key[i]
                     .to_binary_representation()
                     .as_slice(),

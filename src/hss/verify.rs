@@ -10,7 +10,6 @@ pub fn verify<OTS: LmotsParameter, LMS: LmsParameter, const L: usize>(
     public_key: &HssPublicKey<OTS, LMS, L>,
     message: &[u8],
 ) -> Result<(), &'static str> {
-
     if signature.level + 1 != public_key.level {
         return Err("Signature level and public key level does not match");
     }
@@ -32,24 +31,35 @@ pub fn verify<OTS: LmotsParameter, LMS: LmsParameter, const L: usize>(
 #[cfg(test)]
 mod tests {
     use crate::hss::definitions::HssPrivateKey;
+    use crate::hss::definitions::HssPublicKey;
     use crate::hss::signing::HssSignature;
     use crate::hss::verify::verify;
 
-    use crate::lms::parameter::*;
     use crate::lm_ots::parameter::*;
+    use crate::lms::parameter::*;
 
     type OTS = LmotsSha256N32W2;
     type LMS = LmsSha256M32H5;
-    const LEVEL: usize = 3;
+    const LEVEL: usize = 2;
 
     #[test]
     fn test_hss_verify() {
-        let mut private_key: HssPrivateKey<OTS, LMS, LEVEL> = HssPrivateKey::generate().expect("Should generate HSS private key");
+        let mut private_key: HssPrivateKey<OTS, LMS, LEVEL> =
+            HssPrivateKey::generate().expect("Should generate HSS private key");
         let public_key = private_key.get_public_key();
 
         let mut message = [42, 57, 20, 59, 33, 1, 49, 3, 99, 130, 50, 20];
 
-        let signature = HssSignature::sign(&mut private_key, &message).expect("Should sign message");
+        generate_signature_and_verify(&mut private_key, &public_key, &mut message);
+        generate_signature_and_verify(&mut private_key, &public_key, &mut message);
+    }
+
+    fn generate_signature_and_verify<OTS: LmotsParameter, LMS: LmsParameter, const L: usize>(
+        private_key: &mut HssPrivateKey<OTS, LMS, L>,
+        public_key: &HssPublicKey<OTS, LMS, L>,
+        message: &mut [u8],
+    ) {
+        let signature = HssSignature::sign(private_key, &message).expect("Should sign message");
 
         assert!(verify(&signature, &public_key, &message).is_ok());
 

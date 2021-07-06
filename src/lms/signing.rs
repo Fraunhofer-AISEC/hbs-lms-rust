@@ -118,8 +118,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
             return None;
         }
 
-        if data.len() < 12 + n as usize * (p as usize + 1) + <LMS>::M as usize * <LMS>::H as usize
-        {
+        if data.len() < 12 + n as usize * (p as usize + 1) + <LMS>::M as usize * <LMS>::H as usize {
             return None;
         }
 

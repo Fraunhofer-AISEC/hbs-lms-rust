@@ -70,6 +70,10 @@ impl<T: Clone + Default, const ELEMENTS: usize> Index<usize> for DynamicArray<T,
 
 impl<T: Clone + Default, const ELEMENTS: usize> IndexMut<usize> for DynamicArray<T, ELEMENTS> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        // This makes it possible to add a new element on top with the Index accessor
+        if index == self.data.len() {
+            self.push(Default::default());
+        }
         &mut self.data[index]
     }
 }

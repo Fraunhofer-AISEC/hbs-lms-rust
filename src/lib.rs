@@ -10,8 +10,8 @@ mod util;
 pub use crate::lm_ots::parameter::*;
 pub use crate::lms::parameter::*;
 
-pub use crate::lms::definitions::LmsPublicKey;
-pub use crate::lms::signing::LmsSignature;
+pub use crate::hss::definitions::HssPublicKey;
+pub use crate::hss::signing::HssSignature;
 
 pub use crate::hss::hss_keygen;
 pub use crate::hss::hss_sign;

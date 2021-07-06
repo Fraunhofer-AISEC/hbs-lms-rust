@@ -169,7 +169,7 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     };
 
     write(&private_key_name, &private_key_data)?;
-    write(&signature_name, &result.signature.as_slice())?;
+    write(&signature_name, result.as_slice())?;
 
     Ok(())
 }
@@ -448,6 +448,8 @@ fn genkey(args: &ArgMatches) -> Result<(), std::io::Error> {
             hss_keygen::<LmotsSha256N32W8, LmsSha256M32H25>()
         }
     };
+
+    let keys = keys.unwrap();
 
     let public_key_binary = keys.public_key;
     let public_key_filename = get_public_key_name(&keyname);

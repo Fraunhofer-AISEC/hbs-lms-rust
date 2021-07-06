@@ -1,7 +1,7 @@
 use crate::{
     constants::{
-        lms_public_key_length, lms_signature_length, MAX_L, MAX_LMS_PUBLIC_KEY_LENGTH,
-        MAX_LMS_SIGNATURE_LENGTH,
+        lms_public_key_length, lms_signature_length, MAX_HSS_SIGNATURE_LENGTH, MAX_L,
+        MAX_LMS_PUBLIC_KEY_LENGTH, MAX_LMS_SIGNATURE_LENGTH,
     },
     extract_or_return,
     lms::{self, definitions::LmsPublicKey, signing::LmsSignature},
@@ -77,15 +77,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssSignature<OTS, L
         Ok(signature)
     }
 
-    pub fn to_binary_representation(
-        &self,
-    ) -> DynamicArray<
-        u8,
-        {
-            4 + (MAX_LMS_SIGNATURE_LENGTH + MAX_LMS_PUBLIC_KEY_LENGTH) * (MAX_L - 1)
-                + MAX_LMS_SIGNATURE_LENGTH
-        },
-    > {
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, { MAX_HSS_SIGNATURE_LENGTH }> {
         let mut result = DynamicArray::new();
 
         result.append(&u32str(self.level as u32));

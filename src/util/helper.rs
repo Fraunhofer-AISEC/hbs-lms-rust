@@ -17,3 +17,13 @@ macro_rules! extract_or_return {
         };
     };
 }
+
+#[macro_export]
+macro_rules! extract_or {
+    ($x:expr, $or:expr) => {
+        match $x {
+            None => return $or,
+            Some(x) => x,
+        };
+    };
+}

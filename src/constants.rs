@@ -15,7 +15,7 @@ pub const MAX_P: usize = 265;
 pub const MAX_M: usize = 32;
 pub const MAX_H: usize = 25;
 
-pub const MAX_LMS_PRIVATE_KEY_LENGTH: usize = 4 + 4 + size_of::<IType>() + 4 + size_of::<Seed>();
+pub const MAX_LMS_PRIVATE_KEY_LENGTH: usize = lms_private_key_length();
 pub const MAX_LMS_PUBLIC_KEY_LENGTH: usize = lms_public_key_length(MAX_M);
 pub const MAX_LMS_SIGNATURE_LENGTH: usize = lms_signature_length(MAX_N, MAX_P, MAX_M, MAX_H);
 
@@ -25,6 +25,10 @@ pub const fn lms_signature_length(n: usize, p: usize, m: usize, h: usize) -> usi
 
 pub const fn lms_public_key_length(m: usize) -> usize {
     4 + 4 + 16 + m
+}
+
+pub const fn lms_private_key_length() -> usize {
+    4 + 4 + size_of::<IType>() + 4 + size_of::<Seed>()
 }
 
 pub const MAX_L: usize = 8;

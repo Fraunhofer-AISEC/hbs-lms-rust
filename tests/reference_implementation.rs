@@ -34,7 +34,8 @@ fn create_signature_with_own_implementation() {
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();
 
-    let mut keys = hss_keygen::<LmotsSha256N32W2, LmsSha256M32H5>();
+    let mut keys =
+        hss_keygen::<LmotsSha256N32W2, LmsSha256M32H5>().expect("Should create HSS keys");
 
     save_file(
         path.join(PUBLIC_KEY_NAME).to_str().unwrap(),
@@ -75,7 +76,7 @@ fn own_signing(temp_path: &TempDir, message_data: &[u8], private_key: &mut [u8])
         .expect("Signing should succed.");
     save_file(
         temp_path.path().join(SIGNATURE_FILE_NAME).to_str().unwrap(),
-        result.signature.as_slice(),
+        result.as_slice(),
     );
 }
 

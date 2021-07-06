@@ -37,7 +37,10 @@ impl<T: Clone + Default, const ELEMENTS: usize> DynamicArray<T, ELEMENTS> {
 
     pub unsafe fn set_size(&mut self, size: usize) {
         if size > ELEMENTS {
-            panic!("Size is larger than array.")
+            panic!(
+                "Size is larger than array. Size {}, ELEMENTS {}",
+                size, ELEMENTS
+            )
         }
         self.data.set_len(size);
     }
@@ -58,6 +61,10 @@ impl<T: Clone + Default, const ELEMENTS: usize> DynamicArray<T, ELEMENTS> {
 
     pub fn push(&mut self, element: T) {
         self.data.push(element)
+    }
+
+    pub fn clear(&mut self) {
+        self.data.clear()
     }
 }
 

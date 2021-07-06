@@ -10,7 +10,7 @@ mod helper;
 mod keygen;
 pub mod parameter;
 pub mod signing;
-mod verify;
+pub mod verify;
 
 pub struct LmsKeyPair<OTS: LmotsParameter, LMS: LmsParameter> {
     pub private_key: LmsPrivateKey<OTS, LMS>,

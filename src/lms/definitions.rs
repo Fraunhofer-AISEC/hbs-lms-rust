@@ -54,7 +54,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
         Ok(key)
     }
 
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH> {
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_LMS_PRIVATE_KEY_LENGTH> {
         let mut result = DynamicArray::new();
 
         result.append(&u32str(<LMS>::TYPE as u32));
@@ -105,6 +105,10 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
 
         Some(key)
     }
+
+    pub fn get_h(&self) -> u8 {
+        <LMS>::H
+    }
 }
 
 #[allow(non_snake_case)]
@@ -138,7 +142,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPublicKey<OTS, LMS> {
         }
     }
 
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + 4 + 16 + MAX_M }> {
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_LMS_PUBLIC_KEY_LENGTH> {
         let mut result = DynamicArray::new();
 
         result.append(&u32str(<LMS>::TYPE));

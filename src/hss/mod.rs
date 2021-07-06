@@ -1,8 +1,9 @@
 pub mod definitions;
-pub mod parameter;
+pub mod signing;
+pub mod verify;
 
 use crate::{
-    constants::{MAX_H, MAX_M, MAX_N, MAX_P, MAX_PRIVATE_KEY_LENGTH},
+    constants::{MAX_H, MAX_LMS_PRIVATE_KEY_LENGTH, MAX_M, MAX_N, MAX_P},
     lm_ots::parameter::LmotsParameter,
     lms,
     util::{
@@ -14,11 +15,11 @@ use crate::{
 
 pub struct HssBinaryData {
     pub public_key: DynamicArray<u8, { 4 + 4 + 4 + 16 + MAX_M }>,
-    pub private_key: DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH>,
+    pub private_key: DynamicArray<u8, MAX_LMS_PRIVATE_KEY_LENGTH>,
 }
 
 pub struct HssSignResult {
-    pub advanced_private_key: DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH>,
+    pub advanced_private_key: DynamicArray<u8, MAX_LMS_PRIVATE_KEY_LENGTH>,
     pub signature:
         DynamicArray<u8, { 4 + 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H) }>,
 }

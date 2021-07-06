@@ -7,3 +7,13 @@ pub fn read_and_advance<'a>(src: &'a [u8], length: usize, index: &mut usize) -> 
     *index += length;
     result
 }
+
+#[macro_export]
+macro_rules! extract_or_return {
+    ($x:expr) => {
+        match $x {
+            None => return None,
+            Some(x) => x,
+        };
+    };
+}

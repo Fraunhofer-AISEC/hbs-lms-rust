@@ -4,7 +4,7 @@ use crate::{
     hasher::{sha256::Sha256Hasher, Hasher},
 };
 
-pub trait LmsParameter: Hasher + Default + Clone {
+pub trait LmsParameter: Hasher + Default + Clone + PartialEq {
     const H: u8;
     const M: usize = Self::OUTPUT_SIZE;
     const TYPE: u32;
@@ -28,6 +28,12 @@ macro_rules! generate_parameter_type {
         impl LmsParameter for $name {
             const H: u8 = $h;
             const TYPE: u32 = $type;
+        }
+
+        impl PartialEq for $name {
+            fn eq(&self, _: &Self) -> bool {
+                true
+            }
         }
 
         impl Hasher for $name {

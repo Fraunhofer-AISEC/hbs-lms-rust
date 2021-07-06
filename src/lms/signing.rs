@@ -2,9 +2,8 @@ use core::marker::PhantomData;
 
 use crate::constants::QType;
 use crate::constants::MAX_H;
+use crate::constants::MAX_LMS_SIGNATURE_LENGTH;
 use crate::constants::MAX_M;
-use crate::constants::MAX_N;
-use crate::constants::MAX_P;
 use crate::lm_ots;
 use crate::lm_ots::parameter::LmotsParameter;
 use crate::lm_ots::signing::LmotsSignature;
@@ -66,9 +65,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
         Ok(signature)
     }
 
-    pub fn to_binary_representation(
-        &self,
-    ) -> DynamicArray<u8, { 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H) }> {
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_LMS_SIGNATURE_LENGTH> {
         let mut result = DynamicArray::new();
 
         result.append(&self.q);

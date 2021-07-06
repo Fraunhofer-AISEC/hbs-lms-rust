@@ -1,8 +1,7 @@
 use crate::{
     constants::{
         lms_private_key_length, lms_public_key_length, lms_signature_length,
-        MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_HSS_PRIVATE_KEY_LENGTH,
-        MAX_LMS_PUBLIC_KEY_LENGTH,
+        MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_LMS_PUBLIC_KEY_LENGTH,
     },
     extract_or_return,
     lms::{

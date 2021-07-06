@@ -1,6 +1,6 @@
 use crate::{
     constants::{
-        lms_public_key_length, lms_signature_length, MAX_HSS_SIGNATURE_LENGTH, MAX_L,
+        lms_public_key_length, lms_signature_length, MAX_HSS_SIGNATURE_LENGTH,
         MAX_LMS_PUBLIC_KEY_LENGTH, MAX_LMS_SIGNATURE_LENGTH,
     },
     extract_or_return,
@@ -163,7 +163,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> HssSignedPublicKey<OTS, LMS> {
             Some(x) => x,
         };
 
-        Some(Self { public_key, sig })
+        Some(Self { sig, public_key })
     }
 
     pub fn len() -> usize {

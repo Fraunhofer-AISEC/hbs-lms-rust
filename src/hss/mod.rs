@@ -4,17 +4,12 @@ pub mod verify;
 
 use crate::{
     constants::{
-        MAX_H, MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_HSS_SIGNATURE_LENGTH,
-        MAX_LMS_PRIVATE_KEY_LENGTH, MAX_M, MAX_N, MAX_P,
+        MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_HSS_SIGNATURE_LENGTH, MAX_M,
     },
     extract_or, extract_or_return,
     hss::definitions::HssPublicKey,
     lm_ots::parameter::LmotsParameter,
-    lms,
-    util::{
-        dynamic_array::DynamicArray,
-        ustr::{str32u, u32str},
-    },
+    util::dynamic_array::DynamicArray,
     LmsParameter,
 };
 

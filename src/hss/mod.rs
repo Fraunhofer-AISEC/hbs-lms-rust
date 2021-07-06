@@ -70,6 +70,7 @@ pub fn hss_keygen<OTS: LmotsParameter, LMS: LmsParameter>() -> Option<HssBinaryD
 mod tests {
 
     use crate::lm_ots;
+    use crate::lms;
 
     use super::*;
 

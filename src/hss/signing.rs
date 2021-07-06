@@ -15,6 +15,7 @@ use crate::{
 
 use super::definitions::HssPrivateKey;
 
+#[derive(PartialEq)]
 pub struct HssSignature<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> {
     pub level: usize,
     pub signed_public_keys: DynamicArray<HssSignedPublicKey<OTS, LMS>, L>,
@@ -55,13 +56,13 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssSignature<OTS, L
         }
 
         // Sign the message
-        sig[L - 1] = lms::signing::LmsSignature::sign(&mut prv[d - 1], message)?;
+        sig.push(lms::signing::LmsSignature::sign(&mut prv[L - 1], message)?);
 
         let mut signed_public_keys = DynamicArray::new();
 
         // Create list of signed keys
         for i in 0..L - 1 {
-            signed_public_keys[i] = HssSignedPublicKey::new(sig[i].clone(), public[i + 1].clone());
+            signed_public_keys.push(HssSignedPublicKey::new(sig[i].clone(), public[i + 1].clone()));
         }
 
         let signature = HssSignature {
@@ -189,9 +190,12 @@ mod tests {
     use crate::lms::parameter::*;
 
     use super::HssSignedPublicKey;
+    use super::HssPrivateKey;
+    use super::HssSignature;
 
     type OTS = LmotsSha256N32W2;
     type LMS = LmsSha256M32H5;
+    const LEVEL: usize = 2;
 
     #[test]
     fn test_signed_public_key_binary_representation() {
@@ -201,7 +205,7 @@ mod tests {
         let signature = crate::lms::signing::LmsSignature::sign(&mut keypair.private_key, &message).expect("Signing should work");
 
         let signed_public_key = HssSignedPublicKey {
-            public_key: keypair.public_key.clone(),
+            public_key: keypair.public_key,
             sig: signature
         };
 
@@ -209,5 +213,18 @@ mod tests {
         let deserialized = HssSignedPublicKey::from_binary_representation(binary_representation.as_slice()).expect("Deserialization should work.");
 
         assert!(signed_public_key == deserialized);
+    }
+
+    #[test]
+    fn test_hss_signature_binary_representation() {
+        let mut private_key = HssPrivateKey::<OTS, LMS, LEVEL>::generate().expect("Should geneerate HSS private key");
+        let message = [2, 56, 123, 22, 42, 49, 22];
+
+        let signature = HssSignature::sign(&mut private_key, &message).expect("Should generate HSS signature");
+
+        let binary_representation = signature.to_binary_representation();
+        let deserialized = HssSignature::<OTS, LMS, LEVEL>::from_binary_representation(binary_representation.as_slice()).expect("Deserialization should work.");
+
+        assert!(signature == deserialized);
     }
 }

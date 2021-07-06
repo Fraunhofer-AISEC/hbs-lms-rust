@@ -25,7 +25,7 @@ pub struct HssPrivateKey<OTS: LmotsParameter, LMS: LmsParameter, const L: usize>
 }
 
 impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPrivateKey<OTS, LMS, L> {
-    fn generate() -> Result<Self, &'static str> {
+    pub fn generate() -> Result<Self, &'static str> {
         let mut hss_private_key: HssPrivateKey<OTS, LMS, L> = Default::default();
 
         let lms_keypair = generate_key_pair();
@@ -40,7 +40,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPrivateKey<OTS, 
             hss_private_key.public_key.push(lms_keypair.public_key);
 
             let signature = lms::signing::LmsSignature::sign(
-                &mut hss_private_key.private_key[i],
+                &mut hss_private_key.private_key[i-1],
                 hss_private_key.public_key[i]
                     .to_binary_representation()
                     .as_slice(),

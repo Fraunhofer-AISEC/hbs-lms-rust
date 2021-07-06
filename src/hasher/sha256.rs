@@ -11,6 +11,7 @@ use crate::{
 
 use super::Hasher;
 
+#[derive(Default, Clone)]
 pub struct Sha256Hasher {
     hasher: Sha256,
 }
@@ -58,7 +59,7 @@ impl Hasher for Sha256Hasher {
             self.update(&u16str(i));
             self.update(&u8str(j as u8));
             self.update(start);
-            start.copy_from_slice(self.finalize_reset().get_slice());
+            start.copy_from_slice(self.finalize_reset().as_slice());
         }
     }
 }

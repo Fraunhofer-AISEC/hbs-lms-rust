@@ -12,7 +12,7 @@ use crate::util::ustr::u32str;
 use super::parameter::LmsParameter;
 
 #[allow(non_snake_case)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct LmsPrivateKey<OTS: LmotsParameter, LMS: LmsParameter> {
     pub I: IType,
     pub q: u32,
@@ -20,18 +20,6 @@ pub struct LmsPrivateKey<OTS: LmotsParameter, LMS: LmsParameter> {
     lmots_parameter: PhantomData<OTS>,
     lms_parameter: PhantomData<LMS>,
 }
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> PartialEq for LmsPrivateKey<OTS, LMS> {
-    fn eq(&self, other: &Self) -> bool {
-        self.I == other.I
-            && self.q == other.q
-            && self.seed == other.seed
-            && self.lmots_parameter == other.lmots_parameter
-            && self.lms_parameter == other.lms_parameter
-    }
-}
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> Eq for LmsPrivateKey<OTS, LMS> {}
 
 #[allow(non_snake_case)]
 impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
@@ -54,7 +42,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
         Ok(key)
     }
 
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH> {
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_LMS_PRIVATE_KEY_LENGTH> {
         let mut result = DynamicArray::new();
 
         result.append(&u32str(<LMS>::TYPE as u32));
@@ -105,27 +93,20 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
 
         Some(key)
     }
+
+    pub fn get_h(&self) -> u8 {
+        <LMS>::H
+    }
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct LmsPublicKey<OTS: LmotsParameter, LMS: LmsParameter> {
     pub key: DynamicArray<u8, MAX_M>,
     pub I: IType,
     lmots_parameter: PhantomData<OTS>,
     lms_parameter: PhantomData<LMS>,
 }
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> PartialEq for LmsPublicKey<OTS, LMS> {
-    fn eq(&self, other: &Self) -> bool {
-        self.key == other.key
-            && self.I == other.I
-            && self.lmots_parameter == other.lmots_parameter
-            && self.lms_parameter == other.lms_parameter
-    }
-}
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> Eq for LmsPublicKey<OTS, LMS> {}
 
 #[allow(non_snake_case)]
 impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPublicKey<OTS, LMS> {
@@ -138,14 +119,14 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPublicKey<OTS, LMS> {
         }
     }
 
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + 4 + 16 + MAX_M }> {
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_LMS_PUBLIC_KEY_LENGTH> {
         let mut result = DynamicArray::new();
 
         result.append(&u32str(<LMS>::TYPE));
         result.append(&u32str(<OTS>::TYPE));
 
         result.append(&self.I);
-        result.append(&self.key.get_slice());
+        result.append(&self.key.as_slice());
 
         result
     }
@@ -213,7 +194,7 @@ mod tests {
 
         let serialized = private_key.to_binary_representation();
         let deserialized =
-            LmsPrivateKey::from_binary_representation(&serialized.get_slice()).unwrap();
+            LmsPrivateKey::from_binary_representation(&serialized.as_slice()).unwrap();
 
         assert!(private_key == deserialized);
     }
@@ -228,7 +209,7 @@ mod tests {
         let public_key = generate_public_key(&private_key);
 
         let serialized = public_key.to_binary_representation();
-        let deserialized = LmsPublicKey::from_binary_representation(serialized.get_slice())
+        let deserialized = LmsPublicKey::from_binary_representation(serialized.as_slice())
             .expect("Deserialization must succeed.");
 
         assert!(public_key == deserialized);

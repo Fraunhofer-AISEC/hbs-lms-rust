@@ -51,7 +51,7 @@ fn generate_public_key_candiate<OTS: LmotsParameter, LMS: LmsParameter>(
     hasher.update(&public_key.I);
     hasher.update(&u32str(node_num));
     hasher.update(&D_LEAF);
-    hasher.update(ots_public_key_canditate.get_slice());
+    hasher.update(ots_public_key_canditate.as_slice());
 
     let mut temp = hasher.finalize_reset();
     let mut i = 0;
@@ -62,11 +62,11 @@ fn generate_public_key_candiate<OTS: LmotsParameter, LMS: LmsParameter>(
         hasher.update(&D_INTR);
 
         if is_odd(node_num as usize) {
-            hasher.update(&signature.path[i].get_slice());
-            hasher.update(&temp.get_slice());
+            hasher.update(&signature.path[i].as_slice());
+            hasher.update(&temp.as_slice());
         } else {
-            hasher.update(&temp.get_slice());
-            hasher.update(&signature.path[i].get_slice());
+            hasher.update(&temp.as_slice());
+            hasher.update(&signature.path[i].as_slice());
         }
         temp = hasher.finalize_reset();
         node_num /= 2;

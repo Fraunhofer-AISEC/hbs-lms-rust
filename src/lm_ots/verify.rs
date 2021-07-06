@@ -32,20 +32,20 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
     hasher.update(I);
     hasher.update(q);
     hasher.update(&D_MESG);
-    hasher.update(signature.C.get_slice());
+    hasher.update(signature.C.as_slice());
     hasher.update(message);
 
     let Q = hasher.finalize_reset();
-    let Q_and_checksum = <OTS>::get_appended_with_checksum(Q.get_slice());
+    let Q_and_checksum = <OTS>::get_appended_with_checksum(Q.as_slice());
 
     let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
     let max_w = 2usize.pow(<OTS>::W as u32) - 1;
 
     for i in 0..<OTS>::get_p() {
-        let a = coef(&Q_and_checksum.get_slice(), i as u64, <OTS>::W as u64) as usize;
+        let a = coef(&Q_and_checksum.as_slice(), i as u64, <OTS>::W as u64) as usize;
         let mut tmp = signature.y[i as usize].clone();
 
-        hasher.do_hash_chain(&I, &q, i, a, max_w, tmp.get_mut_slice());
+        hasher.do_hash_chain(&I, &q, i, a, max_w, tmp.as_mut_slice());
 
         z.push(tmp);
     }
@@ -55,7 +55,7 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
     hasher.update(&D_PBLC);
 
     for item in z.into_iter() {
-        hasher.update(item.get_slice());
+        hasher.update(item.as_slice());
     }
 
     hasher.finalize()

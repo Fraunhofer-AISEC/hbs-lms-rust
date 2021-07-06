@@ -47,7 +47,7 @@ pub fn generate_public_key<OTS: LmotsParameter>(
             hasher.update(&private_key.q);
             hasher.update(&u16str(i as u16));
             hasher.update(&u8str(j as u8));
-            hasher.update(tmp.get_slice());
+            hasher.update(tmp.as_slice());
 
             for (index, value) in hasher.finalize_reset().into_iter().enumerate() {
                 tmp[index] = value;
@@ -62,7 +62,7 @@ pub fn generate_public_key<OTS: LmotsParameter>(
     hasher.update(&D_PBLC);
 
     for item in y.into_iter() {
-        hasher.update(item.get_slice());
+        hasher.update(item.as_slice());
     }
 
     let mut public_key = DynamicArray::new();

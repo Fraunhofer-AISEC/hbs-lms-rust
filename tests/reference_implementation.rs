@@ -34,21 +34,22 @@ fn create_signature_with_own_implementation() {
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();
 
-    let mut keys = hss_keygen::<LmotsSha256N32W2, LmsSha256M32H5>();
+    let mut keys =
+        hss_keygen::<LmotsSha256N32W2, LmsSha256M32H5, 1>().expect("Should create HSS keys");
 
     save_file(
         path.join(PUBLIC_KEY_NAME).to_str().unwrap(),
-        keys.public_key.get_slice(),
+        keys.public_key.as_slice(),
     );
 
     create_message_file(&tempdir);
     let message_data = read_file(path.join(MESSAGE_FILE_NAME).to_str().unwrap());
 
-    own_signing(&tempdir, &message_data, keys.private_key.get_mut_slice());
+    own_signing(&tempdir, &message_data, keys.private_key.as_mut_slice());
 
     reference_verify(&tempdir);
 
-    own_signing(&tempdir, &message_data, keys.private_key.get_mut_slice());
+    own_signing(&tempdir, &message_data, keys.private_key.as_mut_slice());
 
     reference_verify(&tempdir);
 }
@@ -71,11 +72,11 @@ fn read_file(file_name: &str) -> Vec<u8> {
 }
 
 fn own_signing(temp_path: &TempDir, message_data: &[u8], private_key: &mut [u8]) {
-    let result = hss_sign::<LmotsSha256N32W2, LmsSha256M32H5>(&message_data, private_key)
+    let result = hss_sign::<LmotsSha256N32W2, LmsSha256M32H5, 1>(&message_data, private_key)
         .expect("Signing should succed.");
     save_file(
         temp_path.path().join(SIGNATURE_FILE_NAME).to_str().unwrap(),
-        result.signature.get_slice(),
+        result.as_slice(),
     );
 }
 
@@ -85,7 +86,7 @@ fn own_verify(temp_path: &TempDir) {
     let signature_data = read_file(path.join(SIGNATURE_FILE_NAME).to_str().unwrap());
     let public_key_data = read_file(path.join(PUBLIC_KEY_NAME).to_str().unwrap());
 
-    assert!(hss_verify::<LmotsSha256N32W2, LmsSha256M32H10>(
+    assert!(hss_verify::<LmotsSha256N32W2, LmsSha256M32H10, 1>(
         &message_data,
         &signature_data,
         &public_key_data

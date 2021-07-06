@@ -6,7 +6,7 @@ use crate::{
 
 use crate::constants::{IType, QType};
 
-pub trait LmotsParameter: Hasher {
+pub trait LmotsParameter: Hasher + Default + Clone + PartialEq {
     const N: usize = Self::OUTPUT_SIZE;
     const W: u8;
     const TYPE: u32;
@@ -69,6 +69,7 @@ pub trait LmotsParameter: Hasher {
 
 macro_rules! generate_parameter_type {
     ($name:ident, $w:literal, $p:literal, $ls:literal, $type:literal, $hasher:ident) => {
+        #[derive(Default, Clone)]
         pub struct $name {
             hasher: $hasher,
         }
@@ -78,6 +79,12 @@ macro_rules! generate_parameter_type {
             const TYPE: u32 = $type;
             const P: u16 = $p;
             const LS: u8 = $ls;
+        }
+
+        impl PartialEq for $name {
+            fn eq(&self, _: &Self) -> bool {
+                true
+            }
         }
 
         impl Hasher for $name {

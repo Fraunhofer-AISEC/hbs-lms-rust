@@ -2,9 +2,8 @@ use core::marker::PhantomData;
 
 use crate::constants::QType;
 use crate::constants::MAX_H;
+use crate::constants::MAX_LMS_SIGNATURE_LENGTH;
 use crate::constants::MAX_M;
-use crate::constants::MAX_N;
-use crate::constants::MAX_P;
 use crate::lm_ots;
 use crate::lm_ots::parameter::LmotsParameter;
 use crate::lm_ots::signing::LmotsSignature;
@@ -16,24 +15,13 @@ use crate::util::ustr::u32str;
 use super::helper::get_tree_element;
 use super::parameter::LmsParameter;
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct LmsSignature<OTS: LmotsParameter, LMS: LmsParameter> {
     pub q: QType,
     pub lmots_signature: LmotsSignature<OTS>,
     pub path: DynamicArray<DynamicArray<u8, MAX_M>, MAX_H>,
     lms_parameter: PhantomData<LMS>,
 }
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> PartialEq for LmsSignature<OTS, LMS> {
-    fn eq(&self, other: &Self) -> bool {
-        self.q == other.q
-            && self.lmots_signature == other.lmots_signature
-            && self.path == other.path
-            && self.lms_parameter == other.lms_parameter
-    }
-}
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> Eq for LmsSignature<OTS, LMS> {}
 
 impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
     pub fn sign(
@@ -66,21 +54,19 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
         Ok(signature)
     }
 
-    pub fn to_binary_representation(
-        &self,
-    ) -> DynamicArray<u8, { 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H) }> {
+    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_LMS_SIGNATURE_LENGTH> {
         let mut result = DynamicArray::new();
 
         result.append(&self.q);
 
         let lmots_signature = self.lmots_signature.to_binary_representation();
 
-        result.append(&lmots_signature.get_slice());
+        result.append(&lmots_signature.as_slice());
 
         result.append(&u32str(<LMS>::TYPE as u32));
 
         for element in self.path.iter() {
-            result.append(element.get_slice());
+            result.append(element.as_slice());
         }
 
         result
@@ -132,8 +118,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
             return None;
         }
 
-        if data.len() != 12 + n as usize * (p as usize + 1) + <LMS>::M as usize * <LMS>::H as usize
-        {
+        if data.len() < 12 + n as usize * (p as usize + 1) + <LMS>::M as usize * <LMS>::H as usize {
             return None;
         }
 
@@ -186,7 +171,7 @@ mod tests {
 
         let binary = signature.to_binary_representation();
 
-        let deserialized = LmsSignature::from_binary_representation(&binary.get_slice())
+        let deserialized = LmsSignature::from_binary_representation(&binary.as_slice())
             .expect("Deserialization must succeed.");
 
         assert!(signature == deserialized);

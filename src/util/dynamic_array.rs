@@ -27,17 +27,20 @@ impl<T: Clone + Default, const ELEMENTS: usize> DynamicArray<T, ELEMENTS> {
         Self { data }
     }
 
-    pub fn get_slice(&self) -> &[T] {
+    pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
 
-    pub fn get_mut_slice(&mut self) -> &mut [T] {
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
 
     pub unsafe fn set_size(&mut self, size: usize) {
         if size > ELEMENTS {
-            panic!("Size is larger than array.")
+            panic!(
+                "Size is larger than array. Size {}, ELEMENTS {}",
+                size, ELEMENTS
+            )
         }
         self.data.set_len(size);
     }
@@ -59,6 +62,10 @@ impl<T: Clone + Default, const ELEMENTS: usize> DynamicArray<T, ELEMENTS> {
     pub fn push(&mut self, element: T) {
         self.data.push(element)
     }
+
+    pub fn clear(&mut self) {
+        self.data.clear()
+    }
 }
 
 impl<T: Clone + Default, const ELEMENTS: usize> Index<usize> for DynamicArray<T, ELEMENTS> {
@@ -70,6 +77,10 @@ impl<T: Clone + Default, const ELEMENTS: usize> Index<usize> for DynamicArray<T,
 
 impl<T: Clone + Default, const ELEMENTS: usize> IndexMut<usize> for DynamicArray<T, ELEMENTS> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        // This makes it possible to add a new element on top with the Index accessor
+        if index == self.data.len() {
+            self.push(Default::default());
+        }
         &mut self.data[index]
     }
 }

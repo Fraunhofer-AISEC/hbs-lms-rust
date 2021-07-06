@@ -5,7 +5,9 @@ fn test() {
     type OTS = lms::LmotsSha256N32W8;
     type LMS = lms::LmsSha256M32H5;
 
-    assert!(lms::hss_verify::<OTS, LMS, 2>(MESSAGE, SIGNATURE, PUBLIC_KEY));
+    assert!(lms::hss_verify::<OTS, LMS, 2>(
+        MESSAGE, SIGNATURE, PUBLIC_KEY
+    ));
 }
 
 static PUBLIC_KEY: &'static [u8] = &[

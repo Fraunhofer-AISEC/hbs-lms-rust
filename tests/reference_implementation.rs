@@ -35,7 +35,7 @@ fn create_signature_with_own_implementation() {
     let path = tempdir.path();
 
     let mut keys =
-        hss_keygen::<LmotsSha256N32W2, LmsSha256M32H5>().expect("Should create HSS keys");
+        hss_keygen::<LmotsSha256N32W2, LmsSha256M32H5, 1>().expect("Should create HSS keys");
 
     save_file(
         path.join(PUBLIC_KEY_NAME).to_str().unwrap(),
@@ -72,7 +72,7 @@ fn read_file(file_name: &str) -> Vec<u8> {
 }
 
 fn own_signing(temp_path: &TempDir, message_data: &[u8], private_key: &mut [u8]) {
-    let result = hss_sign::<LmotsSha256N32W2, LmsSha256M32H5>(&message_data, private_key)
+    let result = hss_sign::<LmotsSha256N32W2, LmsSha256M32H5, 1>(&message_data, private_key)
         .expect("Signing should succed.");
     save_file(
         temp_path.path().join(SIGNATURE_FILE_NAME).to_str().unwrap(),
@@ -86,7 +86,7 @@ fn own_verify(temp_path: &TempDir) {
     let signature_data = read_file(path.join(SIGNATURE_FILE_NAME).to_str().unwrap());
     let public_key_data = read_file(path.join(PUBLIC_KEY_NAME).to_str().unwrap());
 
-    assert!(hss_verify::<LmotsSha256N32W2, LmsSha256M32H10>(
+    assert!(hss_verify::<LmotsSha256N32W2, LmsSha256M32H10, 1>(
         &message_data,
         &signature_data,
         &public_key_data

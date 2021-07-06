@@ -84,19 +84,11 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPrivateKey<OTS, 
     }
 }
 
+#[derive(PartialEq)]
 pub struct HssPublicKey<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> {
     pub public_key: LmsPublicKey<OTS, LMS>,
     pub level: usize,
 }
-
-impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> PartialEq for HssPublicKey<OTS, LMS, L> {
-    fn eq(&self, other: &Self) -> bool {
-        self.public_key == other.public_key &&
-        self.level == other.level
-    }
-}
-
-impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> Eq for HssPublicKey<OTS, LMS, L> { }
 
 impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPublicKey<OTS, LMS, L> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + MAX_LMS_PUBLIC_KEY_LENGTH }> {

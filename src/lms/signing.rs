@@ -15,24 +15,13 @@ use crate::util::ustr::u32str;
 use super::helper::get_tree_element;
 use super::parameter::LmsParameter;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct LmsSignature<OTS: LmotsParameter, LMS: LmsParameter> {
     pub q: QType,
     pub lmots_signature: LmotsSignature<OTS>,
     pub path: DynamicArray<DynamicArray<u8, MAX_M>, MAX_H>,
     lms_parameter: PhantomData<LMS>,
 }
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> PartialEq for LmsSignature<OTS, LMS> {
-    fn eq(&self, other: &Self) -> bool {
-        self.q == other.q
-            && self.lmots_signature == other.lmots_signature
-            && self.path == other.path
-            && self.lms_parameter == other.lms_parameter
-    }
-}
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> Eq for LmsSignature<OTS, LMS> {}
 
 impl<OTS: LmotsParameter, LMS: LmsParameter> LmsSignature<OTS, LMS> {
     pub fn sign(

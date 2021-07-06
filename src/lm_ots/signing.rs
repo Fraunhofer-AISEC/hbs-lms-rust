@@ -14,20 +14,12 @@ use super::definitions::LmotsPrivateKey;
 use super::parameter::LmotsParameter;
 
 #[allow(non_snake_case)]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct LmotsSignature<OTS: LmotsParameter> {
     pub C: DynamicArray<u8, MAX_N>,
     pub y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>,
     lmots_parameter: PhantomData<OTS>,
 }
-
-impl<OTS: LmotsParameter> PartialEq for LmotsSignature<OTS> {
-    fn eq(&self, other: &Self) -> bool {
-        self.C == other.C && self.y == other.y && self.lmots_parameter == other.lmots_parameter
-    }
-}
-
-impl<OTS: LmotsParameter> Eq for LmotsSignature<OTS> {}
 
 impl<OTS: LmotsParameter> LmotsSignature<OTS> {
     #[allow(non_snake_case)]

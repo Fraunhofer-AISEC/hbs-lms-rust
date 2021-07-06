@@ -12,7 +12,7 @@ use crate::util::ustr::u32str;
 use super::parameter::LmsParameter;
 
 #[allow(non_snake_case)]
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct LmsPrivateKey<OTS: LmotsParameter, LMS: LmsParameter> {
     pub I: IType,
     pub q: u32,
@@ -20,18 +20,6 @@ pub struct LmsPrivateKey<OTS: LmotsParameter, LMS: LmsParameter> {
     lmots_parameter: PhantomData<OTS>,
     lms_parameter: PhantomData<LMS>,
 }
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> PartialEq for LmsPrivateKey<OTS, LMS> {
-    fn eq(&self, other: &Self) -> bool {
-        self.I == other.I
-            && self.q == other.q
-            && self.seed == other.seed
-            && self.lmots_parameter == other.lmots_parameter
-            && self.lms_parameter == other.lms_parameter
-    }
-}
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> Eq for LmsPrivateKey<OTS, LMS> {}
 
 #[allow(non_snake_case)]
 impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
@@ -112,24 +100,13 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct LmsPublicKey<OTS: LmotsParameter, LMS: LmsParameter> {
     pub key: DynamicArray<u8, MAX_M>,
     pub I: IType,
     lmots_parameter: PhantomData<OTS>,
     lms_parameter: PhantomData<LMS>,
 }
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> PartialEq for LmsPublicKey<OTS, LMS> {
-    fn eq(&self, other: &Self) -> bool {
-        self.key == other.key
-            && self.I == other.I
-            && self.lmots_parameter == other.lmots_parameter
-            && self.lms_parameter == other.lms_parameter
-    }
-}
-
-impl<OTS: LmotsParameter, LMS: LmsParameter> Eq for LmsPublicKey<OTS, LMS> {}
 
 #[allow(non_snake_case)]
 impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPublicKey<OTS, LMS> {

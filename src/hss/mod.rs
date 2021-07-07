@@ -2,15 +2,9 @@ pub mod definitions;
 pub mod signing;
 pub mod verify;
 
-use crate::{
-    constants::{
+use crate::{LmotsParameter, LmsParameter, constants::{
         MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_HSS_SIGNATURE_LENGTH, MAX_M,
-    },
-    extract_or, extract_or_return,
-    hss::definitions::HssPublicKey,
-    util::dynamic_array::DynamicArray,
-    LmotsParameter, LmsParameter,
-};
+    }, extract_or, extract_or_return, hasher::Hasher, hss::definitions::HssPublicKey, util::dynamic_array::DynamicArray};
 
 use self::{definitions::HssPrivateKey, signing::HssSignature};
 
@@ -19,24 +13,24 @@ pub struct HssBinaryData {
     pub private_key: DynamicArray<u8, MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH>,
 }
 
-pub fn hss_verify<OTS: LmotsParameter, LMS: LmsParameter, const L: usize>(
+pub fn hss_verify<H: Hasher, const L: usize>(
     message: &[u8],
     signature: &[u8],
     public_key: &[u8],
 ) -> bool {
-    let signature: HssSignature<OTS, LMS, L> =
+    let signature: HssSignature<H, L> =
         extract_or!(HssSignature::from_binary_representation(signature), false);
-    let public_key: HssPublicKey<OTS, LMS, L> =
+    let public_key: HssPublicKey<H, L> =
         extract_or!(HssPublicKey::from_binary_representation(public_key), false);
 
     crate::hss::verify::verify(&signature, &public_key, &message).is_ok()
 }
 
-pub fn hss_sign<OTS: LmotsParameter, LMS: LmsParameter, const L: usize>(
+pub fn hss_sign<H: Hasher, const L: usize>(
     message: &[u8],
     private_key: &mut [u8],
 ) -> Option<DynamicArray<u8, MAX_HSS_SIGNATURE_LENGTH>> {
-    let mut parsed_private_key: HssPrivateKey<OTS, LMS, L> =
+    let mut parsed_private_key: HssPrivateKey<H, L> =
         extract_or_return!(HssPrivateKey::from_binary_representation(private_key));
 
     let signature = match HssSignature::sign(&mut parsed_private_key, &message) {
@@ -52,9 +46,9 @@ pub fn hss_sign<OTS: LmotsParameter, LMS: LmsParameter, const L: usize>(
     Some(signature.to_binary_representation())
 }
 
-pub fn hss_keygen<OTS: LmotsParameter, LMS: LmsParameter, const L: usize>() -> Option<HssBinaryData>
+pub fn hss_keygen<H: Hasher, const L: usize>() -> Option<HssBinaryData>
 {
-    let hss_key: HssPrivateKey<OTS, LMS, L> =
+    let hss_key: HssPrivateKey<H, L> =
         match crate::hss::definitions::HssPrivateKey::generate() {
             Err(_) => return None,
             Ok(x) => x,

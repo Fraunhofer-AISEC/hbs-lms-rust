@@ -7,8 +7,8 @@ mod lm_ots;
 mod lms;
 mod util;
 
-pub use crate::lm_ots::parameter::*;
-pub use crate::lms::parameter::*;
+pub use crate::lm_ots::parameters::*;
+pub use crate::lms::parameters::*;
 
 pub use crate::hss::hss_keygen;
 pub use crate::hss::hss_sign;

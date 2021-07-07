@@ -70,6 +70,7 @@ pub fn generate_public_key_canditate<H: Hasher>(
 #[cfg(test)]
 mod tests {
     use crate::constants::*;
+    use crate::hasher::sha256::Sha256Hasher;
     use crate::lm_ots::parameters;
     use crate::lm_ots::{
         definitions::LmotsPublicKey,
@@ -77,7 +78,6 @@ mod tests {
         signing::LmotsSignature,
         verify::verify_signature,
     };
-    use crate::hasher::sha256::Sha256Hasher;
 
     macro_rules! generate_test {
         ($name:ident, $type:expr) => {
@@ -90,8 +90,7 @@ mod tests {
                     176, 213, 104, 226, 71, 9, 74, 130, 187, 214, 75, 151, 184, 216, 175,
                 ];
 
-
-                let parameter = $type.construct_default_parameter().unwrap();
+                let parameter = $type.construct_parameter::<Sha256Hasher>().unwrap();
                 let private_key = generate_private_key(i, q, seed, parameter);
                 let public_key: LmotsPublicKey<Sha256Hasher> = generate_public_key(&private_key);
 
@@ -107,9 +106,21 @@ mod tests {
         };
     }
 
-    generate_test!(lmots_sha256_n32_w1_verify_test, parameters::LmotsAlgorithm::LmotsW1);
+    generate_test!(
+        lmots_sha256_n32_w1_verify_test,
+        parameters::LmotsAlgorithm::LmotsW1
+    );
 
-    generate_test!(lmots_sha256_n32_w2_verify_test, parameters::LmotsAlgorithm::LmotsW2);
-    generate_test!(lmots_sha256_n32_w4_verify_test, parameters::LmotsAlgorithm::LmotsW4);
-    generate_test!(lmots_sha256_n32_w8_verify_test, parameters::LmotsAlgorithm::LmotsW8);
+    generate_test!(
+        lmots_sha256_n32_w2_verify_test,
+        parameters::LmotsAlgorithm::LmotsW2
+    );
+    generate_test!(
+        lmots_sha256_n32_w4_verify_test,
+        parameters::LmotsAlgorithm::LmotsW4
+    );
+    generate_test!(
+        lmots_sha256_n32_w8_verify_test,
+        parameters::LmotsAlgorithm::LmotsW8
+    );
 }

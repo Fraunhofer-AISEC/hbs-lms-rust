@@ -133,14 +133,19 @@ impl<H: Hasher> LmotsSignature<H> {
 mod tests {
     use core::marker::PhantomData;
 
-    use crate::{constants::{MAX_N, MAX_P}, hasher::sha256::Sha256Hasher, lm_ots::parameters::LmotsAlgorithm, util::dynamic_array::DynamicArray};
+    use crate::{
+        constants::{MAX_N, MAX_P},
+        hasher::sha256::Sha256Hasher,
+        lm_ots::parameters::LmotsAlgorithm,
+        util::dynamic_array::DynamicArray,
+    };
 
     use super::LmotsSignature;
     use crate::LmotsParameter;
 
     #[test]
     fn test_binary_representation() {
-        let lmots_parameter = LmotsAlgorithm::LmotsW2.construct_default_parameter().unwrap();
+        let lmots_parameter = LmotsAlgorithm::construct_default_parameter();
 
         let mut c = DynamicArray::new();
         let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
@@ -156,12 +161,11 @@ mod tests {
             }
         }
 
-        let signature =
-            LmotsSignature {
-                C: c,
-                y,
-                lmots_parameter,
-            };
+        let signature = LmotsSignature {
+            C: c,
+            y,
+            lmots_parameter,
+        };
 
         let binary_rep = signature.to_binary_representation();
         let deserialized_signature =

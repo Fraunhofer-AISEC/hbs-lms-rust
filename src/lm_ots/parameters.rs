@@ -1,6 +1,10 @@
 use core::marker::PhantomData;
 
-use crate::{constants::MAX_N, hasher::{Hasher, sha256::Sha256Hasher}, util::{coef::coef, dynamic_array::DynamicArray}};
+use crate::{
+    constants::MAX_N,
+    hasher::{sha256::Sha256Hasher, Hasher},
+    util::{coef::coef, dynamic_array::DynamicArray},
+};
 
 pub enum LmotsAlgorithm {
     LmotsReserved = 0,
@@ -11,8 +15,8 @@ pub enum LmotsAlgorithm {
 }
 
 impl LmotsAlgorithm {
-    pub fn construct_default_parameter(&self) -> Option<LmotsParameter> {
-        self.construct_parameter()
+    pub fn construct_default_parameter() -> LmotsParameter {
+        LmotsAlgorithm::LmotsW1.construct_parameter().unwrap()
     }
 
     pub fn construct_parameter<H: Hasher>(&self) -> Option<LmotsParameter<H>> {

@@ -1,13 +1,14 @@
 use crate::{
+    hasher::Hasher,
     lms::{self},
     LmotsParameter, LmsParameter,
 };
 
 use super::{definitions::HssPublicKey, signing::HssSignature};
 
-pub fn verify<OTS: LmotsParameter, LMS: LmsParameter, const L: usize>(
-    signature: &HssSignature<OTS, LMS, L>,
-    public_key: &HssPublicKey<OTS, LMS, L>,
+pub fn verify<H: Hasher, const L: usize>(
+    signature: &HssSignature<H, L>,
+    public_key: &HssPublicKey<H, L>,
     message: &[u8],
 ) -> Result<(), &'static str> {
     if signature.level + 1 != public_key.level {
@@ -30,6 +31,10 @@ pub fn verify<OTS: LmotsParameter, LMS: LmsParameter, const L: usize>(
 
 #[cfg(test)]
 mod tests {
+    use crate::LmotsAlgorithm;
+    use crate::LmsAlgorithm;
+    use crate::hasher::Hasher;
+    use crate::hasher::sha256::Sha256Hasher;
     use crate::hss::definitions::HssPrivateKey;
     use crate::hss::definitions::HssPublicKey;
     use crate::hss::signing::HssSignature;
@@ -44,8 +49,8 @@ mod tests {
 
     #[test]
     fn test_hss_verify() {
-        let mut private_key: HssPrivateKey<OTS, LMS, LEVEL> =
-            HssPrivateKey::generate().expect("Should generate HSS private key");
+        let mut private_key =
+            HssPrivateKey::<Sha256Hasher, LEVEL>::generate(LmotsAlgorithm::construct_default_parameter(), LmsAlgorithm::construct_default_parameter()).expect("Should geneerate HSS private key");
         let public_key = private_key.get_public_key();
 
         let mut message = [42, 57, 20, 59, 33, 1, 49, 3, 99, 130, 50, 20];
@@ -54,9 +59,9 @@ mod tests {
         generate_signature_and_verify(&mut private_key, &public_key, &mut message);
     }
 
-    fn generate_signature_and_verify<OTS: LmotsParameter, LMS: LmsParameter, const L: usize>(
-        private_key: &mut HssPrivateKey<OTS, LMS, L>,
-        public_key: &HssPublicKey<OTS, LMS, L>,
+    fn generate_signature_and_verify<H: Hasher, const L: usize>(
+        private_key: &mut HssPrivateKey<H, L>,
+        public_key: &HssPublicKey<H, L>,
         message: &mut [u8],
     ) {
         let signature = HssSignature::sign(private_key, &message).expect("Should sign message");

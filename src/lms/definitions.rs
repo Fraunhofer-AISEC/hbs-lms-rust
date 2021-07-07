@@ -1,5 +1,3 @@
-use core::marker::PhantomData;
-
 use crate::constants::*;
 use crate::extract_or_return;
 use crate::hasher::Hasher;
@@ -189,9 +187,8 @@ impl<H: Hasher> LmsPublicKey<H> {
 mod tests {
     use crate::{
         hasher::sha256::Sha256Hasher,
-        lm_ots::{self, parameters::LmotsAlgorithm},
+        lm_ots::parameters::LmotsAlgorithm,
         lms::{
-            self,
             keygen::{generate_private_key, generate_public_key},
             parameters::LmsAlgorithm,
         },

@@ -73,8 +73,6 @@ pub fn hss_keygen<H: Hasher, const L: usize>(
 mod tests {
 
     use crate::hasher::sha256::Sha256Hasher;
-    use crate::lm_ots;
-    use crate::lms;
     use crate::LmotsAlgorithm;
     use crate::LmsAlgorithm;
 

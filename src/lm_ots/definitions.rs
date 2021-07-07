@@ -37,7 +37,7 @@ pub struct LmotsPublicKey<H: Hasher> {
     pub I: IType,
     pub q: QType,
     pub key: DynamicArray<u8, MAX_N>,
-    lmots_parameter: LmotsParameter<H>,
+    pub lmots_parameter: LmotsParameter<H>,
 }
 
 #[allow(non_snake_case)]

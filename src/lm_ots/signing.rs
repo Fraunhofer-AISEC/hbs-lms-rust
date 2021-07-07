@@ -131,17 +131,13 @@ impl<H: Hasher> LmotsSignature<H> {
 
 #[cfg(test)]
 mod tests {
-    use core::marker::PhantomData;
-
     use crate::{
         constants::{MAX_N, MAX_P},
-        hasher::sha256::Sha256Hasher,
         lm_ots::parameters::LmotsAlgorithm,
         util::dynamic_array::DynamicArray,
     };
 
     use super::LmotsSignature;
-    use crate::LmotsParameter;
 
     #[test]
     fn test_binary_representation() {

@@ -11,7 +11,6 @@ use crate::{
         helper::read_and_advance,
         ustr::{str32u, u32str},
     },
-    LmotsParameter, LmsParameter,
 };
 
 use super::definitions::HssPrivateKey;

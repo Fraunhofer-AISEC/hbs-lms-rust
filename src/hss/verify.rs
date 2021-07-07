@@ -1,7 +1,6 @@
 use crate::{
     hasher::Hasher,
     lms::{self},
-    LmotsParameter, LmsParameter,
 };
 
 use super::{definitions::HssPublicKey, signing::HssSignature};

@@ -14,6 +14,12 @@ pub fn verify<H: Hasher>(
     public_key: &LmsPublicKey<H>,
     message: &[u8],
 ) -> Result<(), &'static str> {
+    if signature.lmots_signature.lmots_parameter != public_key.lmots_parameter
+        || signature.lms_parameter != public_key.lms_parameter
+    {
+        return Err("Signature parameter and public key parameter do not match.");
+    }
+
     let public_key_canditate = generate_public_key_candiate(signature, public_key, message)?;
 
     if public_key_canditate == public_key.key {

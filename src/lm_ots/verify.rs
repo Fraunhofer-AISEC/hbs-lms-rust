@@ -15,6 +15,10 @@ pub fn verify_signature<H: Hasher>(
     public_key: &LmotsPublicKey<H>,
     message: &[u8],
 ) -> bool {
+    if signature.lmots_parameter != public_key.lmots_parameter {
+        return false;
+    }
+
     let public_key_candidate =
         generate_public_key_canditate(signature, &public_key.I, &public_key.q, message);
 

@@ -1,13 +1,12 @@
 use clap::{App, Arg, ArgMatches, SubCommand};
 use lms::*;
 use std::{
-    convert::TryInto,
     fs::File,
     io::{Read, Write},
     process::exit,
 };
 
-type LmsParameterSet = (LmotsAlgorithmType, LmsAlgorithmType);
+type LmsParameterSet = (LmotsParameter, LmsParameter);
 
 const GENKEY_COMMAND: &str = "genkey";
 const VERIFY_COMMAND: &str = "verify";
@@ -74,76 +73,7 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let mut private_key_data = read_file(&private_key_name);
     let message_data = read_file(&message_name);
 
-    let lmots_type = read_lmots_type_from_private_key(&private_key_data)
-        .expect("Lmots type not correctly saved in private key file.");
-
-    let lms_type = read_lms_type_from_private_key(&private_key_data)
-        .expect("Lms type not correctly saved in private key file.");
-
-    const L: usize = 1;
-
-    let result = match (lmots_type, lms_type) {
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_sign::<LmotsSha256N32W1, LmsSha256M32H5, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_sign::<LmotsSha256N32W2, LmsSha256M32H5, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_sign::<LmotsSha256N32W4, LmsSha256M32H5, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_sign::<LmotsSha256N32W8, LmsSha256M32H5, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_sign::<LmotsSha256N32W1, LmsSha256M32H10, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_sign::<LmotsSha256N32W2, LmsSha256M32H10, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_sign::<LmotsSha256N32W4, LmsSha256M32H10, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_sign::<LmotsSha256N32W8, LmsSha256M32H10, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_sign::<LmotsSha256N32W1, LmsSha256M32H15, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_sign::<LmotsSha256N32W2, LmsSha256M32H15, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_sign::<LmotsSha256N32W4, LmsSha256M32H15, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_sign::<LmotsSha256N32W8, LmsSha256M32H15, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_sign::<LmotsSha256N32W1, LmsSha256M32H20, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_sign::<LmotsSha256N32W2, LmsSha256M32H20, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_sign::<LmotsSha256N32W4, LmsSha256M32H20, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_sign::<LmotsSha256N32W8, LmsSha256M32H20, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_sign::<LmotsSha256N32W1, LmsSha256M32H25, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_sign::<LmotsSha256N32W2, LmsSha256M32H25, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_sign::<LmotsSha256N32W4, LmsSha256M32H25, L>(&message_data, &mut private_key_data)
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_sign::<LmotsSha256N32W8, LmsSha256M32H25, L>(&message_data, &mut private_key_data)
-        }
-    };
+    let result = hss_sign::<Sha256Hasher, 1>(&message_data, &mut private_key_data);
 
     let result = match result {
         None => {
@@ -170,170 +100,25 @@ fn verify(args: &ArgMatches) -> bool {
     let message_data = read_file(&message_name);
     let public_key_data = read_file(&public_key_name);
 
-    let signature_lmots_type = read_lmots_type_from_signature(&signature_data)
-        .expect("Signature should have a valid lmots type");
-    let public_key_lmots_type = read_lmots_type_from_public_key(&public_key_data)
-        .expect("Public key should have a valid lmots type");
+    // let signature_lmots_type = read_lmots_type_from_signature(&signature_data)
+    //     .expect("Signature should have a valid lmots type");
+    // let public_key_lmots_type = read_lmots_type_from_public_key(&public_key_data)
+    //     .expect("Public key should have a valid lmots type");
 
-    if signature_lmots_type != public_key_lmots_type {
-        return false;
-    }
+    // if signature_lmots_type != public_key_lmots_type {
+    //     return false;
+    // }
 
-    let signature_lms_type = read_lms_type_from_signature(&signature_data)
-        .expect("Signature should have a valid lmots type");
-    let public_key_lms_type = read_lms_type_from_public_key(&public_key_data)
-        .expect("Public key should have a valid lmots type");
+    // let signature_lms_type = read_lms_type_from_signature(&signature_data)
+    //     .expect("Signature should have a valid lmots type");
+    // let public_key_lms_type = read_lms_type_from_public_key(&public_key_data)
+    //     .expect("Public key should have a valid lmots type");
 
-    if signature_lms_type != public_key_lms_type {
-        return false;
-    }
+    // if signature_lms_type != public_key_lms_type {
+    //     return false;
+    // }
 
-    const L: usize = 1;
-
-    let result = match (signature_lmots_type, signature_lms_type) {
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_verify::<LmotsSha256N32W1, LmsSha256M32H5, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_verify::<LmotsSha256N32W2, LmsSha256M32H5, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_verify::<LmotsSha256N32W4, LmsSha256M32H5, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_verify::<LmotsSha256N32W8, LmsSha256M32H5, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_verify::<LmotsSha256N32W1, LmsSha256M32H10, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_verify::<LmotsSha256N32W2, LmsSha256M32H10, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_verify::<LmotsSha256N32W4, LmsSha256M32H10, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_verify::<LmotsSha256N32W8, LmsSha256M32H10, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_verify::<LmotsSha256N32W1, LmsSha256M32H15, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_verify::<LmotsSha256N32W2, LmsSha256M32H15, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_verify::<LmotsSha256N32W4, LmsSha256M32H15, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_verify::<LmotsSha256N32W8, LmsSha256M32H15, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_verify::<LmotsSha256N32W1, LmsSha256M32H20, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_verify::<LmotsSha256N32W2, LmsSha256M32H20, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_verify::<LmotsSha256N32W4, LmsSha256M32H20, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_verify::<LmotsSha256N32W8, LmsSha256M32H20, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_verify::<LmotsSha256N32W1, LmsSha256M32H25, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_verify::<LmotsSha256N32W2, LmsSha256M32H25, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_verify::<LmotsSha256N32W4, LmsSha256M32H25, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_verify::<LmotsSha256N32W8, LmsSha256M32H25, L>(
-                &message_data,
-                &signature_data,
-                &public_key_data,
-            )
-        }
-    };
-
-    result
+    hss_verify::<Sha256Hasher, 1>(&message_data, &signature_data, &public_key_data)
 }
 
 fn get_public_key_name(keyname: &String) -> String {
@@ -370,73 +155,10 @@ fn genkey(args: &ArgMatches) -> Result<(), std::io::Error> {
 
     let parameter = parse_genkey_parameter(&get_parameter(PARAMETER_PARAMETER, args));
 
-    let lm_ots_parameter_type = parameter.0;
-    let lms_parameter_type = parameter.1;
+    let lm_ots_parameter = parameter.0;
+    let lms_parameter = parameter.1;
 
-    const L: usize = 1;
-
-    let keys = match (lm_ots_parameter_type, lms_parameter_type) {
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_keygen::<LmotsSha256N32W1, LmsSha256M32H5, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_keygen::<LmotsSha256N32W2, LmsSha256M32H5, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_keygen::<LmotsSha256N32W4, LmsSha256M32H5, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H5) => {
-            hss_keygen::<LmotsSha256N32W8, LmsSha256M32H5, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_keygen::<LmotsSha256N32W1, LmsSha256M32H10, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_keygen::<LmotsSha256N32W2, LmsSha256M32H10, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_keygen::<LmotsSha256N32W4, LmsSha256M32H10, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H10) => {
-            hss_keygen::<LmotsSha256N32W8, LmsSha256M32H10, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_keygen::<LmotsSha256N32W1, LmsSha256M32H15, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_keygen::<LmotsSha256N32W2, LmsSha256M32H15, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_keygen::<LmotsSha256N32W4, LmsSha256M32H15, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H15) => {
-            hss_keygen::<LmotsSha256N32W8, LmsSha256M32H15, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_keygen::<LmotsSha256N32W1, LmsSha256M32H20, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_keygen::<LmotsSha256N32W2, LmsSha256M32H20, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_keygen::<LmotsSha256N32W4, LmsSha256M32H20, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H20) => {
-            hss_keygen::<LmotsSha256N32W8, LmsSha256M32H20, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W1, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_keygen::<LmotsSha256N32W1, LmsSha256M32H25, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W2, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_keygen::<LmotsSha256N32W2, LmsSha256M32H25, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W4, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_keygen::<LmotsSha256N32W4, LmsSha256M32H25, L>()
-        }
-        (LmotsAlgorithmType::LmotsSha256N32W8, LmsAlgorithmType::LmsSha256M32H25) => {
-            hss_keygen::<LmotsSha256N32W8, LmsSha256M32H25, L>()
-        }
-    };
+    let keys = hss_keygen::<Sha256Hasher, 1>(lm_ots_parameter, lms_parameter);
 
     let keys = keys.unwrap();
 
@@ -473,19 +195,19 @@ fn parse_genkey_parameter(parameter: &str) -> LmsParameterSet {
         .expect("Winternitz parameter not correct specified");
 
     let lm_ots = match winternitz_parameter {
-        1 => LmotsAlgorithmType::LmotsSha256N32W1,
-        2 => LmotsAlgorithmType::LmotsSha256N32W2,
-        4 => LmotsAlgorithmType::LmotsSha256N32W4,
-        8 => LmotsAlgorithmType::LmotsSha256N32W8,
+        1 => LmotsAlgorithm::LmotsW1.construct_parameter().unwrap(),
+        2 => LmotsAlgorithm::LmotsW2.construct_parameter().unwrap(),
+        4 => LmotsAlgorithm::LmotsW4.construct_parameter().unwrap(),
+        8 => LmotsAlgorithm::LmotsW8.construct_parameter().unwrap(),
         _ => panic!("Wrong winternitz parameter"),
     };
 
     let lms = match height {
-        5 => LmsAlgorithmType::LmsSha256M32H5,
-        10 => LmsAlgorithmType::LmsSha256M32H10,
-        15 => LmsAlgorithmType::LmsSha256M32H15,
-        20 => LmsAlgorithmType::LmsSha256M32H20,
-        25 => LmsAlgorithmType::LmsSha256M32H25,
+        5 => LmsAlgorithm::LmsH5.construct_parameter().unwrap(),
+        10 => LmsAlgorithm::LmsH10.construct_parameter().unwrap(),
+        15 => LmsAlgorithm::LmsH15.construct_parameter().unwrap(),
+        20 => LmsAlgorithm::LmsH20.construct_parameter().unwrap(),
+        25 => LmsAlgorithm::LmsH25.construct_parameter().unwrap(),
         _ => panic!("Height not supported"),
     };
 
@@ -498,85 +220,85 @@ fn write(filename: &str, content: &[u8]) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn read_lmots_type_from_private_key(data: &Vec<u8>) -> Option<LmotsAlgorithmType> {
-    let lm_ots_typecode = &data[4..8];
-    let lm_ots_typecode = str32u(lm_ots_typecode);
-    get_lmots_type(lm_ots_typecode)
-}
+// fn read_lmots_type_from_private_key(data: &Vec<u8>) -> Option<LmotsAlgorithmType> {
+//     let lm_ots_typecode = &data[4..8];
+//     let lm_ots_typecode = str32u(lm_ots_typecode);
+//     get_lmots_type(lm_ots_typecode)
+// }
 
-fn read_lmots_type_from_public_key(data: &Vec<u8>) -> Option<LmotsAlgorithmType> {
-    let lm_ots_typecode = &data[8..12];
-    let lm_ots_typecode = str32u(lm_ots_typecode);
-    get_lmots_type(lm_ots_typecode)
-}
+// fn read_lmots_type_from_public_key(data: &Vec<u8>) -> Option<LmotsAlgorithmType> {
+//     let lm_ots_typecode = &data[8..12];
+//     let lm_ots_typecode = str32u(lm_ots_typecode);
+//     get_lmots_type(lm_ots_typecode)
+// }
 
-fn read_lmots_type_from_signature(data: &Vec<u8>) -> Option<LmotsAlgorithmType> {
-    let lm_ots_typecode = &data[8..12];
-    let lm_ots_typecode = str32u(lm_ots_typecode);
-    get_lmots_type(lm_ots_typecode)
-}
+// fn read_lmots_type_from_signature(data: &Vec<u8>) -> Option<LmotsAlgorithmType> {
+//     let lm_ots_typecode = &data[8..12];
+//     let lm_ots_typecode = str32u(lm_ots_typecode);
+//     get_lmots_type(lm_ots_typecode)
+// }
 
-fn get_lmots_type(lm_ots_typecode: u32) -> Option<LmotsAlgorithmType> {
-    match lm_ots_typecode {
-        1 => Some(LmotsAlgorithmType::LmotsSha256N32W1),
-        2 => Some(LmotsAlgorithmType::LmotsSha256N32W2),
-        3 => Some(LmotsAlgorithmType::LmotsSha256N32W4),
-        4 => Some(LmotsAlgorithmType::LmotsSha256N32W8),
-        _ => None,
-    }
-}
+// fn get_lmots_type(lm_ots_typecode: u32) -> Option<LmotsAlgorithmType> {
+//     match lm_ots_typecode {
+//         1 => Some(LmotsAlgorithmType::LmotsSha256N32W1),
+//         2 => Some(LmotsAlgorithmType::LmotsSha256N32W2),
+//         3 => Some(LmotsAlgorithmType::LmotsSha256N32W4),
+//         4 => Some(LmotsAlgorithmType::LmotsSha256N32W8),
+//         _ => None,
+//     }
+// }
 
-fn read_lms_type_from_private_key(data: &Vec<u8>) -> Option<LmsAlgorithmType> {
-    let lm_ots_typecode = &data[0..4];
-    let lm_ots_typecode = str32u(lm_ots_typecode);
-    get_lms_type(lm_ots_typecode)
-}
+// fn read_lms_type_from_private_key(data: &Vec<u8>) -> Option<LmsAlgorithmType> {
+//     let lm_ots_typecode = &data[0..4];
+//     let lm_ots_typecode = str32u(lm_ots_typecode);
+//     get_lms_type(lm_ots_typecode)
+// }
 
-fn read_lms_type_from_public_key(data: &Vec<u8>) -> Option<LmsAlgorithmType> {
-    let lm_ots_typecode = &data[4..8];
-    let lm_ots_typecode = str32u(lm_ots_typecode);
-    get_lms_type(lm_ots_typecode)
-}
+// fn read_lms_type_from_public_key(data: &Vec<u8>) -> Option<LmsAlgorithmType> {
+//     let lm_ots_typecode = &data[4..8];
+//     let lm_ots_typecode = str32u(lm_ots_typecode);
+//     get_lms_type(lm_ots_typecode)
+// }
 
-fn read_lms_type_from_signature(data: &Vec<u8>) -> Option<LmsAlgorithmType> {
-    let lm_ots_type = read_lmots_type_from_signature(data)?;
+// fn read_lms_type_from_signature(data: &Vec<u8>) -> Option<LmsAlgorithmType> {
+//     let lm_ots_type = read_lmots_type_from_signature(data)?;
 
-    // Stupid... Need better solution
-    let p = match lm_ots_type {
-        LmotsAlgorithmType::LmotsSha256N32W1 => <LmotsSha256N32W1>::get_p(),
-        LmotsAlgorithmType::LmotsSha256N32W2 => <LmotsSha256N32W2>::get_p(),
-        LmotsAlgorithmType::LmotsSha256N32W4 => <LmotsSha256N32W4>::get_p(),
-        LmotsAlgorithmType::LmotsSha256N32W8 => <LmotsSha256N32W8>::get_p(),
-    };
+//     // Stupid... Need better solution
+//     let p = match lm_ots_type {
+//         LmotsAlgorithmType::LmotsSha256N32W1 => <LmotsSha256N32W1>::get_p(),
+//         LmotsAlgorithmType::LmotsSha256N32W2 => <LmotsSha256N32W2>::get_p(),
+//         LmotsAlgorithmType::LmotsSha256N32W4 => <LmotsSha256N32W4>::get_p(),
+//         LmotsAlgorithmType::LmotsSha256N32W8 => <LmotsSha256N32W8>::get_p(),
+//     };
 
-    // Stupid... Need better solution
-    let n = match lm_ots_type {
-        LmotsAlgorithmType::LmotsSha256N32W1 => <LmotsSha256N32W1>::N,
-        LmotsAlgorithmType::LmotsSha256N32W2 => <LmotsSha256N32W2>::N,
-        LmotsAlgorithmType::LmotsSha256N32W4 => <LmotsSha256N32W4>::N,
-        LmotsAlgorithmType::LmotsSha256N32W8 => <LmotsSha256N32W8>::N,
-    };
+//     // Stupid... Need better solution
+//     let n = match lm_ots_type {
+//         LmotsAlgorithmType::LmotsSha256N32W1 => <LmotsSha256N32W1>::N,
+//         LmotsAlgorithmType::LmotsSha256N32W2 => <LmotsSha256N32W2>::N,
+//         LmotsAlgorithmType::LmotsSha256N32W4 => <LmotsSha256N32W4>::N,
+//         LmotsAlgorithmType::LmotsSha256N32W8 => <LmotsSha256N32W8>::N,
+//     };
 
-    let lms_type_start = 4 + 8 + n as usize * (p as usize + 1);
-    let lms_type_end = 4 + 11 + n as usize * (p as usize + 1);
+//     let lms_type_start = 4 + 8 + n as usize * (p as usize + 1);
+//     let lms_type_end = 4 + 11 + n as usize * (p as usize + 1);
 
-    let lm_ots_typecode = &data[lms_type_start..=lms_type_end];
-    let lm_ots_typecode = str32u(lm_ots_typecode);
-    get_lms_type(lm_ots_typecode)
-}
+//     let lm_ots_typecode = &data[lms_type_start..=lms_type_end];
+//     let lm_ots_typecode = str32u(lm_ots_typecode);
+//     get_lms_type(lm_ots_typecode)
+// }
 
-fn get_lms_type(lm_ots_typecode: u32) -> Option<LmsAlgorithmType> {
-    match lm_ots_typecode {
-        5 => Some(LmsAlgorithmType::LmsSha256M32H5),
-        6 => Some(LmsAlgorithmType::LmsSha256M32H10),
-        7 => Some(LmsAlgorithmType::LmsSha256M32H15),
-        8 => Some(LmsAlgorithmType::LmsSha256M32H20),
-        9 => Some(LmsAlgorithmType::LmsSha256M32H25),
-        _ => None,
-    }
-}
+// fn get_lms_type(lm_ots_typecode: u32) -> Option<LmsAlgorithmType> {
+//     match lm_ots_typecode {
+//         5 => Some(LmsAlgorithmType::LmsSha256M32H5),
+//         6 => Some(LmsAlgorithmType::LmsSha256M32H10),
+//         7 => Some(LmsAlgorithmType::LmsSha256M32H15),
+//         8 => Some(LmsAlgorithmType::LmsSha256M32H20),
+//         9 => Some(LmsAlgorithmType::LmsSha256M32H25),
+//         _ => None,
+//     }
+// }
 
-fn str32u(x: &[u8]) -> u32 {
-    let arr: [u8; 4] = x.try_into().expect("Slice not 4 bytes long");
-    u32::from_be_bytes(arr)
-}
+// fn str32u(x: &[u8]) -> u32 {
+//     let arr: [u8; 4] = x.try_into().expect("Slice not 4 bytes long");
+//     u32::from_be_bytes(arr)
+// }

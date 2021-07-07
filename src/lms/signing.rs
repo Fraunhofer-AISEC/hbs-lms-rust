@@ -1,5 +1,3 @@
-use core::marker::PhantomData;
-
 use crate::constants::QType;
 use crate::constants::MAX_H;
 use crate::constants::MAX_LMS_SIGNATURE_LENGTH;
@@ -155,8 +153,8 @@ impl<H: Hasher> LmsSignature<H> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        lm_ots::{self, parameters::LmotsAlgorithm},
-        lms::{self, keygen::generate_private_key, parameters::LmsAlgorithm},
+        lm_ots::parameters::LmotsAlgorithm,
+        lms::{keygen::generate_private_key, parameters::LmsAlgorithm},
     };
 
     use super::LmsSignature;

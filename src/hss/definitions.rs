@@ -5,12 +5,11 @@ use crate::{
     },
     extract_or_return,
     hasher::Hasher,
-    lm_ots::parameters::LmotsAlgorithm,
     lms::{
         self,
         definitions::{LmsPrivateKey, LmsPublicKey},
         generate_key_pair,
-        parameters::{LmsAlgorithm, LmsParameter},
+        parameters::LmsParameter,
         signing::LmsSignature,
     },
     util::{

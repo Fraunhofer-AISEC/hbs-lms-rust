@@ -1,5 +1,6 @@
 use crate::constants::MAX_M;
 use crate::lm_ots::parameter::LmotsParameter;
+use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::util::dynamic_array::DynamicArray;
 use crate::{
     constants::{D_INTR, D_LEAF},
@@ -26,6 +27,7 @@ pub fn get_tree_element<OTS: LmotsParameter, LMS: LmsParameter>(
             u32str((index - max_private_keys) as u32),
             private_key.I,
             private_key.seed,
+            LmotsAlgorithm::LmotsW1.construct_parameter().unwrap(), // TODO
         );
         let lm_ots_public_key = crate::lm_ots::generate_public_key(&lms_ots_private_key);
         hasher.update(&lm_ots_public_key.key.as_slice());

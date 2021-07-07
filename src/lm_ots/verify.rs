@@ -2,16 +2,17 @@ use core::usize;
 
 use crate::{
     constants::*,
+    hasher::Hasher,
     util::{coef::coef, dynamic_array::DynamicArray},
 };
 
-use super::{definitions::LmotsPublicKey, parameter::LmotsParameter, signing::LmotsSignature};
+use super::{definitions::LmotsPublicKey, signing::LmotsSignature};
 
 #[allow(non_snake_case)]
 #[allow(dead_code)]
-pub fn verify_signature<OTS: LmotsParameter>(
-    signature: &LmotsSignature<OTS>,
-    public_key: &LmotsPublicKey<OTS>,
+pub fn verify_signature<H: Hasher>(
+    signature: &LmotsSignature<H>,
+    public_key: &LmotsPublicKey<H>,
     message: &[u8],
 ) -> bool {
     let public_key_candidate =
@@ -21,13 +22,14 @@ pub fn verify_signature<OTS: LmotsParameter>(
 }
 
 #[allow(non_snake_case)]
-pub fn generate_public_key_canditate<OTS: LmotsParameter>(
-    signature: &LmotsSignature<OTS>,
+pub fn generate_public_key_canditate<H: Hasher>(
+    signature: &LmotsSignature<H>,
     I: &IType,
     q: &QType,
     message: &[u8],
 ) -> DynamicArray<u8, MAX_N> {
-    let mut hasher = <OTS>::get_hasher();
+    let lmots_parameter = signature.lmots_parameter;
+    let mut hasher = lmots_parameter.get_hasher();
 
     hasher.update(I);
     hasher.update(q);
@@ -36,13 +38,17 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
     hasher.update(message);
 
     let Q = hasher.finalize_reset();
-    let Q_and_checksum = <OTS>::get_appended_with_checksum(Q.as_slice());
+    let Q_and_checksum = lmots_parameter.get_appended_with_checksum(Q.as_slice());
 
     let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
-    let max_w = 2usize.pow(<OTS>::W as u32) - 1;
+    let max_w = 2usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
 
-    for i in 0..<OTS>::get_p() {
-        let a = coef(&Q_and_checksum.as_slice(), i as u64, <OTS>::W as u64) as usize;
+    for i in 0..lmots_parameter.get_p() {
+        let a = coef(
+            &Q_and_checksum.as_slice(),
+            i as u64,
+            lmots_parameter.get_winternitz() as u64,
+        ) as usize;
         let mut tmp = signature.y[i as usize].clone();
 
         hasher.do_hash_chain(&I, &q, i, a, max_w, tmp.as_mut_slice());
@@ -64,16 +70,17 @@ pub fn generate_public_key_canditate<OTS: LmotsParameter>(
 #[cfg(test)]
 mod tests {
     use crate::constants::*;
+    use crate::lm_ots::parameters;
     use crate::lm_ots::{
         definitions::LmotsPublicKey,
         keygen::{generate_private_key, generate_public_key},
-        parameter,
         signing::LmotsSignature,
         verify::verify_signature,
     };
+    use crate::hasher::sha256::Sha256Hasher;
 
     macro_rules! generate_test {
-        ($name:ident, $type:ty) => {
+        ($name:ident, $type:expr) => {
             #[test]
             fn $name() {
                 let i: IType = [2u8; 16];
@@ -83,8 +90,10 @@ mod tests {
                     176, 213, 104, 226, 71, 9, 74, 130, 187, 214, 75, 151, 184, 216, 175,
                 ];
 
-                let private_key = generate_private_key(i, q, seed);
-                let public_key: LmotsPublicKey<$type> = generate_public_key(&private_key);
+
+                let parameter = $type.construct_default_parameter().unwrap();
+                let private_key = generate_private_key(i, q, seed, parameter);
+                let public_key: LmotsPublicKey<Sha256Hasher> = generate_public_key(&private_key);
 
                 let mut message = [1, 3, 5, 9, 0];
 
@@ -98,9 +107,9 @@ mod tests {
         };
     }
 
-    generate_test!(lmots_sha256_n32_w1_verify_test, parameter::LmotsSha256N32W1);
+    generate_test!(lmots_sha256_n32_w1_verify_test, parameters::LmotsAlgorithm::LmotsW1);
 
-    generate_test!(lmots_sha256_n32_w2_verify_test, parameter::LmotsSha256N32W2);
-    generate_test!(lmots_sha256_n32_w4_verify_test, parameter::LmotsSha256N32W4);
-    generate_test!(lmots_sha256_n32_w8_verify_test, parameter::LmotsSha256N32W8);
+    generate_test!(lmots_sha256_n32_w2_verify_test, parameters::LmotsAlgorithm::LmotsW2);
+    generate_test!(lmots_sha256_n32_w4_verify_test, parameters::LmotsAlgorithm::LmotsW4);
+    generate_test!(lmots_sha256_n32_w8_verify_test, parameters::LmotsAlgorithm::LmotsW8);
 }

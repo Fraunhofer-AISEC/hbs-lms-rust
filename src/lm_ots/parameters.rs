@@ -1,16 +1,20 @@
 use core::marker::PhantomData;
 
-use crate::{constants::MAX_N, hasher::Hasher, util::{coef::coef, dynamic_array::DynamicArray}};
+use crate::{constants::MAX_N, hasher::{Hasher, sha256::Sha256Hasher}, util::{coef::coef, dynamic_array::DynamicArray}};
 
 pub enum LmotsAlgorithm {
     LmotsReserved = 0,
     LmotsW1 = 1,
     LmotsW2 = 2,
     LmotsW4 = 3,
-    LmotsW8 = 4
+    LmotsW8 = 4,
 }
 
 impl LmotsAlgorithm {
+    pub fn construct_default_parameter(&self) -> Option<LmotsParameter> {
+        self.construct_parameter()
+    }
+
     pub fn construct_parameter<H: Hasher>(&self) -> Option<LmotsParameter<H>> {
         match *self {
             LmotsAlgorithm::LmotsReserved => None,
@@ -18,31 +22,43 @@ impl LmotsAlgorithm {
             LmotsAlgorithm::LmotsW2 => Some(LmotsParameter::new(2, 2, 133, 6)),
             LmotsAlgorithm::LmotsW4 => Some(LmotsParameter::new(3, 4, 67, 4)),
             LmotsAlgorithm::LmotsW8 => Some(LmotsParameter::new(4, 8, 34, 0)),
-        }        
+        }
     }
 
     pub fn get_from_type<H: Hasher>(_type: u32) -> Option<LmotsParameter<H>> {
         match _type {
-            1 =>
+            1 => LmotsAlgorithm::LmotsW1.construct_parameter(),
+            2 => LmotsAlgorithm::LmotsW2.construct_parameter(),
+            3 => LmotsAlgorithm::LmotsW4.construct_parameter(),
+            4 => LmotsAlgorithm::LmotsW8.construct_parameter(),
+            _ => None,
         }
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct LmotsParameter<H: Hasher> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LmotsParameter<H: Hasher = Sha256Hasher> {
     id: u32,
     winternitz: u8,
     p: u16,
     ls: u8,
-    phantom_data: PhantomData<H>
+    phantom_data: PhantomData<H>,
 }
+
+// Manually implement Copy because Hasher trait does not.
+// However, it does not make a difference, because we don't hold a instance for Hasher.
+impl<H: Hasher> Copy for LmotsParameter<H> {}
 
 impl<H: Hasher> LmotsParameter<H> {
     const N: usize = H::OUTPUT_SIZE;
 
     pub fn new(id: u32, winternitz: u8, p: u16, ls: u8) -> Self {
         Self {
-            id, winternitz, p, ls, phantom_data: PhantomData
+            id,
+            winternitz,
+            p,
+            ls,
+            phantom_data: PhantomData,
         }
     }
 
@@ -62,6 +78,10 @@ impl<H: Hasher> LmotsParameter<H> {
         self.ls
     }
 
+    pub fn get_n(&self) -> usize {
+        Self::N
+    }
+
     fn checksum(&self, byte_string: &[u8]) -> u16 {
         let mut sum = 0_u16;
         let max: u64 = ((Self::N * 8) as f64 / self.get_winternitz() as f64) as u64;
@@ -74,7 +94,10 @@ impl<H: Hasher> LmotsParameter<H> {
         sum << self.get_ls()
     }
 
-    fn get_appended_with_checksum(&self, byte_string: &[u8]) -> DynamicArray<u8, { MAX_N + 2 }> {
+    pub fn get_appended_with_checksum(
+        &self,
+        byte_string: &[u8],
+    ) -> DynamicArray<u8, { MAX_N + 2 }> {
         let mut result = DynamicArray::new();
 
         let checksum = self.checksum(byte_string);
@@ -85,5 +108,15 @@ impl<H: Hasher> LmotsParameter<H> {
         result.append(&[(checksum & 0xff) as u8]);
 
         result
+    }
+
+    pub fn get_hasher(&self) -> H {
+        <H>::get_hasher()
+    }
+}
+
+impl<H: Hasher> Default for LmotsParameter<H> {
+    fn default() -> Self {
+        LmotsAlgorithm::LmotsW1.construct_parameter().unwrap()
     }
 }

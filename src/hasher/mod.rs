@@ -6,7 +6,9 @@ use crate::{
 
 pub mod sha256;
 
-pub trait Hasher: Default + Clone {
+// Implement PartialEq, although it makes no sense to compare two hasher.
+// But with that we can derive PartialEq automatically for our tests.
+pub trait Hasher: Default + Clone + PartialEq {
     const OUTPUT_SIZE: usize;
     fn get_hasher() -> Self;
     fn update(&mut self, data: &[u8]);

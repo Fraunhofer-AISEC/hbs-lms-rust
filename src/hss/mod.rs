@@ -8,9 +8,8 @@ use crate::{
     },
     extract_or, extract_or_return,
     hss::definitions::HssPublicKey,
-    lm_ots::parameter::LmotsParameter,
     util::dynamic_array::DynamicArray,
-    LmsParameter,
+    LmotsParameter, LmsParameter,
 };
 
 use self::{definitions::HssPrivateKey, signing::HssSignature};

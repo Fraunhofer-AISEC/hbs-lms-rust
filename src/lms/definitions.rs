@@ -4,6 +4,7 @@ use crate::constants::*;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::parameter::LmotsParameter;
+use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::util::dynamic_array::DynamicArray;
 use crate::util::helper::read_and_advance;
 use crate::util::ustr::str32u;
@@ -38,7 +39,12 @@ impl<OTS: LmotsParameter, LMS: LmsParameter> LmsPrivateKey<OTS, LMS> {
             return Err("All private keys already used.");
         }
         self.q += 1;
-        let key = lm_ots::generate_private_key(u32str(self.q - 1), self.I, self.seed);
+        let key = lm_ots::generate_private_key(
+            u32str(self.q - 1),
+            self.I,
+            self.seed,
+            LmotsAlgorithm::LmotsW1.construct_parameter().unwrap(), // TODO
+        );
         Ok(key)
     }
 

@@ -187,11 +187,15 @@ impl<H: Hasher> LmsPublicKey<H> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{hasher::sha256::Sha256Hasher, lm_ots::{self, parameters::LmotsAlgorithm}, lms::{
+    use crate::{
+        hasher::sha256::Sha256Hasher,
+        lm_ots::{self, parameters::LmotsAlgorithm},
+        lms::{
             self,
             keygen::{generate_private_key, generate_public_key},
             parameters::LmsAlgorithm,
-        }};
+        },
+    };
 
     use super::{LmsPrivateKey, LmsPublicKey};
 

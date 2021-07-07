@@ -7,7 +7,6 @@ use self::parameters::LmotsParameter;
 
 pub mod definitions;
 mod keygen;
-pub mod parameter;
 pub mod parameters;
 pub mod signing;
 pub mod verify;

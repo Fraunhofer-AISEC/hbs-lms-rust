@@ -2,9 +2,16 @@ pub mod definitions;
 pub mod signing;
 pub mod verify;
 
-use crate::{LmotsParameter, LmsParameter, constants::{
+use crate::{
+    constants::{
         MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_HSS_SIGNATURE_LENGTH, MAX_M,
-    }, extract_or, extract_or_return, hasher::Hasher, hss::definitions::HssPublicKey, util::dynamic_array::DynamicArray};
+    },
+    extract_or, extract_or_return,
+    hasher::Hasher,
+    hss::definitions::HssPublicKey,
+    util::dynamic_array::DynamicArray,
+    LmotsParameter, LmsParameter,
+};
 
 use self::{definitions::HssPrivateKey, signing::HssSignature};
 
@@ -46,10 +53,12 @@ pub fn hss_sign<H: Hasher, const L: usize>(
     Some(signature.to_binary_representation())
 }
 
-pub fn hss_keygen<H: Hasher, const L: usize>() -> Option<HssBinaryData>
-{
+pub fn hss_keygen<H: Hasher, const L: usize>(
+    lmots_parameter: LmotsParameter<H>,
+    lms_parameter: LmsParameter<H>,
+) -> Option<HssBinaryData> {
     let hss_key: HssPrivateKey<H, L> =
-        match crate::hss::definitions::HssPrivateKey::generate() {
+        match crate::hss::definitions::HssPrivateKey::generate(lmots_parameter, lms_parameter) {
             Err(_) => return None,
             Ok(x) => x,
         };
@@ -63,28 +72,33 @@ pub fn hss_keygen<H: Hasher, const L: usize>() -> Option<HssBinaryData>
 #[cfg(test)]
 mod tests {
 
+    use crate::hasher::sha256::Sha256Hasher;
     use crate::lm_ots;
     use crate::lms;
+    use crate::LmotsAlgorithm;
+    use crate::LmsAlgorithm;
 
     use super::*;
 
     #[test]
     fn test_signing() {
-        type LmotsType = lm_ots::parameter::LmotsSha256N32W2;
-        type LmsType = lms::parameter::LmsSha256M32H5;
+        type H = Sha256Hasher;
         const LEVEL: usize = 3;
 
-        let mut keys = hss_keygen::<LmotsType, LmsType, LEVEL>().expect("Should generate HSS keys");
+        let mut keys = hss_keygen::<H, LEVEL>(
+            LmotsAlgorithm::construct_default_parameter(),
+            LmsAlgorithm::construct_default_parameter(),
+        )
+        .expect("Should generate HSS keys");
 
         let mut message = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
 
-        let signature =
-            hss_sign::<LmotsType, LmsType, LEVEL>(&message, keys.private_key.as_mut_slice())
-                .expect("Signing should complete without error.");
+        let signature = hss_sign::<H, LEVEL>(&message, keys.private_key.as_mut_slice())
+            .expect("Signing should complete without error.");
 
-        assert!(hss_verify::<LmotsType, LmsType, LEVEL>(
+        assert!(hss_verify::<H, LEVEL>(
             &message,
             signature.as_slice(),
             keys.public_key.as_slice()
@@ -93,11 +107,8 @@ mod tests {
         message[0] = 33;
 
         assert!(
-            hss_verify::<LmotsType, LmsType, LEVEL>(
-                &message,
-                signature.as_slice(),
-                keys.public_key.as_slice()
-            ) == false
+            hss_verify::<H, LEVEL>(&message, signature.as_slice(), keys.public_key.as_slice())
+                == false
         );
     }
 }

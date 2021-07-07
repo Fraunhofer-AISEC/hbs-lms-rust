@@ -28,18 +28,18 @@ impl<H: Hasher, const L: usize> HssSignature<H, L> {
         private_key: &mut HssPrivateKey<H, L>,
         message: &[u8],
     ) -> Result<HssSignature<H, L>, &'static str> {
+        let lmots_parameter = private_key.private_key[0].lmots_parameter;
+        let lms_parameter = private_key.private_key[0].lms_parameter;
+
         let prv = &mut private_key.private_key;
         let public = &mut private_key.public_key;
         let sig = &mut private_key.signatures;
-
-        let lmots_parameter = private_key.private_key[0].lmots_parameter;
-        let lms_parameter = private_key.private_key[0].lms_parameter;
 
         // Regenerate the keys if neccessary
 
         let mut d = L;
 
-        while prv[d - 1].q == 2u32.pow(prv[d - 1].get_h() as u32) {
+        while prv[d - 1].q == 2u32.pow(prv[d - 1].lms_parameter.get_height() as u32) {
             d -= 1;
             if d == 0 {
                 return Err("All keys are exhausted.");
@@ -107,8 +107,8 @@ impl<H: Hasher, const L: usize> HssSignature<H, L> {
             let signed_public_key = extract_or_return!(
                 HssSignedPublicKey::from_binary_representation(&data[index..])
             );
-            signed_public_keys.push(signed_public_key);
             index += signed_public_key.len();
+            signed_public_keys.push(signed_public_key);
         }
 
         let signature = match LmsSignature::from_binary_representation(&data[index..]) {
@@ -171,7 +171,7 @@ impl<H: Hasher> HssSignedPublicKey<H> {
     }
 
     pub fn len(&self) -> usize {
-        let sig = self.sig;
+        let sig = &self.sig;
         let sig_size = lms_signature_length(
             sig.lmots_signature.lmots_parameter.get_n(),
             sig.lmots_signature.lmots_parameter.get_p() as usize,
@@ -187,17 +187,13 @@ impl<H: Hasher> HssSignedPublicKey<H> {
 #[cfg(test)]
 mod tests {
     use crate::hasher::sha256::Sha256Hasher;
-    use crate::lm_ots::parameter::*;
     use crate::lm_ots::parameters::LmotsAlgorithm;
-    use crate::lms::parameter::*;
     use crate::lms::parameters::LmsAlgorithm;
 
     use super::HssPrivateKey;
     use super::HssSignature;
     use super::HssSignedPublicKey;
 
-    type OTS = LmotsSha256N32W2;
-    type LMS = LmsSha256M32H5;
     const LEVEL: usize = 2;
 
     #[test]
@@ -226,15 +222,18 @@ mod tests {
 
     #[test]
     fn test_hss_signature_binary_representation() {
-        let mut private_key =
-            HssPrivateKey::<Sha256Hasher, LEVEL>::generate(LmotsAlgorithm::construct_default_parameter(), LmsAlgorithm::construct_default_parameter()).expect("Should geneerate HSS private key");
+        let mut private_key = HssPrivateKey::<Sha256Hasher, LEVEL>::generate(
+            LmotsAlgorithm::construct_default_parameter(),
+            LmsAlgorithm::construct_default_parameter(),
+        )
+        .expect("Should geneerate HSS private key");
         let message = [2, 56, 123, 22, 42, 49, 22];
 
         let signature =
             HssSignature::sign(&mut private_key, &message).expect("Should generate HSS signature");
 
         let binary_representation = signature.to_binary_representation();
-        let deserialized = HssSignature::<OTS, LMS, LEVEL>::from_binary_representation(
+        let deserialized = HssSignature::<Sha256Hasher, LEVEL>::from_binary_representation(
             binary_representation.as_slice(),
         )
         .expect("Deserialization should work.");

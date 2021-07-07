@@ -2,15 +2,12 @@ use crate::constants::D_INTR;
 use crate::constants::D_LEAF;
 use crate::constants::MAX_M;
 use crate::hasher::Hasher;
-use crate::lm_ots::parameter::LmotsParameter;
 use crate::lms::definitions::LmsPublicKey;
 use crate::lms::signing::LmsSignature;
 use crate::util::dynamic_array::DynamicArray;
 use crate::util::helper::is_odd;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
-
-use super::parameter::LmsParameter;
 
 pub fn verify<H: Hasher>(
     signature: &LmsSignature<H>,
@@ -80,9 +77,8 @@ fn generate_public_key_candiate<H: Hasher>(
 #[cfg(test)]
 mod tests {
     use crate::{
-        lm_ots::{self, parameters::LmotsAlgorithm},
+        lm_ots::parameters::LmotsAlgorithm,
         lms::{
-            self,
             keygen::{generate_private_key, generate_public_key},
             parameters::LmsAlgorithm,
             signing::LmsSignature,

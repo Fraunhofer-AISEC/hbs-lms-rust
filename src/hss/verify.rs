@@ -31,26 +31,24 @@ pub fn verify<H: Hasher, const L: usize>(
 
 #[cfg(test)]
 mod tests {
-    use crate::LmotsAlgorithm;
-    use crate::LmsAlgorithm;
-    use crate::hasher::Hasher;
     use crate::hasher::sha256::Sha256Hasher;
+    use crate::hasher::Hasher;
     use crate::hss::definitions::HssPrivateKey;
     use crate::hss::definitions::HssPublicKey;
     use crate::hss::signing::HssSignature;
     use crate::hss::verify::verify;
+    use crate::LmotsAlgorithm;
+    use crate::LmsAlgorithm;
 
-    use crate::lm_ots::parameter::*;
-    use crate::lms::parameter::*;
-
-    type OTS = LmotsSha256N32W2;
-    type LMS = LmsSha256M32H5;
     const LEVEL: usize = 2;
 
     #[test]
     fn test_hss_verify() {
-        let mut private_key =
-            HssPrivateKey::<Sha256Hasher, LEVEL>::generate(LmotsAlgorithm::construct_default_parameter(), LmsAlgorithm::construct_default_parameter()).expect("Should geneerate HSS private key");
+        let mut private_key = HssPrivateKey::<Sha256Hasher, LEVEL>::generate(
+            LmotsAlgorithm::construct_default_parameter(),
+            LmsAlgorithm::construct_default_parameter(),
+        )
+        .expect("Should geneerate HSS private key");
         let public_key = private_key.get_public_key();
 
         let mut message = [42, 57, 20, 59, 33, 1, 49, 3, 99, 130, 50, 20];

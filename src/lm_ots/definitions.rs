@@ -60,7 +60,7 @@ impl<H: Hasher> LmotsPublicKey<H> {
 #[cfg(test)]
 mod tests {
     use crate::hasher::sha256::Sha256Hasher;
-    use crate::lm_ots::{parameter, parameters};
+    use crate::lm_ots::parameters;
 
     macro_rules! generate_parameter_test {
         ($name:ident, $parameter:expr, $n:literal, $w:literal, $p:literal, $ls:literal, $type:literal) => {

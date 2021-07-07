@@ -1,7 +1,5 @@
 use crate::constants::MAX_M;
 use crate::hasher::Hasher;
-use crate::lm_ots::parameter::LmotsParameter;
-use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::util::dynamic_array::DynamicArray;
 use crate::{
     constants::{D_INTR, D_LEAF},
@@ -9,7 +7,6 @@ use crate::{
 };
 
 use super::definitions::LmsPrivateKey;
-use super::parameter::LmsParameter;
 
 pub fn get_tree_element<H: Hasher>(
     index: usize,

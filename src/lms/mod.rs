@@ -8,7 +8,6 @@ use self::parameters::LmsParameter;
 pub mod definitions;
 mod helper;
 mod keygen;
-pub mod parameter;
 pub mod parameters;
 pub mod signing;
 pub mod verify;

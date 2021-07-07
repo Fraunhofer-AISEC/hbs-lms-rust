@@ -7,8 +7,9 @@ mod lm_ots;
 mod lms;
 mod util;
 
-pub use crate::lm_ots::parameter::*;
-pub use crate::lms::parameter::*;
+pub use crate::hasher::sha256::Sha256Hasher;
+pub use crate::lm_ots::parameters::*;
+pub use crate::lms::parameters::*;
 
 pub use crate::hss::definitions::HssPublicKey;
 pub use crate::hss::signing::HssSignature;

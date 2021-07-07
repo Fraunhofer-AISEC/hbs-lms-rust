@@ -4,10 +4,12 @@ use crate::{
         MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_LMS_PUBLIC_KEY_LENGTH,
     },
     extract_or_return,
+    hasher::Hasher,
     lms::{
         self,
         definitions::{LmsPrivateKey, LmsPublicKey},
         generate_key_pair,
+        parameters::LmsParameter,
         signing::LmsSignature,
     },
     util::{
@@ -15,27 +17,30 @@ use crate::{
         helper::read_and_advance,
         ustr::{str32u, u32str},
     },
-    LmotsParameter, LmsParameter,
+    LmotsParameter,
 };
 
 #[derive(Default, PartialEq)]
-pub struct HssPrivateKey<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> {
-    pub private_key: DynamicArray<LmsPrivateKey<OTS, LMS>, L>,
-    pub public_key: DynamicArray<LmsPublicKey<OTS, LMS>, L>,
-    pub signatures: DynamicArray<LmsSignature<OTS, LMS>, L>, // Only L - 1 signatures needed
+pub struct HssPrivateKey<H: Hasher, const L: usize> {
+    pub private_key: DynamicArray<LmsPrivateKey<H>, L>,
+    pub public_key: DynamicArray<LmsPublicKey<H>, L>,
+    pub signatures: DynamicArray<LmsSignature<H>, L>, // Only L - 1 signatures needed
 }
 
-impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPrivateKey<OTS, LMS, L> {
-    pub fn generate() -> Result<Self, &'static str> {
-        let mut hss_private_key: HssPrivateKey<OTS, LMS, L> = Default::default();
+impl<H: Hasher, const L: usize> HssPrivateKey<H, L> {
+    pub fn generate(
+        lmots_parameter: LmotsParameter<H>,
+        lms_parameter: LmsParameter<H>,
+    ) -> Result<Self, &'static str> {
+        let mut hss_private_key: HssPrivateKey<H, L> = Default::default();
 
-        let lms_keypair = generate_key_pair();
+        let lms_keypair = generate_key_pair(lmots_parameter, lms_parameter);
 
         hss_private_key.private_key.push(lms_keypair.private_key);
         hss_private_key.public_key.push(lms_keypair.public_key);
 
         for i in 1..L {
-            let lms_keypair = generate_key_pair();
+            let lms_keypair = generate_key_pair(lmots_parameter, lms_parameter);
 
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);
@@ -53,7 +58,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPrivateKey<OTS, 
         // TODO: Remove
         // Add dummy signature to first key generation such that the private key size stays always the same.
         // This prevents for passing in a too short slice when the private key gets updated
-        let mut dummy_private_key = lms::generate_private_key();
+        let mut dummy_private_key = lms::generate_private_key(lmots_parameter, lms_parameter);
         let dummy_signature = lms::signing::LmsSignature::sign(&mut dummy_private_key, &[0])?;
         hss_private_key.signatures.push(dummy_signature);
 
@@ -85,7 +90,7 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPrivateKey<OTS, 
     }
 
     pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
-        let mut result: HssPrivateKey<OTS, LMS, L> = Default::default();
+        let mut result: HssPrivateKey<H, L> = Default::default();
 
         let mut index = 0;
 
@@ -101,8 +106,8 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPrivateKey<OTS, 
             let public_key = extract_or_return!(
                 lms::definitions::LmsPublicKey::from_binary_representation(&data[index..])
             );
+            index += lms_public_key_length(public_key.lms_parameter.get_m());
             result.public_key.push(public_key);
-            index += lms_public_key_length(<LMS>::M);
         }
 
         // Only L-1 signatures are used
@@ -110,19 +115,19 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPrivateKey<OTS, 
             let signature = extract_or_return!(
                 lms::signing::LmsSignature::from_binary_representation(&data[index..])
             );
-            result.signatures.push(signature);
             index += lms_signature_length(
-                <OTS>::N,
-                <OTS>::get_p() as usize,
-                <LMS>::M,
-                <LMS>::H as usize,
+                signature.lmots_signature.lmots_parameter.get_n(),
+                signature.lmots_signature.lmots_parameter.get_p() as usize,
+                signature.lms_parameter.get_m(),
+                signature.lms_parameter.get_height() as usize,
             );
+            result.signatures.push(signature);
         }
 
         Some(result)
     }
 
-    pub fn get_public_key(&self) -> HssPublicKey<OTS, LMS, L> {
+    pub fn get_public_key(&self) -> HssPublicKey<H, L> {
         HssPublicKey {
             public_key: self.public_key[0].clone(),
             level: L,
@@ -131,12 +136,12 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPrivateKey<OTS, 
 }
 
 #[derive(PartialEq)]
-pub struct HssPublicKey<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> {
-    pub public_key: LmsPublicKey<OTS, LMS>,
+pub struct HssPublicKey<H: Hasher, const L: usize> {
+    pub public_key: LmsPublicKey<H>,
     pub level: usize,
 }
 
-impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPublicKey<OTS, LMS, L> {
+impl<H: Hasher, const L: usize> HssPublicKey<H, L> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + MAX_LMS_PUBLIC_KEY_LENGTH }> {
         let mut result = DynamicArray::new();
 
@@ -166,24 +171,26 @@ impl<OTS: LmotsParameter, LMS: LmsParameter, const L: usize> HssPublicKey<OTS, L
 #[cfg(test)]
 mod tests {
     use super::{HssPrivateKey, HssPublicKey};
-    use crate::lm_ots::parameter::*;
-    use crate::lms::parameter::*;
+    use crate::hasher::sha256::Sha256Hasher;
+    use crate::lm_ots::parameters::LmotsAlgorithm;
+    use crate::lms::parameters::LmsAlgorithm;
 
-    type OTS = LmotsSha256N32W2;
-    type LMS = LmsSha256M32H5;
     const LEVEL: usize = 3;
 
     #[test]
     fn test_public_key_binary_representation() {
-        let public_key = crate::lms::generate_key_pair::<OTS, LMS>();
-        let public_key: HssPublicKey<OTS, LMS, 42> = HssPublicKey {
+        let public_key = crate::lms::generate_key_pair(
+            LmotsAlgorithm::construct_default_parameter(),
+            LmsAlgorithm::construct_default_parameter(),
+        );
+        let public_key: HssPublicKey<Sha256Hasher, 42> = HssPublicKey {
             level: 18,
             public_key: public_key.public_key,
         };
 
         let binary_representation = public_key.to_binary_representation();
 
-        let deserialized: HssPublicKey<OTS, LMS, 42> =
+        let deserialized: HssPublicKey<Sha256Hasher, 42> =
             HssPublicKey::from_binary_representation(binary_representation.as_slice())
                 .expect("Deserialization should work.");
 
@@ -192,11 +199,14 @@ mod tests {
 
     #[test]
     fn test_private_key_binary_representation() {
-        let private_key: HssPrivateKey<OTS, LMS, LEVEL> =
-            HssPrivateKey::generate().expect("Should generate HSS keys");
+        let private_key: HssPrivateKey<Sha256Hasher, LEVEL> = HssPrivateKey::generate(
+            LmotsAlgorithm::construct_default_parameter(),
+            LmsAlgorithm::construct_default_parameter(),
+        )
+        .expect("Should generate HSS keys");
 
         let serialized = private_key.to_binary_representation();
-        let deserialized: HssPrivateKey<OTS, LMS, LEVEL> =
+        let deserialized: HssPrivateKey<Sha256Hasher, LEVEL> =
             HssPrivateKey::from_binary_representation(serialized.as_slice())
                 .expect("Should deserialize HSS private key");
 

@@ -1,11 +1,10 @@
+use lms::Sha256Hasher;
+
 // This file is testing our implementation against the first testcase of the RFC
 
 #[test]
 fn test() {
-    type OTS = lms::LmotsSha256N32W8;
-    type LMS = lms::LmsSha256M32H5;
-
-    assert!(lms::hss_verify::<OTS, LMS, 2>(
+    assert!(lms::hss_verify::<Sha256Hasher, 2>(
         MESSAGE, SIGNATURE, PUBLIC_KEY
     ));
 }

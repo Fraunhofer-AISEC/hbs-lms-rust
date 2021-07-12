@@ -4,10 +4,7 @@ use std::{
     process::Command,
 };
 
-use lms::{
-    hss_keygen, hss_sign, hss_verify, LmotsAlgorithm, LmsAlgorithm,
-    Sha256Hasher,
-};
+use lms::{hss_keygen, hss_sign, hss_verify, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
 use tempfile::TempDir;
 
 const MESSAGE_FILE_NAME: &str = "message.txt";

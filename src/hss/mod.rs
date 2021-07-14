@@ -1,4 +1,5 @@
 pub mod definitions;
+pub mod rfc_private_key;
 pub mod signing;
 pub mod verify;
 

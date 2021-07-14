@@ -2,6 +2,7 @@ use core::marker::PhantomData;
 
 use crate::hasher::{sha256::Sha256Hasher, Hasher};
 
+#[derive(Clone, Copy)]
 pub enum LmsAlgorithm {
     LmsReserved = 0,
     LmsH5 = 5,
@@ -9,6 +10,25 @@ pub enum LmsAlgorithm {
     LmsH15 = 7,
     LmsH20 = 8,
     LmsH25 = 9,
+}
+
+impl Default for LmsAlgorithm {
+    fn default() -> Self {
+        LmsAlgorithm::LmsReserved
+    }
+}
+
+impl From<u32> for LmsAlgorithm {
+    fn from(_type: u32) -> Self {
+        match _type {
+            5 => LmsAlgorithm::LmsH5,
+            6 => LmsAlgorithm::LmsH10,
+            7 => LmsAlgorithm::LmsH15,
+            8 => LmsAlgorithm::LmsH20,
+            9 => LmsAlgorithm::LmsH25,
+            _ => LmsAlgorithm::LmsReserved,
+        }
+    }
 }
 
 impl LmsAlgorithm {

@@ -1,5 +1,7 @@
 use core::mem::size_of;
 
+use crate::hss::rfc_private_key::RfcPrivateKey;
+
 pub type IType = [u8; 16];
 pub type QType = [u8; 4];
 pub type Seed = [u8; 32];
@@ -14,6 +16,8 @@ pub const MAX_P: usize = 265;
 
 pub const MAX_M: usize = 32;
 pub const MAX_H: usize = 25;
+
+pub const RFC_PRIVATE_KEY_SIZE: usize = 8 + MAX_HSS_LEVELS + size_of::<Seed>() + size_of::<IType>();
 
 pub const MAX_LMS_PRIVATE_KEY_LENGTH: usize = lms_private_key_length();
 pub const MAX_LMS_PUBLIC_KEY_LENGTH: usize = lms_public_key_length(MAX_M);
@@ -31,12 +35,12 @@ pub const fn lms_private_key_length() -> usize {
     4 + 4 + size_of::<IType>() + 4 + size_of::<Seed>()
 }
 
-pub const MAX_L: usize = 8;
+pub const MAX_HSS_LEVELS: usize = 8;
 
-pub const MAX_HSS_PRIVATE_KEY_LENGTH: usize = MAX_LMS_PRIVATE_KEY_LENGTH * MAX_L;
-pub const MAX_HSS_PUBLIC_KEY_LENGTH: usize = (4 + 4 + 16 + MAX_M) * MAX_L;
+pub const MAX_HSS_PRIVATE_KEY_LENGTH: usize = MAX_LMS_PRIVATE_KEY_LENGTH * MAX_HSS_LEVELS;
+pub const MAX_HSS_PUBLIC_KEY_LENGTH: usize = (4 + 4 + 16 + MAX_M) * MAX_HSS_LEVELS;
 pub const MAX_HSS_SIGNATURE_LENGTH: usize =
-    (4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H)) * MAX_L;
+    (4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H)) * MAX_HSS_LEVELS;
 
 pub const MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH: usize =
     MAX_HSS_PRIVATE_KEY_LENGTH + MAX_HSS_PUBLIC_KEY_LENGTH + MAX_HSS_SIGNATURE_LENGTH;

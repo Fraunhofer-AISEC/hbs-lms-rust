@@ -6,12 +6,31 @@ use crate::{
     util::{coef::coef, dynamic_array::DynamicArray},
 };
 
+#[derive(Clone, Copy)]
 pub enum LmotsAlgorithm {
     LmotsReserved = 0,
     LmotsW1 = 1,
     LmotsW2 = 2,
     LmotsW4 = 3,
     LmotsW8 = 4,
+}
+
+impl Default for LmotsAlgorithm {
+    fn default() -> Self {
+        LmotsAlgorithm::LmotsReserved
+    }
+}
+
+impl From<u32> for LmotsAlgorithm {
+    fn from(_type: u32) -> Self {
+        match _type {
+            1 => LmotsAlgorithm::LmotsW1,
+            2 => LmotsAlgorithm::LmotsW2,
+            3 => LmotsAlgorithm::LmotsW4,
+            4 => LmotsAlgorithm::LmotsW8,
+            _ => LmotsAlgorithm::LmotsReserved,
+        }
+    }
 }
 
 impl LmotsAlgorithm {

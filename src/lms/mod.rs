@@ -1,43 +1,41 @@
-use crate::lm_ots::parameter::LmotsParameter;
+use crate::hasher::Hasher;
+use crate::lm_ots::parameters::LmotsParameter;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
 
-use self::parameter::LmsParameter;
-use self::signing::LmsSignature;
+use self::parameters::LmsParameter;
 
 pub mod definitions;
 mod helper;
 mod keygen;
-pub mod parameter;
+pub mod parameters;
 pub mod signing;
 pub mod verify;
 
-pub fn generate_private_key<OTS: LmotsParameter, LMS: LmsParameter>() -> LmsPrivateKey<OTS, LMS> {
-    keygen::generate_private_key()
+pub struct LmsKeyPair<H: Hasher> {
+    pub private_key: LmsPrivateKey<H>,
+    pub public_key: LmsPublicKey<H>,
 }
 
-pub fn generate_public_key<OTS: LmotsParameter, LMS: LmsParameter>(
-    private_key: &LmsPrivateKey<OTS, LMS>,
-) -> LmsPublicKey<OTS, LMS> {
+pub fn generate_key_pair<H: Hasher>(
+    lmots_parameter: LmotsParameter<H>,
+    lms_parameter: LmsParameter<H>,
+) -> LmsKeyPair<H> {
+    let private_key = generate_private_key(lmots_parameter, lms_parameter);
+    let public_key = generate_public_key(&private_key);
+    LmsKeyPair {
+        private_key,
+        public_key,
+    }
+}
+
+pub fn generate_private_key<H: Hasher>(
+    lmots_parameter: LmotsParameter<H>,
+    lms_parameter: LmsParameter<H>,
+) -> LmsPrivateKey<H> {
+    keygen::generate_private_key(lmots_parameter, lms_parameter)
+}
+
+pub fn generate_public_key<H: Hasher>(private_key: &LmsPrivateKey<H>) -> LmsPublicKey<H> {
     keygen::generate_public_key(private_key)
-}
-
-pub fn verify<OTS: LmotsParameter, LMS: LmsParameter>(
-    message: &[u8],
-    signature: &[u8],
-    public_key: &[u8],
-) -> bool {
-    let public_key = match LmsPublicKey::<OTS, LMS>::from_binary_representation(public_key) {
-        None => return false,
-        Some(x) => x,
-    };
-
-    let signature = match LmsSignature::from_binary_representation(signature) {
-        None => return false,
-        Some(x) => x,
-    };
-
-    let result = crate::lms::verify::verify(&signature, &public_key, message);
-
-    result.is_ok()
 }

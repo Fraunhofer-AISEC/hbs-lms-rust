@@ -1,146 +1,113 @@
+pub mod definitions;
 pub mod parser;
+pub mod signing;
+pub mod verify;
 
 use crate::{
-    constants::{MAX_H, MAX_M, MAX_N, MAX_P, MAX_PRIVATE_KEY_LENGTH},
-    lm_ots::parameter::LmotsParameter,
-    lms,
-    util::{
-        dynamic_array::DynamicArray,
-        ustr::{str32u, u32str},
+    constants::{
+        MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_HSS_SIGNATURE_LENGTH, MAX_M,
     },
-    LmsParameter,
+    extract_or, extract_or_return,
+    hasher::Hasher,
+    hss::definitions::HssPublicKey,
+    util::dynamic_array::DynamicArray,
+    LmotsParameter, LmsParameter,
 };
+
+use self::{definitions::HssPrivateKey, signing::HssSignature};
 
 pub struct HssBinaryData {
     pub public_key: DynamicArray<u8, { 4 + 4 + 4 + 16 + MAX_M }>,
-    pub private_key: DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH>,
+    pub private_key: DynamicArray<u8, MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH>,
 }
 
-pub struct HssSignResult {
-    pub advanced_private_key: DynamicArray<u8, MAX_PRIVATE_KEY_LENGTH>,
-    pub signature:
-        DynamicArray<u8, { 4 + 4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H) }>,
-}
-
-pub fn hss_verify<OTS: LmotsParameter, LMS: LmsParameter>(
+pub fn hss_verify<H: Hasher, const L: usize>(
     message: &[u8],
     signature: &[u8],
     public_key: &[u8],
 ) -> bool {
-    // Todo: Check if HSS Levels = 1 and then forward data;
+    let signature: HssSignature<H, L> =
+        extract_or!(HssSignature::from_binary_representation(signature), false);
+    let public_key: HssPublicKey<H, L> =
+        extract_or!(HssPublicKey::from_binary_representation(public_key), false);
 
-    if public_key.len() <= 4 {
-        return false;
-    }
-
-    let hss_levels = str32u(&public_key[0..4]);
-
-    // Needed to be compatible with reference implementation
-    if hss_levels != 1 {
-        panic!("HSS Levels greater than 1 are note supported yet.");
-    }
-
-    if signature.len() <= 4 {
-        return false;
-    }
-
-    let signature_hss_levels = str32u(&signature[0..4]);
-
-    // Needed to be compatible with reference implementation
-    if signature_hss_levels != 0 {
-        panic!("HSS Levels greater than 1 are note supported yet.")
-    }
-
-    crate::lms::verify::<OTS, LMS>(message, &signature[4..], &public_key[4..])
+    crate::hss::verify::verify(&signature, &public_key, &message).is_ok()
 }
 
-pub fn hss_sign<OTS: LmotsParameter, LMS: LmsParameter>(
+pub fn hss_sign<H: Hasher, const L: usize>(
     message: &[u8],
-    private_key: &[u8],
-) -> Option<HssSignResult> {
-    let mut private_key =
-        match lms::definitions::LmsPrivateKey::<OTS, LMS>::from_binary_representation(private_key) {
-            None => return None,
-            Some(x) => x,
-        };
+    private_key: &mut [u8],
+) -> Option<DynamicArray<u8, MAX_HSS_SIGNATURE_LENGTH>> {
+    let mut parsed_private_key: HssPrivateKey<H, L> =
+        extract_or_return!(HssPrivateKey::from_binary_representation(private_key));
 
-    let signature = lms::signing::LmsSignature::sign(&mut private_key, message);
-
-    if signature.is_err() {
-        return None;
-    }
-
-    let signature = signature.unwrap();
-
-    let mut hss_signature = DynamicArray::new();
-    let hss_levels = u32str(0); // Needed to be compatible with reference implementation
-
-    hss_signature.append(&hss_levels);
-    hss_signature.append(&signature.to_binary_representation().get_slice());
-
-    let result = HssSignResult {
-        advanced_private_key: private_key.to_binary_representation(),
-        signature: hss_signature,
+    let signature = match HssSignature::sign(&mut parsed_private_key, &message) {
+        Err(_) => return None,
+        Ok(x) => x,
     };
 
-    Some(result)
+    // Overwrite advanced private key
+    // private_key.clear();
+    // private_key.append(parsed_private_key.to_binary_representation().as_slice());
+    private_key.copy_from_slice(parsed_private_key.to_binary_representation().as_slice());
+
+    Some(signature.to_binary_representation())
 }
 
-pub fn hss_keygen<OTS: LmotsParameter, LMS: LmsParameter>() -> HssBinaryData {
-    let private_key = crate::lms::generate_private_key::<OTS, LMS>();
-    let public_key = crate::lms::generate_public_key(&private_key);
+pub fn hss_keygen<H: Hasher, const L: usize>(
+    lmots_parameter: LmotsParameter<H>,
+    lms_parameter: LmsParameter<H>,
+) -> Option<HssBinaryData> {
+    let hss_key: HssPrivateKey<H, L> =
+        match crate::hss::definitions::HssPrivateKey::generate(lmots_parameter, lms_parameter) {
+            Err(_) => return None,
+            Ok(x) => x,
+        };
 
-    let private_key = private_key.to_binary_representation();
-    let public_key = public_key.to_binary_representation();
-
-    let mut hss_public_key = DynamicArray::new();
-    let hss_levels = u32str(1); // Needed to be compatible with reference implementation
-
-    hss_public_key.append(&hss_levels);
-    hss_public_key.append(&public_key.get_slice());
-
-    HssBinaryData {
-        private_key,
-        public_key: hss_public_key,
-    }
+    Some(HssBinaryData {
+        private_key: hss_key.to_binary_representation(),
+        public_key: hss_key.get_public_key().to_binary_representation(),
+    })
 }
 
 #[cfg(test)]
 mod tests {
 
-    use crate::lm_ots;
+    use crate::hasher::sha256::Sha256Hasher;
+    use crate::LmotsAlgorithm;
+    use crate::LmsAlgorithm;
 
     use super::*;
 
     #[test]
     fn test_signing() {
-        type LmotsType = lm_ots::parameter::LmotsSha256N32W2;
-        type LmsType = lms::parameter::LmsSha256M32H5;
+        type H = Sha256Hasher;
+        const LEVEL: usize = 3;
 
-        let keys = hss_keygen::<LmotsType, LmsType>();
+        let mut keys = hss_keygen::<H, LEVEL>(
+            LmotsAlgorithm::construct_default_parameter(),
+            LmsAlgorithm::construct_default_parameter(),
+        )
+        .expect("Should generate HSS keys");
 
         let mut message = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
 
-        let signature = hss_sign::<LmotsType, LmsType>(&message, &keys.private_key.get_slice())
-            .expect("Signing should complete without error.")
-            .signature;
+        let signature = hss_sign::<H, LEVEL>(&message, keys.private_key.as_mut_slice())
+            .expect("Signing should complete without error.");
 
-        assert!(hss_verify::<LmotsType, LmsType>(
+        assert!(hss_verify::<H, LEVEL>(
             &message,
-            signature.get_slice(),
-            keys.public_key.get_slice()
+            signature.as_slice(),
+            keys.public_key.as_slice()
         ));
 
         message[0] = 33;
 
         assert!(
-            hss_verify::<LmotsType, LmsType>(
-                &message,
-                signature.get_slice(),
-                keys.public_key.get_slice()
-            ) == false
+            hss_verify::<H, LEVEL>(&message, signature.as_slice(), keys.public_key.as_slice())
+                == false
         );
     }
 }

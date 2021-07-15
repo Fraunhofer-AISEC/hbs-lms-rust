@@ -7,7 +7,7 @@ use self::parameters::LmsParameter;
 
 pub mod definitions;
 mod helper;
-mod keygen;
+pub mod keygen;
 pub mod parameters;
 pub mod signing;
 pub mod verify;
@@ -21,21 +21,10 @@ pub fn generate_key_pair<H: Hasher>(
     lmots_parameter: LmotsParameter<H>,
     lms_parameter: LmsParameter<H>,
 ) -> LmsKeyPair<H> {
-    let private_key = generate_private_key(lmots_parameter, lms_parameter);
-    let public_key = generate_public_key(&private_key);
+    let private_key = keygen::generate_private_key(lmots_parameter, lms_parameter);
+    let public_key = keygen::generate_public_key(&private_key);
     LmsKeyPair {
         private_key,
         public_key,
     }
-}
-
-pub fn generate_private_key<H: Hasher>(
-    lmots_parameter: LmotsParameter<H>,
-    lms_parameter: LmsParameter<H>,
-) -> LmsPrivateKey<H> {
-    keygen::generate_private_key(lmots_parameter, lms_parameter)
-}
-
-pub fn generate_public_key<H: Hasher>(private_key: &LmsPrivateKey<H>) -> LmsPublicKey<H> {
-    keygen::generate_public_key(private_key)
 }

@@ -58,7 +58,8 @@ impl<H: Hasher, const L: usize> HssPrivateKey<H, L> {
         // TODO: Remove
         // Add dummy signature to first key generation such that the private key size stays always the same.
         // This prevents for passing in a too short slice when the private key gets updated
-        let mut dummy_private_key = lms::generate_private_key(lmots_parameter, lms_parameter);
+        let mut dummy_private_key =
+            lms::keygen::generate_private_key(lmots_parameter, lms_parameter);
         let dummy_signature = lms::signing::LmsSignature::sign(&mut dummy_private_key, &[0])?;
         hss_private_key.signatures.push(dummy_signature);
 

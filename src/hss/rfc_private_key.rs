@@ -12,6 +12,10 @@ use crate::{
     LmotsAlgorithm, LmsAlgorithm, Sha256Hasher,
 };
 
+/**
+To be compatible with the reference implementation
+ */
+
 #[derive(Default)]
 pub struct RfcPrivateKey {
     pub q: u64,

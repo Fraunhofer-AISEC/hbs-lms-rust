@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 
 use crate::{
-    constants::MAX_N,
+    constants::MAX_HASH,
     hasher::{sha256::Sha256Hasher, Hasher},
     util::{coef::coef, dynamic_array::DynamicArray},
 };
@@ -120,7 +120,7 @@ impl<H: Hasher> LmotsParameter<H> {
     pub fn get_appended_with_checksum(
         &self,
         byte_string: &[u8],
-    ) -> DynamicArray<u8, { MAX_N + 2 }> {
+    ) -> DynamicArray<u8, { MAX_HASH + 2 }> {
         let mut result = DynamicArray::new();
 
         let checksum = self.checksum(byte_string);

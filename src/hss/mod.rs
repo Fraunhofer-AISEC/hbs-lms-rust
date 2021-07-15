@@ -1,11 +1,12 @@
 pub mod definitions;
 pub mod rfc_private_key;
+mod seed_derive;
 pub mod signing;
 pub mod verify;
 
 use crate::{
     constants::{
-        MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_HSS_SIGNATURE_LENGTH, MAX_M,
+        MAX_HASH, MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_HSS_SIGNATURE_LENGTH,
     },
     extract_or, extract_or_return,
     hasher::Hasher,
@@ -17,7 +18,7 @@ use crate::{
 use self::{definitions::HssPrivateKey, signing::HssSignature};
 
 pub struct HssBinaryData {
-    pub public_key: DynamicArray<u8, { 4 + 4 + 4 + 16 + MAX_M }>,
+    pub public_key: DynamicArray<u8, { 4 + 4 + 4 + 16 + MAX_HASH }>,
     pub private_key: DynamicArray<u8, MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH>,
 }
 

@@ -1,4 +1,4 @@
-use crate::constants::MAX_M;
+use crate::constants::MAX_HASH;
 use crate::hasher::Hasher;
 use crate::util::dynamic_array::DynamicArray;
 use crate::{
@@ -11,7 +11,7 @@ use super::definitions::LmsPrivateKey;
 pub fn get_tree_element<H: Hasher>(
     index: usize,
     private_key: &LmsPrivateKey<H>,
-) -> DynamicArray<u8, MAX_M> {
+) -> DynamicArray<u8, MAX_HASH> {
     let mut hasher = <H>::get_hasher();
 
     hasher.update(&private_key.I);

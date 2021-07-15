@@ -1,6 +1,6 @@
 use crate::constants::D_INTR;
 use crate::constants::D_LEAF;
-use crate::constants::MAX_M;
+use crate::constants::MAX_HASH;
 use crate::hasher::Hasher;
 use crate::lms::definitions::LmsPublicKey;
 use crate::lms::signing::LmsSignature;
@@ -33,7 +33,7 @@ fn generate_public_key_candiate<H: Hasher>(
     signature: &LmsSignature<H>,
     public_key: &LmsPublicKey<H>,
     message: &[u8],
-) -> Result<DynamicArray<u8, MAX_M>, &'static str> {
+) -> Result<DynamicArray<u8, MAX_HASH>, &'static str> {
     let mut hasher = <H>::get_hasher();
 
     let leafs = signature.lms_parameter.number_of_lm_ots_keys() as u32;

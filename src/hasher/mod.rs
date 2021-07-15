@@ -1,5 +1,5 @@
 use crate::{
-    constants::MAX_N,
+    constants::MAX_HASH,
     constants::{IType, QType},
     util::dynamic_array::DynamicArray,
 };
@@ -12,8 +12,8 @@ pub trait Hasher: Default + Clone + PartialEq {
     const OUTPUT_SIZE: usize;
     fn get_hasher() -> Self;
     fn update(&mut self, data: &[u8]);
-    fn finalize(self) -> DynamicArray<u8, MAX_N>;
-    fn finalize_reset(&mut self) -> DynamicArray<u8, MAX_N>;
+    fn finalize(self) -> DynamicArray<u8, MAX_HASH>;
+    fn finalize_reset(&mut self) -> DynamicArray<u8, MAX_HASH>;
 
     #[allow(non_snake_case)]
     fn do_hash_chain(

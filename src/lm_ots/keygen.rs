@@ -4,7 +4,7 @@ use crate::constants::*;
 use crate::hasher::Hasher;
 use crate::util::dynamic_array::DynamicArray;
 use crate::{
-    constants::{D_PBLC, MAX_N, MAX_P},
+    constants::{D_PBLC, MAX_HASH, MAX_P},
     util::ustr::*,
 };
 
@@ -38,7 +38,7 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
     let max_word_index: usize = (1 << lmots_parameter.get_winternitz()) - 1;
     let key = &private_key.key;
 
-    let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
+    let mut y: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
 
     for i in 0..lmots_parameter.get_p() as usize {
         let mut tmp = key[i].clone();

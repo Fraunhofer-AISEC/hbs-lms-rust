@@ -1,7 +1,7 @@
 use sha2::{Digest, Sha256};
 
 use crate::{
-    constants::MAX_N,
+    constants::MAX_HASH,
     constants::{IType, QType},
     util::{
         dynamic_array::DynamicArray,
@@ -35,11 +35,11 @@ impl Hasher for Sha256Hasher {
         self.hasher.update(data);
     }
 
-    fn finalize(self) -> DynamicArray<u8, MAX_N> {
+    fn finalize(self) -> DynamicArray<u8, MAX_HASH> {
         DynamicArray::from_slice(self.hasher.finalize().iter().as_slice())
     }
 
-    fn finalize_reset(&mut self) -> DynamicArray<u8, MAX_N> {
+    fn finalize_reset(&mut self) -> DynamicArray<u8, MAX_HASH> {
         DynamicArray::from_slice(self.hasher.finalize_reset().iter().as_slice())
     }
 

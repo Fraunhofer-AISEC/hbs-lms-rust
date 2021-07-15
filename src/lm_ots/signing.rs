@@ -3,7 +3,7 @@ use crate::hasher::Hasher;
 use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::util::dynamic_array::DynamicArray;
 use crate::{
-    constants::{D_MESG, MAX_N, MAX_P},
+    constants::{D_MESG, MAX_HASH, MAX_P},
     util::{
         coef::coef,
         random::get_random,
@@ -18,8 +18,8 @@ use super::parameters::LmotsParameter;
 #[allow(non_snake_case)]
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct LmotsSignature<H: Hasher> {
-    pub C: DynamicArray<u8, MAX_N>,
-    pub y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>,
+    pub C: DynamicArray<u8, MAX_HASH>,
+    pub y: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P>,
     pub lmots_parameter: LmotsParameter<H>,
 }
 
@@ -44,10 +44,10 @@ impl<H: Hasher> LmotsSignature<H> {
         hasher.update(&C.as_slice());
         hasher.update(message);
 
-        let Q: DynamicArray<u8, MAX_N> = hasher.finalize_reset();
+        let Q: DynamicArray<u8, MAX_HASH> = hasher.finalize_reset();
         let Q_and_checksum = lmots_parameter.get_appended_with_checksum(&Q.as_slice());
 
-        let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
+        let mut y: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
 
         for i in 0..lmots_parameter.get_p() {
             let a = coef(
@@ -69,7 +69,9 @@ impl<H: Hasher> LmotsSignature<H> {
         }
     }
 
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + MAX_N + (MAX_N * MAX_P) }> {
+    pub fn to_binary_representation(
+        &self,
+    ) -> DynamicArray<u8, { 4 + MAX_HASH + (MAX_HASH * MAX_P) }> {
         let mut result = DynamicArray::new();
 
         result.append(&u32str(self.lmots_parameter.get_type()));
@@ -132,7 +134,7 @@ impl<H: Hasher> LmotsSignature<H> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        constants::{MAX_N, MAX_P},
+        constants::{MAX_HASH, MAX_P},
         lm_ots::parameters::LmotsAlgorithm,
         util::dynamic_array::DynamicArray,
     };
@@ -144,7 +146,7 @@ mod tests {
         let lmots_parameter = LmotsAlgorithm::construct_default_parameter();
 
         let mut c = DynamicArray::new();
-        let mut y: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
+        let mut y: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
 
         for i in 0..lmots_parameter.get_n() as usize {
             c.push(i as u8);

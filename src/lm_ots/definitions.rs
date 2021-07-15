@@ -1,5 +1,5 @@
 use crate::{
-    constants::{IType, QType, MAX_N, MAX_P},
+    constants::{IType, QType, MAX_HASH, MAX_P},
     hasher::Hasher,
     util::dynamic_array::DynamicArray,
 };
@@ -11,7 +11,7 @@ use super::parameters::LmotsParameter;
 pub struct LmotsPrivateKey<H: Hasher> {
     pub I: IType,
     pub q: QType,
-    pub key: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>, // [[0u8; n]; p];
+    pub key: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P>, // [[0u8; n]; p];
     pub lmots_parameter: LmotsParameter<H>,
 }
 
@@ -20,7 +20,7 @@ impl<H: Hasher> LmotsPrivateKey<H> {
     pub fn new(
         I: IType,
         q: QType,
-        key: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P>,
+        key: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P>,
         lmots_parameter: LmotsParameter<H>,
     ) -> Self {
         LmotsPrivateKey {
@@ -36,7 +36,7 @@ impl<H: Hasher> LmotsPrivateKey<H> {
 pub struct LmotsPublicKey<H: Hasher> {
     pub I: IType,
     pub q: QType,
-    pub key: DynamicArray<u8, MAX_N>,
+    pub key: DynamicArray<u8, MAX_HASH>,
     pub lmots_parameter: LmotsParameter<H>,
 }
 
@@ -45,7 +45,7 @@ impl<H: Hasher> LmotsPublicKey<H> {
     pub fn new(
         I: IType,
         q: QType,
-        key: DynamicArray<u8, MAX_N>,
+        key: DynamicArray<u8, MAX_HASH>,
         lmots_parameter: LmotsParameter<H>,
     ) -> Self {
         LmotsPublicKey {

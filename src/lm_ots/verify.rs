@@ -31,7 +31,7 @@ pub fn generate_public_key_canditate<H: Hasher>(
     I: &IType,
     q: &QType,
     message: &[u8],
-) -> DynamicArray<u8, MAX_N> {
+) -> DynamicArray<u8, MAX_HASH> {
     let lmots_parameter = signature.lmots_parameter;
     let mut hasher = lmots_parameter.get_hasher();
 
@@ -44,7 +44,7 @@ pub fn generate_public_key_canditate<H: Hasher>(
     let Q = hasher.finalize_reset();
     let Q_and_checksum = lmots_parameter.get_appended_with_checksum(Q.as_slice());
 
-    let mut z: DynamicArray<DynamicArray<u8, MAX_N>, MAX_P> = DynamicArray::new();
+    let mut z: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
     let max_w = 2usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
 
     for i in 0..lmots_parameter.get_p() {

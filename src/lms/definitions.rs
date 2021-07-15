@@ -111,7 +111,7 @@ impl<H: Hasher> LmsPrivateKey<H> {
 #[allow(non_snake_case)]
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct LmsPublicKey<H: Hasher> {
-    pub key: DynamicArray<u8, MAX_M>,
+    pub key: DynamicArray<u8, MAX_HASH>,
     pub I: IType,
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
@@ -120,7 +120,7 @@ pub struct LmsPublicKey<H: Hasher> {
 #[allow(non_snake_case)]
 impl<H: Hasher> LmsPublicKey<H> {
     pub fn new(
-        public_key: DynamicArray<u8, MAX_M>,
+        public_key: DynamicArray<u8, MAX_HASH>,
         I: IType,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
@@ -168,7 +168,7 @@ impl<H: Hasher> LmsPublicKey<H> {
         let mut initial: IType = [0u8; 16];
         initial.clone_from_slice(read_and_advance(data, 16, &mut data_index));
 
-        let mut key: DynamicArray<u8, MAX_M> = DynamicArray::new();
+        let mut key: DynamicArray<u8, MAX_HASH> = DynamicArray::new();
 
         key.append(&data[data_index..data_index + lms_parameter.get_m() as usize]);
 

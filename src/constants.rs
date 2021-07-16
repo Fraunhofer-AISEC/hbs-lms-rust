@@ -39,7 +39,6 @@ pub const MAX_H: usize = 25;
 
 pub const RFC_PRIVATE_KEY_SIZE: usize = 8 + MAX_HSS_LEVELS + size_of::<Seed>();
 
-pub const MAX_LMS_PRIVATE_KEY_LENGTH: usize = lms_private_key_length();
 pub const MAX_LMS_PUBLIC_KEY_LENGTH: usize = lms_public_key_length(MAX_HASH);
 pub const MAX_LMS_SIGNATURE_LENGTH: usize = lms_signature_length(MAX_HASH, MAX_P, MAX_HASH, MAX_H);
 
@@ -51,16 +50,7 @@ pub const fn lms_public_key_length(m: usize) -> usize {
     4 + 4 + 16 + m
 }
 
-pub const fn lms_private_key_length() -> usize {
-    4 + 4 + size_of::<IType>() + 4 + size_of::<Seed>()
-}
-
 pub const MAX_HSS_LEVELS: usize = 8;
 
-pub const MAX_HSS_PRIVATE_KEY_LENGTH: usize = MAX_LMS_PRIVATE_KEY_LENGTH * MAX_HSS_LEVELS;
-pub const MAX_HSS_PUBLIC_KEY_LENGTH: usize = (4 + 4 + 16 + MAX_HASH) * MAX_HSS_LEVELS;
 pub const MAX_HSS_SIGNATURE_LENGTH: usize =
     (4 + (4 + MAX_HASH + (MAX_HASH * MAX_P)) + 4 + (MAX_HASH * MAX_H)) * MAX_HSS_LEVELS;
-
-pub const MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH: usize =
-    MAX_HSS_PRIVATE_KEY_LENGTH + MAX_HSS_PUBLIC_KEY_LENGTH + MAX_HSS_SIGNATURE_LENGTH;

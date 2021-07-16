@@ -41,7 +41,7 @@ mod tests {
 
     #[test]
     fn test_hss_verify() {
-        let mut private_key = RfcPrivateKey::<Sha256Hasher>::generate(&[
+        let private_key = RfcPrivateKey::<Sha256Hasher>::generate(&[
             HssParameter::construct_default_parameters(),
             HssParameter::construct_default_parameters(),
         ])

@@ -56,54 +56,6 @@ impl<H: Hasher> LmsPrivateKey<H> {
 
         Ok(key)
     }
-
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_LMS_PRIVATE_KEY_LENGTH> {
-        let mut result = DynamicArray::new();
-
-        result.append(&u32str(self.lms_parameter.get_type()));
-        result.append(&u32str(self.lmots_parameter.get_type()));
-
-        result.append(&self.I);
-        result.append(&u32str(self.q));
-        result.append(&self.seed);
-
-        result
-    }
-
-    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
-        let mut consumed_data = data;
-
-        let lms_type = str32u(&consumed_data[..4]);
-        consumed_data = &consumed_data[4..];
-
-        let lms_parameter = extract_or_return!(LmsAlgorithm::get_from_type(lms_type));
-
-        let lm_ots_type = str32u(&consumed_data[..4]);
-        consumed_data = &consumed_data[4..];
-
-        let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type(lm_ots_type));
-
-        let mut initial: IType = [0u8; 16];
-        initial.copy_from_slice(&consumed_data[..16]);
-        consumed_data = &consumed_data[16..];
-
-        let q = str32u(&consumed_data[..4]);
-        consumed_data = &consumed_data[4..];
-
-        let mut seed: Seed = [0u8; 32];
-        seed.copy_from_slice(&consumed_data[..32]);
-        // consumed_data = &consumed_data[32..];
-
-        let key = LmsPrivateKey {
-            seed,
-            I: initial,
-            q,
-            lmots_parameter,
-            lms_parameter,
-        };
-
-        Some(key)
-    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -190,21 +142,7 @@ mod tests {
         },
     };
 
-    use super::{LmsPrivateKey, LmsPublicKey};
-
-    #[test]
-    fn test_private_key_binary_representation() {
-        let private_key = generate_private_key::<Sha256Hasher>(
-            LmotsAlgorithm::construct_default_parameter(),
-            LmsAlgorithm::construct_default_parameter(),
-        );
-
-        let serialized = private_key.to_binary_representation();
-        let deserialized =
-            LmsPrivateKey::from_binary_representation(&serialized.as_slice()).unwrap();
-
-        assert!(private_key == deserialized);
-    }
+    use super::LmsPublicKey;
 
     #[test]
     fn test_public_key_binary_representation() {

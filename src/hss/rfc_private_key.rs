@@ -14,7 +14,7 @@ use crate::{
         random::get_random,
         ustr::{str64u, u64str},
     },
-    HssParameter, LmotsAlgorithm, LmotsParameter, LmsAlgorithm, LmsParameter, Sha256Hasher,
+    HssParameter, LmotsAlgorithm, LmsAlgorithm,
 };
 
 /**
@@ -51,11 +51,11 @@ impl SeedAndI {
 
 impl<H: Hasher> RfcPrivateKey<H> {
     pub fn generate(parameters: &[HssParameter<H>]) -> Option<Self> {
-        let mut private_key: RfcPrivateKey<H> = Default::default();
-
-        private_key.q = 0;
-        private_key.compressed_parameter =
-            extract_or_return!(CompressedParameterSet::from(parameters));
+        let mut private_key: RfcPrivateKey<H> = RfcPrivateKey {
+            q: 0,
+            compressed_parameter: extract_or_return!(CompressedParameterSet::from(parameters)),
+            ..Default::default()
+        };
 
         get_random(&mut private_key.seed);
 
@@ -139,7 +139,6 @@ pub fn generate_child_seed_I_value(parent_seed: &SeedAndI, index: u32) -> SeedAn
 }
 
 const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set
-type DefaultHasher = Sha256Hasher;
 
 #[derive(Default)]
 pub struct CompressedParameterSet([u8; MAX_HSS_LEVELS]);

@@ -1,13 +1,8 @@
-use crate::constants::IType;
-use crate::constants::Seed;
 use crate::hasher::Hasher;
 use crate::hss::parameter::HssParameter;
 use crate::hss::rfc_private_key::SeedAndI;
-use crate::lm_ots::parameters::LmotsParameter;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
-
-use self::parameters::LmsParameter;
 
 pub mod definitions;
 mod helper;

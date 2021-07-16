@@ -6,6 +6,10 @@ use crate::lm_ots::parameters::LmotsParameter;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
 
+pub fn generate_private_key_with_seed<H: Hasher>(seed: Seed, i: IType, lmots_parameter: LmotsParameter<H>, lms_parameter: LmsParameter<H>) -> LmsPrivateKey<H> {
+    LmsPrivateKey::new(seed, i, lmots_parameter, lms_parameter)
+}
+
 pub fn generate_private_key<H: Hasher>(
     lmots_parameter: LmotsParameter<H>,
     lms_parameter: LmsParameter<H>,

@@ -1,3 +1,5 @@
+use crate::constants::IType;
+use crate::constants::Seed;
 use crate::hasher::Hasher;
 use crate::lm_ots::parameters::LmotsParameter;
 use crate::lms::definitions::LmsPrivateKey;
@@ -15,6 +17,16 @@ pub mod verify;
 pub struct LmsKeyPair<H: Hasher> {
     pub private_key: LmsPrivateKey<H>,
     pub public_key: LmsPublicKey<H>,
+}
+
+pub fn generate_key_pair_with_seed<H: Hasher>(seed: Seed, i: IType, lmots_parameter: LmotsParameter<H>, lms_parameter: LmsParameter<H>) -> LmsKeyPair<H> {
+    let private_key = keygen::generate_private_key_with_seed(seed, i, lmots_parameter, lms_parameter);
+    let public_key = keygen::generate_public_key(&private_key);
+
+    LmsKeyPair {
+        private_key,
+        public_key
+    }
 }
 
 pub fn generate_key_pair<H: Hasher>(

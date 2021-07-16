@@ -20,6 +20,8 @@ use crate::{
     LmotsParameter,
 };
 
+use super::rfc_private_key::RfcPrivateKey;
+
 #[derive(Default, PartialEq)]
 pub struct HssPrivateKey<H: Hasher, const L: usize> {
     pub private_key: DynamicArray<LmsPrivateKey<H>, L>,
@@ -28,6 +30,7 @@ pub struct HssPrivateKey<H: Hasher, const L: usize> {
 }
 
 impl<H: Hasher, const L: usize> HssPrivateKey<H, L> {
+    
     pub fn generate(
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,

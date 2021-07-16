@@ -34,17 +34,21 @@ mod tests {
     use crate::hasher::Hasher;
     use crate::hss::definitions::HssPrivateKey;
     use crate::hss::definitions::HssPublicKey;
+    use crate::hss::rfc_private_key::RfcPrivateKey;
     use crate::hss::signing::HssSignature;
     use crate::hss::verify::verify;
     use crate::HssParameter;
 
     #[test]
     fn test_hss_verify() {
-        let mut private_key = HssPrivateKey::<Sha256Hasher>::generate(&[
+        let mut private_key = RfcPrivateKey::<Sha256Hasher>::generate(&[
             HssParameter::construct_default_parameters(),
             HssParameter::construct_default_parameters(),
         ])
-        .expect("Should geneerate HSS private key");
+        .unwrap();
+
+        let mut private_key = HssPrivateKey::from(&private_key).unwrap();
+
         let public_key = private_key.get_public_key();
 
         let mut message = [42, 57, 20, 59, 33, 1, 49, 3, 99, 130, 50, 20];

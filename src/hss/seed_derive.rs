@@ -1,6 +1,6 @@
 use crate::{
     constants::{
-        ILen, IType, Seed, PRG_FF, PRG_I, PRG_J, PRG_LEN, PRG_MAX_LEN, PRG_Q, PRG_SEED, SEED_LEN,
+        IType, Seed, ILEN, PRG_FF, PRG_I, PRG_J, PRG_LEN, PRG_MAX_LEN, PRG_Q, PRG_SEED, SEED_LEN,
     },
     hasher::Hasher,
     util::ustr::{u16str, u32str},
@@ -35,7 +35,7 @@ impl<'a> SeedDerive<'a> {
     pub fn seed_derive(&mut self, increment_j: bool) -> [u8; Sha256Hasher::OUTPUT_SIZE] {
         let mut buffer = [0u8; PRG_MAX_LEN];
 
-        buffer[PRG_I..PRG_I + ILen].copy_from_slice(self.i);
+        buffer[PRG_I..PRG_I + ILEN].copy_from_slice(self.i);
 
         let q = u32str(self.q);
         buffer[PRG_Q..PRG_Q + 4].copy_from_slice(&q);

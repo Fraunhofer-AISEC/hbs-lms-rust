@@ -15,7 +15,6 @@ pub trait Hasher: Default + Clone + PartialEq {
     fn finalize(self) -> DynamicArray<u8, MAX_HASH>;
     fn finalize_reset(&mut self) -> DynamicArray<u8, MAX_HASH>;
 
-    #[allow(non_snake_case)]
     fn do_hash_chain(
         &mut self,
         I: &IType,

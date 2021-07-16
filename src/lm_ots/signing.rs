@@ -15,7 +15,6 @@ use core::usize;
 use super::definitions::LmotsPrivateKey;
 use super::parameters::LmotsParameter;
 
-#[allow(non_snake_case)]
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct LmotsSignature<H: Hasher> {
     pub C: DynamicArray<u8, MAX_HASH>,
@@ -24,7 +23,6 @@ pub struct LmotsSignature<H: Hasher> {
 }
 
 impl<H: Hasher> LmotsSignature<H> {
-    #[allow(non_snake_case)]
     pub fn sign(private_key: &LmotsPrivateKey<H>, message: &[u8]) -> Self {
         let mut C = DynamicArray::new();
 
@@ -86,7 +84,6 @@ impl<H: Hasher> LmotsSignature<H> {
         result
     }
 
-    #[allow(non_snake_case)]
     pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
         if data.len() < 4 {
             return None;

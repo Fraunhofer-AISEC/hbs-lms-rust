@@ -6,7 +6,6 @@ use crate::{
 
 use super::parameters::LmotsParameter;
 
-#[allow(non_snake_case)]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LmotsPrivateKey<H: Hasher> {
     pub I: IType,
@@ -15,7 +14,6 @@ pub struct LmotsPrivateKey<H: Hasher> {
     pub lmots_parameter: LmotsParameter<H>,
 }
 
-#[allow(non_snake_case)]
 impl<H: Hasher> LmotsPrivateKey<H> {
     pub fn new(
         I: IType,
@@ -32,7 +30,6 @@ impl<H: Hasher> LmotsPrivateKey<H> {
     }
 }
 
-#[allow(non_snake_case)]
 pub struct LmotsPublicKey<H: Hasher> {
     pub I: IType,
     pub q: QType,
@@ -40,7 +37,6 @@ pub struct LmotsPublicKey<H: Hasher> {
     pub lmots_parameter: LmotsParameter<H>,
 }
 
-#[allow(non_snake_case)]
 impl<H: Hasher> LmotsPublicKey<H> {
     pub fn new(
         I: IType,

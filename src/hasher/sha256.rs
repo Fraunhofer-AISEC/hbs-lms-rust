@@ -43,7 +43,6 @@ impl Hasher for Sha256Hasher {
         DynamicArray::from_slice(self.hasher.finalize_reset().iter().as_slice())
     }
 
-    #[allow(non_snake_case)]
     fn do_hash_chain<'a>(
         &mut self,
         I: &IType,

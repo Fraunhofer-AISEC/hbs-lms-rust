@@ -1,9 +1,9 @@
 use core::mem::size_of;
 
-pub const ILen: usize = 16;
+pub const ILEN: usize = 16;
 pub const SEED_LEN: usize = 32;
 
-pub type IType = [u8; ILen];
+pub type IType = [u8; ILEN];
 pub type Seed = [u8; SEED_LEN];
 pub type QType = [u8; 4];
 
@@ -37,7 +37,7 @@ pub const PRG_MAX_LEN: usize = PRG_LEN(MAX_HASH);
 pub const MAX_P: usize = 265;
 pub const MAX_H: usize = 25;
 
-pub const RFC_PRIVATE_KEY_SIZE: usize = 8 + MAX_HSS_LEVELS + size_of::<Seed>() + size_of::<IType>();
+pub const RFC_PRIVATE_KEY_SIZE: usize = 8 + MAX_HSS_LEVELS + size_of::<Seed>();
 
 pub const MAX_LMS_PRIVATE_KEY_LENGTH: usize = lms_private_key_length();
 pub const MAX_LMS_PUBLIC_KEY_LENGTH: usize = lms_public_key_length(MAX_HASH);

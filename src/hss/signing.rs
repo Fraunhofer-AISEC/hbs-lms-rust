@@ -189,6 +189,7 @@ impl<H: Hasher> HssSignedPublicKey<H> {
 #[cfg(test)]
 mod tests {
     use crate::hasher::sha256::Sha256Hasher;
+    use crate::hss::rfc_private_key::RfcPrivateKey;
     use crate::HssParameter;
 
     use super::HssPrivateKey;
@@ -219,11 +220,14 @@ mod tests {
 
     #[test]
     fn test_hss_signature_binary_representation() {
-        let mut private_key = HssPrivateKey::<Sha256Hasher>::generate(&[
+        let mut private_key = RfcPrivateKey::<Sha256Hasher>::generate(&[
             HssParameter::construct_default_parameters(),
             HssParameter::construct_default_parameters(),
         ])
-        .expect("Should geneerate HSS private key");
+        .unwrap();
+
+        let mut private_key = HssPrivateKey::from(&private_key).unwrap();
+
         let message = [2, 56, 123, 22, 42, 49, 22];
 
         let signature =

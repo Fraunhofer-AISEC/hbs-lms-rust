@@ -8,7 +8,6 @@ use crate::{
 
 use super::{definitions::LmotsPublicKey, signing::LmotsSignature};
 
-#[allow(non_snake_case)]
 #[allow(dead_code)]
 pub fn verify_signature<H: Hasher>(
     signature: &LmotsSignature<H>,
@@ -25,7 +24,6 @@ pub fn verify_signature<H: Hasher>(
     public_key_candidate == public_key.key
 }
 
-#[allow(non_snake_case)]
 pub fn generate_public_key_canditate<H: Hasher>(
     signature: &LmotsSignature<H>,
     I: &IType,

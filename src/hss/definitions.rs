@@ -1,16 +1,12 @@
+use crate::lms::{
+    self,
+    definitions::{LmsPrivateKey, LmsPublicKey},
+    generate_key_pair_with_seed,
+    signing::LmsSignature,
+};
 use crate::{
-    constants::{
-        lms_private_key_length, lms_public_key_length, lms_signature_length, MAX_HSS_LEVELS,
-        MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_LMS_PUBLIC_KEY_LENGTH,
-    },
-    extract_or, extract_or_return,
+    constants::{MAX_HSS_LEVELS, MAX_LMS_PUBLIC_KEY_LENGTH},
     hasher::Hasher,
-    lms::{
-        self,
-        definitions::{LmsPrivateKey, LmsPublicKey},
-        generate_key_pair, generate_key_pair_with_seed,
-        signing::LmsSignature,
-    },
     util::{
         dynamic_array::DynamicArray,
         helper::read_and_advance,
@@ -18,8 +14,8 @@ use crate::{
     },
 };
 
+use super::rfc_private_key::generate_child_seed_I_value;
 use super::rfc_private_key::RfcPrivateKey;
-use super::{parameter::HssParameter, rfc_private_key::generate_child_seed_I_value};
 
 #[derive(Default, PartialEq)]
 pub struct HssPrivateKey<H: Hasher> {
@@ -82,81 +78,6 @@ impl<H: Hasher> HssPrivateKey<H> {
         Ok(hss_private_key)
     }
 
-    pub fn generate(parameters: &[HssParameter<H>]) -> Result<Self, &'static str> {
-        let private_key = extract_or!(
-            RfcPrivateKey::generate(parameters),
-            Err("Could not generate RfcPrivateKey")
-        );
-
-        HssPrivateKey::from(&private_key)
-    }
-
-    pub fn to_binary_representation(
-        &self,
-    ) -> DynamicArray<u8, MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH> {
-        let mut result = DynamicArray::new();
-
-        result.append(&[self.get_l() as u8]);
-
-        for priv_key in self
-            .private_key
-            .iter()
-            .map(|x| x.to_binary_representation())
-        {
-            result.append(priv_key.as_slice());
-        }
-
-        for pub_key in self.public_key.iter().map(|x| x.to_binary_representation()) {
-            result.append(pub_key.as_slice());
-        }
-
-        for signatures in self.signatures.iter().map(|x| x.to_binary_representation()) {
-            result.append(signatures.as_slice());
-        }
-
-        result
-    }
-
-    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
-        let mut result: HssPrivateKey<H> = Default::default();
-
-        let mut index = 0;
-
-        let l = read_and_advance(data, 1, &mut index)[0];
-
-        for _ in 0..l {
-            let private_key = extract_or_return!(
-                lms::definitions::LmsPrivateKey::from_binary_representation(&data[index..])
-            );
-            result.private_key.push(private_key);
-            index += lms_private_key_length();
-        }
-
-        for _ in 0..l {
-            let public_key = extract_or_return!(
-                lms::definitions::LmsPublicKey::from_binary_representation(&data[index..])
-            );
-            index += lms_public_key_length(public_key.lms_parameter.get_m());
-            result.public_key.push(public_key);
-        }
-
-        // Only L-1 signatures are used
-        for _ in 0..l {
-            let signature = extract_or_return!(
-                lms::signing::LmsSignature::from_binary_representation(&data[index..])
-            );
-            index += lms_signature_length(
-                signature.lmots_signature.lmots_parameter.get_n(),
-                signature.lmots_signature.lmots_parameter.get_p() as usize,
-                signature.lms_parameter.get_m(),
-                signature.lms_parameter.get_height() as usize,
-            );
-            result.signatures.push(signature);
-        }
-
-        Some(result)
-    }
-
     pub fn get_public_key(&self) -> HssPublicKey<H> {
         HssPublicKey {
             public_key: self.public_key[0].clone(),
@@ -200,7 +121,7 @@ impl<H: Hasher> HssPublicKey<H> {
 
 #[cfg(test)]
 mod tests {
-    use super::{HssPrivateKey, HssPublicKey};
+    use super::HssPublicKey;
     use crate::hasher::sha256::Sha256Hasher;
     use crate::HssParameter;
 
@@ -220,21 +141,5 @@ mod tests {
                 .expect("Deserialization should work.");
 
         assert!(public_key == deserialized);
-    }
-
-    #[test]
-    fn test_private_key_binary_representation() {
-        let private_key: HssPrivateKey<Sha256Hasher> = HssPrivateKey::generate(&[
-            HssParameter::construct_default_parameters(),
-            HssParameter::construct_default_parameters(),
-        ])
-        .expect("Should generate HSS keys");
-
-        let serialized = private_key.to_binary_representation();
-        let deserialized: HssPrivateKey<Sha256Hasher> =
-            HssPrivateKey::from_binary_representation(serialized.as_slice())
-                .expect("Should deserialize HSS private key");
-
-        assert!(private_key == deserialized);
     }
 }

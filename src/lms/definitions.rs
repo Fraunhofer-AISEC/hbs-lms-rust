@@ -13,7 +13,6 @@ use crate::util::ustr::u32str;
 
 use super::parameters::LmsParameter;
 
-#[allow(non_snake_case)]
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct LmsPrivateKey<H: Hasher> {
     pub I: IType,
@@ -23,7 +22,6 @@ pub struct LmsPrivateKey<H: Hasher> {
     pub lms_parameter: LmsParameter<H>,
 }
 
-#[allow(non_snake_case)]
 impl<H: Hasher> LmsPrivateKey<H> {
     pub fn new(
         seed: Seed,
@@ -108,7 +106,6 @@ impl<H: Hasher> LmsPrivateKey<H> {
     }
 }
 
-#[allow(non_snake_case)]
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct LmsPublicKey<H: Hasher> {
     pub key: DynamicArray<u8, MAX_HASH>,
@@ -117,7 +114,6 @@ pub struct LmsPublicKey<H: Hasher> {
     pub lms_parameter: LmsParameter<H>,
 }
 
-#[allow(non_snake_case)]
 impl<H: Hasher> LmsPublicKey<H> {
     pub fn new(
         public_key: DynamicArray<u8, MAX_HASH>,

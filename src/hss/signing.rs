@@ -188,8 +188,7 @@ impl<H: Hasher> HssSignedPublicKey<H> {
 #[cfg(test)]
 mod tests {
     use crate::hasher::sha256::Sha256Hasher;
-    use crate::lm_ots::parameters::LmotsAlgorithm;
-    use crate::lms::parameters::LmsAlgorithm;
+    use crate::HssParameter;
 
     use super::HssPrivateKey;
     use super::HssSignature;
@@ -199,10 +198,8 @@ mod tests {
 
     #[test]
     fn test_signed_public_key_binary_representation() {
-        let mut keypair = crate::lms::generate_key_pair(
-            LmotsAlgorithm::construct_default_parameter(),
-            LmsAlgorithm::construct_default_parameter(),
-        );
+        let mut keypair =
+            crate::lms::generate_key_pair(&HssParameter::construct_default_parameters());
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
         let signature = crate::lms::signing::LmsSignature::sign(&mut keypair.private_key, &message)
@@ -223,10 +220,9 @@ mod tests {
 
     #[test]
     fn test_hss_signature_binary_representation() {
-        let mut private_key = HssPrivateKey::<Sha256Hasher, LEVEL>::generate(
-            LmotsAlgorithm::construct_default_parameter(),
-            LmsAlgorithm::construct_default_parameter(),
-        )
+        let mut private_key = HssPrivateKey::<Sha256Hasher, LEVEL>::generate(&[
+            HssParameter::construct_default_parameters(),
+        ])
         .expect("Should geneerate HSS private key");
         let message = [2, 56, 123, 22, 42, 49, 22];
 

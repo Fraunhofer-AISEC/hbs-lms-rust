@@ -72,8 +72,6 @@ pub fn hss_keygen<H: Hasher, const L: usize>(
 mod tests {
 
     use crate::hasher::sha256::Sha256Hasher;
-    use crate::LmotsAlgorithm;
-    use crate::LmsAlgorithm;
 
     use super::*;
 
@@ -82,11 +80,8 @@ mod tests {
         type H = Sha256Hasher;
         const LEVEL: usize = 3;
 
-        let mut keys = hss_keygen::<H, LEVEL>(
-            LmotsAlgorithm::construct_default_parameter(),
-            LmsAlgorithm::construct_default_parameter(),
-        )
-        .expect("Should generate HSS keys");
+        let mut keys = hss_keygen::<H, LEVEL>(&[HssParameter::construct_default_parameters()])
+            .expect("Should generate HSS keys");
 
         let mut message = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,

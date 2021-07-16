@@ -36,17 +36,15 @@ mod tests {
     use crate::hss::definitions::HssPublicKey;
     use crate::hss::signing::HssSignature;
     use crate::hss::verify::verify;
-    use crate::LmotsAlgorithm;
-    use crate::LmsAlgorithm;
+    use crate::HssParameter;
 
     const LEVEL: usize = 2;
 
     #[test]
     fn test_hss_verify() {
-        let mut private_key = HssPrivateKey::<Sha256Hasher, LEVEL>::generate(
-            LmotsAlgorithm::construct_default_parameter(),
-            LmsAlgorithm::construct_default_parameter(),
-        )
+        let mut private_key = HssPrivateKey::<Sha256Hasher, LEVEL>::generate(&[
+            HssParameter::construct_default_parameters(),
+        ])
         .expect("Should geneerate HSS private key");
         let public_key = private_key.get_public_key();
 

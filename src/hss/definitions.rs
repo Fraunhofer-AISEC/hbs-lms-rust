@@ -182,17 +182,14 @@ impl<H: Hasher, const L: usize> HssPublicKey<H, L> {
 mod tests {
     use super::{HssPrivateKey, HssPublicKey};
     use crate::hasher::sha256::Sha256Hasher;
-    use crate::lm_ots::parameters::LmotsAlgorithm;
-    use crate::lms::parameters::LmsAlgorithm;
+    use crate::HssParameter;
 
     const LEVEL: usize = 3;
 
     #[test]
     fn test_public_key_binary_representation() {
-        let public_key = crate::lms::generate_key_pair(
-            LmotsAlgorithm::construct_default_parameter(),
-            LmsAlgorithm::construct_default_parameter(),
-        );
+        let public_key =
+            crate::lms::generate_key_pair(&HssParameter::construct_default_parameters());
         let public_key: HssPublicKey<Sha256Hasher, 42> = HssPublicKey {
             level: 18,
             public_key: public_key.public_key,
@@ -209,11 +206,9 @@ mod tests {
 
     #[test]
     fn test_private_key_binary_representation() {
-        let private_key: HssPrivateKey<Sha256Hasher, LEVEL> = HssPrivateKey::generate(
-            LmotsAlgorithm::construct_default_parameter(),
-            LmsAlgorithm::construct_default_parameter(),
-        )
-        .expect("Should generate HSS keys");
+        let private_key: HssPrivateKey<Sha256Hasher, LEVEL> =
+            HssPrivateKey::generate(&[HssParameter::construct_default_parameters()])
+                .expect("Should generate HSS keys");
 
         let serialized = private_key.to_binary_representation();
         let deserialized: HssPrivateKey<Sha256Hasher, LEVEL> =

@@ -21,7 +21,7 @@ use crate::{
 To be compatible with the reference implementation
  */
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 pub struct RfcPrivateKey<H: Hasher> {
     pub q: u64,
     pub compressed_parameter: CompressedParameterSet,
@@ -140,7 +140,7 @@ pub fn generate_child_seed_I_value(parent_seed: &SeedAndI, index: u32) -> SeedAn
 
 const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 pub struct CompressedParameterSet([u8; MAX_HSS_LEVELS]);
 
 impl CompressedParameterSet {
@@ -198,3 +198,57 @@ impl CompressedParameterSet {
 }
 
 // TODO: Write tests
+#[cfg(test)]
+mod tests {
+
+    use super::{CompressedParameterSet, RfcPrivateKey};
+    use crate::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
+
+    type Hasher = Sha256Hasher;
+
+    #[test]
+    fn test_binary_representation_compressed_parameter() {
+        let lmots_first = LmotsAlgorithm::LmotsW4
+            .construct_parameter::<Hasher>()
+            .unwrap();
+        let lmots_second = LmotsAlgorithm::LmotsW8
+            .construct_parameter::<Hasher>()
+            .unwrap();
+
+        let lms_first = LmsAlgorithm::LmsH5.construct_parameter::<Hasher>().unwrap();
+        let lms_second = LmsAlgorithm::LmsH10
+            .construct_parameter::<Hasher>()
+            .unwrap();
+
+        let parameter = [
+            HssParameter::new(lmots_first, lms_first),
+            HssParameter::new(lmots_second, lms_second),
+        ];
+
+        let compressed = CompressedParameterSet::from(&parameter).unwrap();
+        let arr = compressed.to::<Hasher>();
+
+        for (i, p) in arr.iter().enumerate() {
+            assert!(p == &parameter[i])
+        }
+
+        assert!(compressed == CompressedParameterSet::from_slice(&compressed.0).unwrap());
+    }
+
+    #[test]
+    fn test_binary_representation_rfc_private_key() {
+        let parameters = [
+            HssParameter::construct_default_parameters(),
+            HssParameter::construct_default_parameters(),
+        ];
+
+        let key = RfcPrivateKey::generate(&parameters).unwrap();
+
+        let binary_representation = key.to_binary_representation();
+        let deserialized =
+            RfcPrivateKey::<Hasher>::from_binary_representation(binary_representation.as_slice())
+                .unwrap();
+
+        assert!(key == deserialized);
+    }
+}

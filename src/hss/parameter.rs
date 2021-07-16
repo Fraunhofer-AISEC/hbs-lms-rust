@@ -2,7 +2,7 @@ use crate::{
     hasher::Hasher, LmotsAlgorithm, LmotsParameter, LmsAlgorithm, LmsParameter, Sha256Hasher,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct HssParameter<H: Hasher> {
     lmots_parameter: LmotsParameter<H>,
     lms_parameter: LmsParameter<H>,

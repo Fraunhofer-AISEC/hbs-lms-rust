@@ -50,16 +50,27 @@ impl SeedAndI {
 }
 
 impl<H: Hasher> RfcPrivateKey<H> {
-    pub fn generate(parameters: &[HssParameter<H>]) -> Option<Self> {
+    pub fn generate_with_seed(parameters: &[HssParameter<H>], seed: &[u8]) -> Option<Self> {
         let mut private_key: RfcPrivateKey<H> = RfcPrivateKey {
             q: 0,
             compressed_parameter: extract_or_return!(CompressedParameterSet::from(parameters)),
             ..Default::default()
         };
 
-        get_random(&mut private_key.seed);
+        if seed.len() < 32 {
+            return None;
+        }
+
+        private_key.seed.copy_from_slice(&seed[..32]);
 
         Some(private_key)
+    }
+
+    pub fn generate(parameters: &[HssParameter<H>]) -> Option<Self> {
+        let mut seed: Seed = Default::default();
+        get_random(&mut seed);
+
+        RfcPrivateKey::generate_with_seed(parameters, &seed)
     }
 
     pub fn to_binary_representation(&self) -> DynamicArray<u8, RFC_PRIVATE_KEY_SIZE> {

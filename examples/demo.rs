@@ -1,8 +1,11 @@
 use clap::{App, Arg, ArgMatches, SubCommand};
 use lms::*;
 use std::{
+    error::Error,
+    fmt,
     fs::File,
     io::{Read, Write},
+    mem::size_of,
     process::exit,
 };
 
@@ -13,8 +16,26 @@ const SIGN_COMMAND: &str = "sign";
 const KEYNAME_PARAMETER: &str = "keyname";
 const MESSAGE_PARAMETER: &str = "file";
 const PARAMETER_PARAMETER: &str = "parameter";
+const SEED_PARAMETER: &str = "seed";
 
-fn main() -> Result<(), std::io::Error> {
+#[derive(Debug)]
+struct DemoError(String);
+
+impl fmt::Display for DemoError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "There is an error: {}", self.0)
+    }
+}
+
+impl Error for DemoError {}
+
+impl DemoError {
+    pub fn new<R>(message: &str) -> Result<R, Box<dyn Error>> {
+        Err(Box::new(Self(String::from(message))))
+    }
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("LMS Demo")
         .about("Generates a LMS key pair")
         .subcommand(
@@ -22,7 +43,8 @@ fn main() -> Result<(), std::io::Error> {
                 .arg(Arg::with_name(KEYNAME_PARAMETER).required(true))
                 .arg(Arg::with_name(PARAMETER_PARAMETER).required(false).help(
                     "Specify LMS parameters (e.g. 15/4 (Treeheight 15 and Winternitz parameter 4))",
-                ).default_value("5/1")),
+                ).default_value("5/1"))
+                .arg(Arg::with_name(SEED_PARAMETER).long(SEED_PARAMETER).required(false).takes_value(true).value_name("seed")),
         )
         .subcommand(
             SubCommand::with_name(VERIFY_COMMAND)
@@ -130,12 +152,26 @@ fn read_file(file_name: &str) -> Vec<u8> {
     data
 }
 
-fn genkey(args: &ArgMatches) -> Result<(), std::io::Error> {
+fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let keyname: String = get_parameter(KEYNAME_PARAMETER, args);
 
     let parameter = parse_genkey_parameter(&get_parameter(PARAMETER_PARAMETER, args));
 
-    let keys = hss_keygen::<Sha256Hasher>(&parameter);
+    let seed = if let Some(seed) = args.value_of(SEED_PARAMETER) {
+        let decoded = hex::decode(seed)?;
+        if decoded.len() < size_of::<Seed>() {
+            return DemoError::new("Seed is too short");
+        }
+        Some(decoded)
+    } else {
+        None
+    };
+
+    let keys = if let Some(seed) = seed {
+        hss_keygen_with_seed(&parameter, &seed)
+    } else {
+        hss_keygen::<Sha256Hasher>(&parameter)
+    };
 
     let keys = keys.unwrap();
 

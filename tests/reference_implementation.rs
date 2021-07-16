@@ -60,7 +60,6 @@ fn create_signature_with_own_implementation() {
 
 #[test]
 fn test_private_key_format() {
-
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();
 

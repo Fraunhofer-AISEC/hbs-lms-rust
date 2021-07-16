@@ -57,9 +57,22 @@ pub fn hss_sign<H: Hasher>(
     Some(signature.to_binary_representation())
 }
 
+pub fn hss_keygen_with_seed<H: Hasher>(
+    parameters: &[HssParameter<H>],
+    seed: &[u8],
+) -> Option<HssBinaryData> {
+    let private_key = extract_or_return!(RfcPrivateKey::generate_with_seed(parameters, seed));
+
+    generate_hss_key(&private_key)
+}
+
 pub fn hss_keygen<H: Hasher>(parameters: &[HssParameter<H>]) -> Option<HssBinaryData> {
     let private_key = extract_or_return!(RfcPrivateKey::generate(parameters));
 
+    generate_hss_key(&private_key)
+}
+
+fn generate_hss_key<H: Hasher>(private_key: &RfcPrivateKey<H>) -> Option<HssBinaryData> {
     let hss_key: HssPrivateKey<H> = match crate::hss::definitions::HssPrivateKey::from(&private_key)
     {
         Err(_) => return None,

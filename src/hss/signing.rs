@@ -1,6 +1,6 @@
 use crate::{
     constants::{
-        lms_public_key_length, lms_signature_length, MAX_HSS_SIGNATURE_LENGTH,
+        lms_public_key_length, lms_signature_length, MAX_HSS_SIGNATURE_LENGTH, MAX_LEVEL,
         MAX_LMS_PUBLIC_KEY_LENGTH, MAX_LMS_SIGNATURE_LENGTH,
     },
     extract_or_return,
@@ -16,17 +16,19 @@ use crate::{
 use super::{definitions::HssPrivateKey, parameter::HssParameter};
 
 #[derive(PartialEq)]
-pub struct HssSignature<H: Hasher, const L: usize> {
+pub struct HssSignature<H: Hasher> {
     pub level: usize,
-    pub signed_public_keys: DynamicArray<HssSignedPublicKey<H>, L>,
+    pub signed_public_keys: DynamicArray<HssSignedPublicKey<H>, MAX_LEVEL>,
     pub signature: LmsSignature<H>,
 }
 
-impl<H: Hasher, const L: usize> HssSignature<H, L> {
+impl<H: Hasher> HssSignature<H> {
     pub fn sign(
-        private_key: &mut HssPrivateKey<H, L>,
+        private_key: &mut HssPrivateKey<H>,
         message: &[u8],
-    ) -> Result<HssSignature<H, L>, &'static str> {
+    ) -> Result<HssSignature<H>, &'static str> {
+        let l = private_key.get_l();
+
         let lmots_parameter = private_key.private_key[0].lmots_parameter;
         let lms_parameter = private_key.private_key[0].lms_parameter;
 
@@ -37,8 +39,7 @@ impl<H: Hasher, const L: usize> HssSignature<H, L> {
         let sig = &mut private_key.signatures;
 
         // Regenerate the keys if neccessary
-
-        let mut d = L;
+        let mut d = l;
 
         while prv[d - 1].q == 2u32.pow(prv[d - 1].lms_parameter.get_height() as u32) {
             d -= 1;
@@ -47,7 +48,7 @@ impl<H: Hasher, const L: usize> HssSignature<H, L> {
             }
         }
 
-        while d < L {
+        while d < l {
             let lms_key_pair = lms::generate_key_pair(&parameter);
             public[d] = lms_key_pair.public_key;
             prv[d] = lms_key_pair.private_key;
@@ -61,12 +62,12 @@ impl<H: Hasher, const L: usize> HssSignature<H, L> {
         }
 
         // Sign the message
-        sig[L - 1] = lms::signing::LmsSignature::sign(&mut prv[L - 1], message)?;
+        sig[l - 1] = lms::signing::LmsSignature::sign(&mut prv[l - 1], message)?;
 
         let mut signed_public_keys = DynamicArray::new();
 
         // Create list of signed keys
-        for i in 0..L - 1 {
+        for i in 0..l - 1 {
             signed_public_keys.push(HssSignedPublicKey::new(
                 sig[i].clone(),
                 public[i + 1].clone(),
@@ -74,9 +75,9 @@ impl<H: Hasher, const L: usize> HssSignature<H, L> {
         }
 
         let signature = HssSignature {
-            level: L - 1,
+            level: l - 1,
             signed_public_keys,
-            signature: sig[L - 1].clone(),
+            signature: sig[l - 1].clone(),
         };
 
         Ok(signature)
@@ -194,8 +195,6 @@ mod tests {
     use super::HssSignature;
     use super::HssSignedPublicKey;
 
-    const LEVEL: usize = 2;
-
     #[test]
     fn test_signed_public_key_binary_representation() {
         let mut keypair =
@@ -220,7 +219,8 @@ mod tests {
 
     #[test]
     fn test_hss_signature_binary_representation() {
-        let mut private_key = HssPrivateKey::<Sha256Hasher, LEVEL>::generate(&[
+        let mut private_key = HssPrivateKey::<Sha256Hasher>::generate(&[
+            HssParameter::construct_default_parameters(),
             HssParameter::construct_default_parameters(),
         ])
         .expect("Should geneerate HSS private key");
@@ -230,7 +230,7 @@ mod tests {
             HssSignature::sign(&mut private_key, &message).expect("Should generate HSS signature");
 
         let binary_representation = signature.to_binary_representation();
-        let deserialized = HssSignature::<Sha256Hasher, LEVEL>::from_binary_representation(
+        let deserialized = HssSignature::<Sha256Hasher>::from_binary_representation(
             binary_representation.as_slice(),
         )
         .expect("Deserialization should work.");

@@ -2,7 +2,7 @@ use lms::Sha256Hasher;
 
 #[test]
 fn test() {
-    assert!(lms::hss_verify::<Sha256Hasher, 2>(
+    assert!(lms::hss_verify::<Sha256Hasher>(
         MESSAGE, SIGNATURE, PUBLIC_KEY
     ));
 }

@@ -1,7 +1,7 @@
 use crate::{
     constants::{
         lms_private_key_length, lms_public_key_length, lms_signature_length,
-        MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_LMS_PUBLIC_KEY_LENGTH,
+        MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_LEVEL, MAX_LMS_PUBLIC_KEY_LENGTH,
     },
     extract_or_return,
     hasher::Hasher,
@@ -21,26 +21,26 @@ use crate::{
 use super::parameter::HssParameter;
 
 #[derive(Default, PartialEq)]
-pub struct HssPrivateKey<H: Hasher, const L: usize> {
-    pub private_key: DynamicArray<LmsPrivateKey<H>, L>,
-    pub public_key: DynamicArray<LmsPublicKey<H>, L>,
-    pub signatures: DynamicArray<LmsSignature<H>, L>, // Only L - 1 signatures needed
+pub struct HssPrivateKey<H: Hasher> {
+    pub private_key: DynamicArray<LmsPrivateKey<H>, MAX_LEVEL>,
+    pub public_key: DynamicArray<LmsPublicKey<H>, MAX_LEVEL>,
+    pub signatures: DynamicArray<LmsSignature<H>, MAX_LEVEL>, // Only L - 1 signatures needed
 }
 
-impl<H: Hasher, const L: usize> HssPrivateKey<H, L> {
-    pub fn generate(parameters: &[HssParameter<H>]) -> Result<Self, &'static str> {
-        if parameters.len() != 1 && L != parameters.len() {
-            return Err("Number of parameters does not match specified Level");
-        }
+impl<H: Hasher> HssPrivateKey<H> {
+    pub fn get_l(&self) -> usize {
+        self.private_key.len()
+    }
 
-        let mut hss_private_key: HssPrivateKey<H, L> = Default::default();
+    pub fn generate(parameters: &[HssParameter<H>]) -> Result<Self, &'static str> {
+        let mut hss_private_key: HssPrivateKey<H> = Default::default();
 
         let lms_keypair = generate_key_pair(&parameters[0]);
 
         hss_private_key.private_key.push(lms_keypair.private_key);
         hss_private_key.public_key.push(lms_keypair.public_key);
 
-        for i in 1..L {
+        for i in 1..parameters.len() {
             let parameter = if parameters.len() == 1 {
                 &parameters[0]
             } else {
@@ -80,6 +80,8 @@ impl<H: Hasher, const L: usize> HssPrivateKey<H, L> {
     ) -> DynamicArray<u8, MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH> {
         let mut result = DynamicArray::new();
 
+        result.append(&[self.get_l() as u8]);
+
         for priv_key in self
             .private_key
             .iter()
@@ -100,11 +102,13 @@ impl<H: Hasher, const L: usize> HssPrivateKey<H, L> {
     }
 
     pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
-        let mut result: HssPrivateKey<H, L> = Default::default();
+        let mut result: HssPrivateKey<H> = Default::default();
 
         let mut index = 0;
 
-        for _ in 0..L {
+        let l = read_and_advance(data, 1, &mut index)[0];
+
+        for _ in 0..l {
             let private_key = extract_or_return!(
                 lms::definitions::LmsPrivateKey::from_binary_representation(&data[index..])
             );
@@ -112,7 +116,7 @@ impl<H: Hasher, const L: usize> HssPrivateKey<H, L> {
             index += lms_private_key_length();
         }
 
-        for _ in 0..L {
+        for _ in 0..l {
             let public_key = extract_or_return!(
                 lms::definitions::LmsPublicKey::from_binary_representation(&data[index..])
             );
@@ -121,7 +125,7 @@ impl<H: Hasher, const L: usize> HssPrivateKey<H, L> {
         }
 
         // Only L-1 signatures are used
-        for _ in 0..L {
+        for _ in 0..l {
             let signature = extract_or_return!(
                 lms::signing::LmsSignature::from_binary_representation(&data[index..])
             );
@@ -137,21 +141,21 @@ impl<H: Hasher, const L: usize> HssPrivateKey<H, L> {
         Some(result)
     }
 
-    pub fn get_public_key(&self) -> HssPublicKey<H, L> {
+    pub fn get_public_key(&self) -> HssPublicKey<H> {
         HssPublicKey {
             public_key: self.public_key[0].clone(),
-            level: L,
+            level: self.get_l(),
         }
     }
 }
 
 #[derive(PartialEq)]
-pub struct HssPublicKey<H: Hasher, const L: usize> {
+pub struct HssPublicKey<H: Hasher> {
     pub public_key: LmsPublicKey<H>,
     pub level: usize,
 }
 
-impl<H: Hasher, const L: usize> HssPublicKey<H, L> {
+impl<H: Hasher> HssPublicKey<H> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + MAX_LMS_PUBLIC_KEY_LENGTH }> {
         let mut result = DynamicArray::new();
 
@@ -184,20 +188,18 @@ mod tests {
     use crate::hasher::sha256::Sha256Hasher;
     use crate::HssParameter;
 
-    const LEVEL: usize = 3;
-
     #[test]
     fn test_public_key_binary_representation() {
         let public_key =
             crate::lms::generate_key_pair(&HssParameter::construct_default_parameters());
-        let public_key: HssPublicKey<Sha256Hasher, 42> = HssPublicKey {
+        let public_key: HssPublicKey<Sha256Hasher> = HssPublicKey {
             level: 18,
             public_key: public_key.public_key,
         };
 
         let binary_representation = public_key.to_binary_representation();
 
-        let deserialized: HssPublicKey<Sha256Hasher, 42> =
+        let deserialized: HssPublicKey<Sha256Hasher> =
             HssPublicKey::from_binary_representation(binary_representation.as_slice())
                 .expect("Deserialization should work.");
 
@@ -206,12 +208,14 @@ mod tests {
 
     #[test]
     fn test_private_key_binary_representation() {
-        let private_key: HssPrivateKey<Sha256Hasher, LEVEL> =
-            HssPrivateKey::generate(&[HssParameter::construct_default_parameters()])
-                .expect("Should generate HSS keys");
+        let private_key: HssPrivateKey<Sha256Hasher> = HssPrivateKey::generate(&[
+            HssParameter::construct_default_parameters(),
+            HssParameter::construct_default_parameters(),
+        ])
+        .expect("Should generate HSS keys");
 
         let serialized = private_key.to_binary_representation();
-        let deserialized: HssPrivateKey<Sha256Hasher, LEVEL> =
+        let deserialized: HssPrivateKey<Sha256Hasher> =
             HssPrivateKey::from_binary_representation(serialized.as_slice())
                 .expect("Should deserialize HSS private key");
 

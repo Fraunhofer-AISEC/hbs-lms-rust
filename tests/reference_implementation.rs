@@ -4,7 +4,9 @@ use std::{
     process::Command,
 };
 
-use lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher, hss_keygen, hss_sign, hss_verify};
+use lms::{
+    hss_keygen, hss_sign, hss_verify, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher,
+};
 use tempfile::TempDir;
 
 const MESSAGE_FILE_NAME: &str = "message.txt";
@@ -39,8 +41,7 @@ fn create_signature_with_own_implementation() {
 
     let parameter = HssParameter::new(lmots_parameter, lms_parameter);
 
-    let mut keys = hss_keygen::<Sha256Hasher, 1>(&[parameter])
-        .expect("Should create HSS keys");
+    let mut keys = hss_keygen::<Sha256Hasher>(&[parameter]).expect("Should create HSS keys");
 
     save_file(
         path.join(PUBLIC_KEY_NAME).to_str().unwrap(),
@@ -78,7 +79,7 @@ fn read_file(file_name: &str) -> Vec<u8> {
 
 fn own_signing(temp_path: &TempDir, message_data: &[u8], private_key: &mut [u8]) {
     let result =
-        hss_sign::<Sha256Hasher, 1>(&message_data, private_key).expect("Signing should succed.");
+        hss_sign::<Sha256Hasher>(&message_data, private_key).expect("Signing should succed.");
     save_file(
         temp_path.path().join(SIGNATURE_FILE_NAME).to_str().unwrap(),
         result.as_slice(),
@@ -91,7 +92,7 @@ fn own_verify(temp_path: &TempDir) {
     let signature_data = read_file(path.join(SIGNATURE_FILE_NAME).to_str().unwrap());
     let public_key_data = read_file(path.join(PUBLIC_KEY_NAME).to_str().unwrap());
 
-    assert!(hss_verify::<Sha256Hasher, 1>(
+    assert!(hss_verify::<Sha256Hasher>(
         &message_data,
         &signature_data,
         &public_key_data

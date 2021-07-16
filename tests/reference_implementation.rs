@@ -4,9 +4,7 @@ use std::{
     process::Command,
 };
 
-use lms::{
-    hss_keygen, hss_sign, hss_verify, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher,
-};
+use lms::{hss_keygen, hss_sign, hss_verify, HssParameter, Sha256Hasher};
 use tempfile::TempDir;
 
 const MESSAGE_FILE_NAME: &str = "message.txt";
@@ -36,12 +34,11 @@ fn create_signature_with_own_implementation() {
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();
 
-    let lmots_parameter = LmotsAlgorithm::LmotsW2.construct_parameter().unwrap();
-    let lms_parameter = LmsAlgorithm::LmsH5.construct_parameter().unwrap();
-
-    let parameter = HssParameter::new(lmots_parameter, lms_parameter);
-
-    let mut keys = hss_keygen::<Sha256Hasher>(&[parameter]).expect("Should create HSS keys");
+    let mut keys = hss_keygen::<Sha256Hasher>(&[
+        HssParameter::construct_default_parameters(),
+        HssParameter::construct_default_parameters(),
+    ])
+    .expect("Should create HSS keys");
 
     save_file(
         path.join(PUBLIC_KEY_NAME).to_str().unwrap(),

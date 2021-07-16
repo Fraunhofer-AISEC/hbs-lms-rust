@@ -9,7 +9,6 @@ use crate::{
         self,
         definitions::{LmsPrivateKey, LmsPublicKey},
         generate_key_pair,
-        parameters::LmsParameter,
         signing::LmsSignature,
     },
     util::{
@@ -17,8 +16,9 @@ use crate::{
         helper::read_and_advance,
         ustr::{str32u, u32str},
     },
-    LmotsParameter,
 };
+
+use super::parameter::HssParameter;
 
 #[derive(Default, PartialEq)]
 pub struct HssPrivateKey<H: Hasher, const L: usize> {
@@ -28,19 +28,26 @@ pub struct HssPrivateKey<H: Hasher, const L: usize> {
 }
 
 impl<H: Hasher, const L: usize> HssPrivateKey<H, L> {
-    pub fn generate(
-        lmots_parameter: LmotsParameter<H>,
-        lms_parameter: LmsParameter<H>,
-    ) -> Result<Self, &'static str> {
+    pub fn generate(parameters: &[HssParameter<H>]) -> Result<Self, &'static str> {
+        if parameters.len() != 1 && L != parameters.len() {
+            return Err("Number of parameters does not match specified Level");
+        }
+
         let mut hss_private_key: HssPrivateKey<H, L> = Default::default();
 
-        let lms_keypair = generate_key_pair(lmots_parameter, lms_parameter);
+        let lms_keypair = generate_key_pair(&parameters[0]);
 
         hss_private_key.private_key.push(lms_keypair.private_key);
         hss_private_key.public_key.push(lms_keypair.public_key);
 
         for i in 1..L {
-            let lms_keypair = generate_key_pair(lmots_parameter, lms_parameter);
+            let parameter = if parameters.len() == 1 {
+                &parameters[0]
+            } else {
+                &parameters[i]
+            };
+
+            let lms_keypair = generate_key_pair(parameter);
 
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);
@@ -58,7 +65,10 @@ impl<H: Hasher, const L: usize> HssPrivateKey<H, L> {
         // TODO: Remove
         // Add dummy signature to first key generation such that the private key size stays always the same.
         // This prevents for passing in a too short slice when the private key gets updated
-        let mut dummy_private_key = lms::generate_private_key(lmots_parameter, lms_parameter);
+        let mut dummy_private_key = lms::generate_private_key(
+            *parameters[0].get_lmots_parameter(),
+            *parameters[0].get_lms_parameter(),
+        );
         let dummy_signature = lms::signing::LmsSignature::sign(&mut dummy_private_key, &[0])?;
         hss_private_key.signatures.push(dummy_signature);
 

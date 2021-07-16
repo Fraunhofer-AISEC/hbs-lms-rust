@@ -1,4 +1,5 @@
 pub mod definitions;
+pub mod parameter;
 pub mod signing;
 pub mod verify;
 
@@ -10,10 +11,9 @@ use crate::{
     hasher::Hasher,
     hss::definitions::HssPublicKey,
     util::dynamic_array::DynamicArray,
-    LmotsParameter, LmsParameter,
 };
 
-use self::{definitions::HssPrivateKey, signing::HssSignature};
+use self::{definitions::HssPrivateKey, parameter::HssParameter, signing::HssSignature};
 
 pub struct HssBinaryData {
     pub public_key: DynamicArray<u8, { 4 + 4 + 4 + 16 + MAX_M }>,
@@ -54,11 +54,10 @@ pub fn hss_sign<H: Hasher, const L: usize>(
 }
 
 pub fn hss_keygen<H: Hasher, const L: usize>(
-    lmots_parameter: LmotsParameter<H>,
-    lms_parameter: LmsParameter<H>,
+    parameters: &[HssParameter<H>],
 ) -> Option<HssBinaryData> {
     let hss_key: HssPrivateKey<H, L> =
-        match crate::hss::definitions::HssPrivateKey::generate(lmots_parameter, lms_parameter) {
+        match crate::hss::definitions::HssPrivateKey::generate(parameters) {
             Err(_) => return None,
             Ok(x) => x,
         };

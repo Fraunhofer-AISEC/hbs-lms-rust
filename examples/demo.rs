@@ -158,7 +158,9 @@ fn genkey(args: &ArgMatches) -> Result<(), std::io::Error> {
     let lm_ots_parameter = parameter.0;
     let lms_parameter = parameter.1;
 
-    let keys = hss_keygen::<Sha256Hasher, 1>(lm_ots_parameter, lms_parameter);
+    let parameter = HssParameter::new(lm_ots_parameter, lms_parameter);
+
+    let keys = hss_keygen::<Sha256Hasher, 1>(&[parameter]);
 
     let keys = keys.unwrap();
 

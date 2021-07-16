@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-use super::definitions::HssPrivateKey;
+use super::{definitions::HssPrivateKey, parameter::HssParameter};
 
 #[derive(PartialEq)]
 pub struct HssSignature<H: Hasher, const L: usize> {
@@ -29,6 +29,8 @@ impl<H: Hasher, const L: usize> HssSignature<H, L> {
     ) -> Result<HssSignature<H, L>, &'static str> {
         let lmots_parameter = private_key.private_key[0].lmots_parameter;
         let lms_parameter = private_key.private_key[0].lms_parameter;
+
+        let parameter = HssParameter::new(lmots_parameter, lms_parameter);
 
         let prv = &mut private_key.private_key;
         let public = &mut private_key.public_key;
@@ -46,7 +48,7 @@ impl<H: Hasher, const L: usize> HssSignature<H, L> {
         }
 
         while d < L {
-            let lms_key_pair = lms::generate_key_pair(lmots_parameter, lms_parameter);
+            let lms_key_pair = lms::generate_key_pair(&parameter);
             public[d] = lms_key_pair.public_key;
             prv[d] = lms_key_pair.private_key;
 

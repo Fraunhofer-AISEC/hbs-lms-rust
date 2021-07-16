@@ -3,12 +3,12 @@ use crate::{
         lms_private_key_length, lms_public_key_length, lms_signature_length, MAX_HSS_LEVELS,
         MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_LMS_PUBLIC_KEY_LENGTH,
     },
-    extract_or_return,
+    extract_or, extract_or_return,
     hasher::Hasher,
     lms::{
         self,
         definitions::{LmsPrivateKey, LmsPublicKey},
-        generate_key_pair,
+        generate_key_pair, generate_key_pair_with_seed,
         signing::LmsSignature,
     },
     util::{
@@ -18,8 +18,8 @@ use crate::{
     },
 };
 
-use super::parameter::HssParameter;
 use super::rfc_private_key::RfcPrivateKey;
+use super::{parameter::HssParameter, rfc_private_key::generate_child_seed_I_value};
 
 #[derive(Default, PartialEq)]
 pub struct HssPrivateKey<H: Hasher> {
@@ -33,10 +33,14 @@ impl<H: Hasher> HssPrivateKey<H> {
         self.private_key.len()
     }
 
-    pub fn generate(parameters: &[HssParameter<H>]) -> Result<Self, &'static str> {
+    pub fn from(private_key: &RfcPrivateKey<H>) -> Result<Self, &'static str> {
         let mut hss_private_key: HssPrivateKey<H> = Default::default();
 
-        let lms_keypair = generate_key_pair(&parameters[0]);
+        let parameters = private_key.compressed_parameter.to();
+
+        let mut current_seed = private_key.generate_root_seed_I_value();
+
+        let lms_keypair = generate_key_pair_with_seed(&current_seed, &parameters[0]);
 
         hss_private_key.private_key.push(lms_keypair.private_key);
         hss_private_key.public_key.push(lms_keypair.public_key);
@@ -48,7 +52,9 @@ impl<H: Hasher> HssPrivateKey<H> {
                 &parameters[i]
             };
 
-            let lms_keypair = generate_key_pair(parameter);
+            current_seed = generate_child_seed_I_value(&current_seed, i as u32);
+
+            let lms_keypair = generate_key_pair_with_seed(&current_seed, parameter);
 
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);
@@ -74,6 +80,15 @@ impl<H: Hasher> HssPrivateKey<H> {
         hss_private_key.signatures.push(dummy_signature);
 
         Ok(hss_private_key)
+    }
+
+    pub fn generate(parameters: &[HssParameter<H>]) -> Result<Self, &'static str> {
+        let private_key = extract_or!(
+            RfcPrivateKey::generate(parameters),
+            Err("Could not generate RfcPrivateKey")
+        );
+
+        HssPrivateKey::from(&private_key)
     }
 
     pub fn to_binary_representation(

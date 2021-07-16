@@ -1,7 +1,7 @@
 use crate::{
     constants::{
         lms_private_key_length, lms_public_key_length, lms_signature_length,
-        MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_LEVEL, MAX_LMS_PUBLIC_KEY_LENGTH,
+        MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH, MAX_HSS_LEVELS, MAX_LMS_PUBLIC_KEY_LENGTH,
     },
     extract_or_return,
     hasher::Hasher,
@@ -22,9 +22,9 @@ use super::parameter::HssParameter;
 
 #[derive(Default, PartialEq)]
 pub struct HssPrivateKey<H: Hasher> {
-    pub private_key: DynamicArray<LmsPrivateKey<H>, MAX_LEVEL>,
-    pub public_key: DynamicArray<LmsPublicKey<H>, MAX_LEVEL>,
-    pub signatures: DynamicArray<LmsSignature<H>, MAX_LEVEL>, // Only L - 1 signatures needed
+    pub private_key: DynamicArray<LmsPrivateKey<H>, MAX_HSS_LEVELS>,
+    pub public_key: DynamicArray<LmsPublicKey<H>, MAX_HSS_LEVELS>,
+    pub signatures: DynamicArray<LmsSignature<H>, MAX_HSS_LEVELS>, // Only L - 1 signatures needed
 }
 
 impl<H: Hasher> HssPrivateKey<H> {

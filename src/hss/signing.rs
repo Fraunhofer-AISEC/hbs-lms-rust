@@ -1,6 +1,6 @@
 use crate::{
     constants::{
-        lms_public_key_length, lms_signature_length, MAX_HSS_SIGNATURE_LENGTH, MAX_LEVEL,
+        lms_public_key_length, lms_signature_length, MAX_HSS_SIGNATURE_LENGTH, MAX_HSS_LEVELS,
         MAX_LMS_PUBLIC_KEY_LENGTH, MAX_LMS_SIGNATURE_LENGTH,
     },
     extract_or_return,
@@ -18,7 +18,7 @@ use super::{definitions::HssPrivateKey, parameter::HssParameter};
 #[derive(PartialEq)]
 pub struct HssSignature<H: Hasher> {
     pub level: usize,
-    pub signed_public_keys: DynamicArray<HssSignedPublicKey<H>, MAX_LEVEL>,
+    pub signed_public_keys: DynamicArray<HssSignedPublicKey<H>, MAX_HSS_LEVELS>,
     pub signature: LmsSignature<H>,
 }
 

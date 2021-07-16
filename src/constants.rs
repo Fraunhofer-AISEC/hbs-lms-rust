@@ -31,12 +31,12 @@ pub const fn lms_private_key_length() -> usize {
     4 + 4 + size_of::<IType>() + 4 + size_of::<Seed>()
 }
 
-pub const MAX_LEVEL: usize = 8;
+pub const MAX_HSS_LEVELS: usize = 8;
 
-pub const MAX_HSS_PRIVATE_KEY_LENGTH: usize = MAX_LMS_PRIVATE_KEY_LENGTH * MAX_LEVEL;
-pub const MAX_HSS_PUBLIC_KEY_LENGTH: usize = (4 + 4 + 16 + MAX_M) * MAX_LEVEL;
+pub const MAX_HSS_PRIVATE_KEY_LENGTH: usize = MAX_LMS_PRIVATE_KEY_LENGTH * MAX_HSS_LEVELS;
+pub const MAX_HSS_PUBLIC_KEY_LENGTH: usize = (4 + 4 + 16 + MAX_M) * MAX_HSS_LEVELS;
 pub const MAX_HSS_SIGNATURE_LENGTH: usize =
-    (4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H)) * MAX_LEVEL;
+    (4 + (4 + MAX_N + (MAX_N * MAX_P)) + 4 + (MAX_M * MAX_H)) * MAX_HSS_LEVELS;
 
 pub const MAX_HSS_PRIVATE_KEY_BINARY_REPRESENTATION_LENGTH: usize =
     MAX_HSS_PRIVATE_KEY_LENGTH + MAX_HSS_PUBLIC_KEY_LENGTH + MAX_HSS_SIGNATURE_LENGTH;

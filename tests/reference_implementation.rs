@@ -12,6 +12,7 @@ const SIGNATURE_FILE_NAME: &str = "message.txt.sig";
 
 const KEY_NAME: &str = "testkey";
 const PUBLIC_KEY_NAME: &str = "testkey.pub";
+const PRIVATE_KEY_NAME: &str = "testkey.prv";
 
 #[test]
 fn create_signature_with_reference_implementation() {
@@ -55,6 +56,25 @@ fn create_signature_with_own_implementation() {
     own_signing(&tempdir, &message_data, keys.private_key.as_mut_slice());
 
     reference_verify(&tempdir);
+}
+
+#[test]
+fn test_private_key_format() {
+
+    let tempdir = tempfile::tempdir().unwrap();
+    let path = tempdir.path();
+
+    reference_genkey(&tempdir);
+    create_message_file(&tempdir);
+
+    let mut private_key = read_file(path.join(PRIVATE_KEY_NAME).to_str().unwrap());
+    let message_data = read_file(path.join(MESSAGE_FILE_NAME).to_str().unwrap());
+
+    own_signing(&tempdir, &message_data, &mut private_key);
+    reference_verify(&tempdir);
+
+    reference_sign(&tempdir);
+    own_verify(&tempdir);
 }
 
 fn save_file(file_name: &str, data: &[u8]) {
@@ -120,7 +140,7 @@ fn reference_genkey(temp_path: &TempDir) {
     let demo_path = get_demo_path();
 
     let result = Command::new(&demo_path)
-        .args(&["genkey", KEY_NAME, "10/2"])
+        .args(&["genkey", KEY_NAME, "5/2"])
         .current_dir(temp_path)
         .output()
         .expect("Reference key generation should succeed.");

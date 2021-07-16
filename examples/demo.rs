@@ -110,7 +110,7 @@ fn get_signature_name(message_name: &String) -> String {
 }
 
 fn get_private_key_name(private_key: &String) -> String {
-    private_key.clone() + ".priv"
+    private_key.clone() + ".prv"
 }
 
 fn get_parameter(name: &str, args: &ArgMatches) -> String {

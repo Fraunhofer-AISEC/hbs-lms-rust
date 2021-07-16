@@ -85,7 +85,7 @@
             "args": [
                 "genkey",
                 "mykey",
-                "10/2"
+                "5/4,5/8"
             ],
             "cwd": "${workspaceFolder}/tmp"
         },

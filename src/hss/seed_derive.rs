@@ -1,7 +1,6 @@
 use crate::{
     constants::{
-        ILen, IType, Seed, MAX_HASH, PRG_FF, PRG_I, PRG_J, PRG_LEN, PRG_MAX_LEN, PRG_Q, PRG_SEED,
-        SEED_LEN,
+        ILen, IType, Seed, PRG_FF, PRG_I, PRG_J, PRG_LEN, PRG_MAX_LEN, PRG_Q, PRG_SEED, SEED_LEN,
     },
     hasher::Hasher,
     util::ustr::{u16str, u32str},

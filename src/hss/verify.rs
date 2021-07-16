@@ -5,9 +5,9 @@ use crate::{
 
 use super::{definitions::HssPublicKey, signing::HssSignature};
 
-pub fn verify<H: Hasher, const L: usize>(
-    signature: &HssSignature<H, L>,
-    public_key: &HssPublicKey<H, L>,
+pub fn verify<H: Hasher>(
+    signature: &HssSignature<H>,
+    public_key: &HssPublicKey<H>,
     message: &[u8],
 ) -> Result<(), &'static str> {
     if signature.level + 1 != public_key.level {
@@ -15,7 +15,7 @@ pub fn verify<H: Hasher, const L: usize>(
     }
 
     let mut key = &public_key.public_key;
-    for i in 0..L - 1 {
+    for i in 0..public_key.level - 1 {
         let sig = &signature.signed_public_keys[i].sig;
         let msg = &signature.signed_public_keys[i].public_key;
 
@@ -36,17 +36,14 @@ mod tests {
     use crate::hss::definitions::HssPublicKey;
     use crate::hss::signing::HssSignature;
     use crate::hss::verify::verify;
-    use crate::LmotsAlgorithm;
-    use crate::LmsAlgorithm;
-
-    const LEVEL: usize = 2;
+    use crate::HssParameter;
 
     #[test]
     fn test_hss_verify() {
-        let mut private_key = HssPrivateKey::<Sha256Hasher, LEVEL>::generate(
-            LmotsAlgorithm::construct_default_parameter(),
-            LmsAlgorithm::construct_default_parameter(),
-        )
+        let mut private_key = HssPrivateKey::<Sha256Hasher>::generate(&[
+            HssParameter::construct_default_parameters(),
+            HssParameter::construct_default_parameters(),
+        ])
         .expect("Should geneerate HSS private key");
         let public_key = private_key.get_public_key();
 
@@ -56,9 +53,9 @@ mod tests {
         generate_signature_and_verify(&mut private_key, &public_key, &mut message);
     }
 
-    fn generate_signature_and_verify<H: Hasher, const L: usize>(
-        private_key: &mut HssPrivateKey<H, L>,
-        public_key: &HssPublicKey<H, L>,
+    fn generate_signature_and_verify<H: Hasher>(
+        private_key: &mut HssPrivateKey<H>,
+        public_key: &HssPublicKey<H>,
         message: &mut [u8],
     ) {
         let signature = HssSignature::sign(private_key, &message).expect("Should sign message");

@@ -3,7 +3,7 @@ use core::mem::size_of;
 use crate::{
     constants::{
         IType, Seed, D_TOPSEED, MAX_HASH, MAX_HSS_LEVELS, RFC_PRIVATE_KEY_SIZE, SEED_CHILD_SEED,
-        SEED_LEN, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
+        TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
     },
     extract_or_return,
     hasher::Hasher,

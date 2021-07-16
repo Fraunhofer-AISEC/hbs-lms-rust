@@ -1,3 +1,4 @@
+mod aux;
 pub mod definitions;
 pub mod parameter;
 pub mod rfc_private_key;

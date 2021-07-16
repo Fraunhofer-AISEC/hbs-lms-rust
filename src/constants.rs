@@ -54,3 +54,9 @@ pub const MAX_HSS_LEVELS: usize = 8;
 
 pub const MAX_HSS_SIGNATURE_LENGTH: usize =
     (4 + (4 + MAX_HASH + (MAX_HASH * MAX_P)) + 4 + (MAX_HASH * MAX_H)) * MAX_HSS_LEVELS;
+
+pub const MIN_SUBTREE: usize = 2; /* All subtrees (other than the root subtree) have at least 2 levels */
+
+pub const DAUX_D: usize = 20;
+pub const DAUX_PREFIX_LEN: usize = 22; /* Not counting the seed value */
+pub const D_DAUX: u16 = 0xfdfd;

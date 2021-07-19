@@ -88,9 +88,13 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
 
     let mut aux_data = aux_data.unwrap();
 
+    let orig_aux_data = aux_data.as_ptr();
+
     if aux_data[AUX_DATA_MARKER] == NO_AUX_DATA {
         return None;
     }
+
+    let aux_data_len = aux_data.len();
 
     let mut aux_level = str32u(&aux_data[0..4]) as u64;
     aux_data = &mut aux_data[4..];
@@ -121,11 +125,11 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     if let Some(seed) = seed {
         let expected_len = index + size_hash;
 
-        if expected_len > aux_data.len() {
+        if expected_len > aux_data_len {
             return None;
         }
 
-        if aux_data.len() < 4 + size_hash {
+        if aux_data_len < 4 + size_hash {
             return None;
         }
 
@@ -133,11 +137,12 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
         compute_seed_derive::<H>(&mut key, &seed);
 
         let mut expected_mac = [0u8; MAX_HASH];
-        compute_hmac::<H>(&mut expected_mac, &mut key, &aux_data);
+        let orig_aux_data = unsafe { core::slice::from_raw_parts(orig_aux_data, index) };
+        compute_hmac::<H>(&mut expected_mac, &mut key, orig_aux_data);
 
         let hash_size = H::OUTPUT_SIZE;
 
-        if expected_mac[..hash_size] != aux_data[index..index + hash_size] {
+        if expected_mac[..hash_size] != aux_data[0..hash_size] {
             return None;
         }
     }
@@ -240,6 +245,10 @@ pub fn hss_extract_aux_data<H: Hasher>(
 
     let start_index = q as usize * hash_size;
     let end_index = start_index + hash_size;
+
+    if src[start_index..end_index] == [0u8; MAX_HASH] {
+        return None;
+    }
 
     let mut result = DynamicArray::new();
 

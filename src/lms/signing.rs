@@ -14,7 +14,7 @@ use crate::util::dynamic_array::DynamicArray;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 
-use super::helper::get_tree_element_signing;
+use super::helper::get_tree_element;
 use super::parameters::LmsParameter;
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -43,11 +43,7 @@ impl<H: Hasher> LmsSignature<H> {
 
         while i < h.into() {
             let tree_index = (r / (2usize.pow(i as u32))) ^ 0x1;
-            path.push(get_tree_element_signing(
-                tree_index,
-                &lms_private_key,
-                aux_data,
-            ));
+            path.push(get_tree_element(tree_index, &lms_private_key, &mut None));
             i += 1;
         }
 

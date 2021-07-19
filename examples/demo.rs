@@ -111,11 +111,14 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let message_data = read_file(&message_name);
 
     let aux_data_name = get_aux_name(&keyname);
-    let mut aux_data = read(aux_data_name)?;
+    let mut aux_data = read(aux_data_name).ok();
 
-    let aux_slice = &mut aux_data.as_mut_slice();
-
-    let result = hss_sign::<Sha256Hasher>(&message_data, &mut private_key_data, Some(aux_slice));
+    let result = if let Some(aux_data) = aux_data.as_mut() {
+        let aux_slice = &mut &mut aux_data[..];
+        hss_sign::<Sha256Hasher>(&message_data, &mut private_key_data, Some(aux_slice))
+    } else {
+        hss_sign::<Sha256Hasher>(&message_data, &mut private_key_data, None)
+    };
 
     let result = match result {
         None => {

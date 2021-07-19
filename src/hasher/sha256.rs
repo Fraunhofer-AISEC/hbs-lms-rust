@@ -1,3 +1,5 @@
+// use std::print;
+
 use sha2::{Digest, Sha256};
 
 use crate::{
@@ -8,6 +10,8 @@ use crate::{
         ustr::{u16str, u8str},
     },
 };
+
+// use std::io::Write;
 
 use super::Hasher;
 
@@ -33,15 +37,39 @@ impl Hasher for Sha256Hasher {
     }
 
     fn update(&mut self, data: &[u8]) {
+        // for x in data {
+        //     print!("{:02x} ", *x);
+        // }
+        // std::io::stdout().flush();
+
         self.hasher.update(data);
     }
 
     fn finalize(self) -> DynamicArray<u8, MAX_HASH> {
-        DynamicArray::from_slice(self.hasher.finalize().iter().as_slice())
+        let result = DynamicArray::from_slice(self.hasher.finalize().iter().as_slice());
+
+        // print!(" ---> ");
+
+        // for x in result.iter() {
+        //     print!("{:02x} ", *x);
+        // }
+        // println!("\n\n");
+        // std::io::stdout().flush();
+
+        result
     }
 
     fn finalize_reset(&mut self) -> DynamicArray<u8, MAX_HASH> {
-        DynamicArray::from_slice(self.hasher.finalize_reset().iter().as_slice())
+        let result = DynamicArray::from_slice(self.hasher.finalize_reset().iter().as_slice());
+
+        // print!(" ---> ");
+
+        // for x in result.iter() {
+        //     print!("{:02x} ", *x);
+        // }
+        // println!("\n\n");
+        // std::io::stdout().flush();
+        result
     }
 
     fn do_hash_chain<'a>(

@@ -9,24 +9,18 @@ use crate::{
 
 use super::definitions::LmsPrivateKey;
 
-pub fn get_tree_element_signing<H: Hasher>(
-    index: usize,
-    private_key: &LmsPrivateKey<H>,
-    aux_data: Option<&MutableExpandedAuxData>,
-) -> DynamicArray<u8, MAX_HASH> {
-    if let Some(aux_data) = aux_data {
-        if let Some(result) = hss_extract_aux_data::<H>(aux_data, index) {
-            return result;
-        }
-    }
-    get_tree_element(index, private_key, &mut None)
-}
-
 pub fn get_tree_element<H: Hasher>(
     index: usize,
     private_key: &LmsPrivateKey<H>,
     aux_data: &mut Option<MutableExpandedAuxData>,
 ) -> DynamicArray<u8, MAX_HASH> {
+    // Check if we already have the value cached
+    if let Some(aux_data) = aux_data {
+        if let Some(result) = hss_extract_aux_data::<H>(aux_data, index) {
+            return result;
+        }
+    }
+
     let mut hasher = <H>::get_hasher();
 
     hasher.update(&private_key.I);

@@ -98,7 +98,7 @@ mod tests {
             LmsAlgorithm::construct_default_parameter(),
         );
 
-        let public_key = generate_public_key(&private_key);
+        let public_key = generate_public_key(&private_key, &mut None);
 
         let mut first_message = [0u8, 4, 2, 7, 4, 2, 58, 3, 69, 3];
         let mut second_message = [1u8, 2, 3, 4, 5, 6, 7, 0];

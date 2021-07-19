@@ -151,7 +151,7 @@ mod tests {
             LmsAlgorithm::construct_default_parameter(),
         );
 
-        let public_key = generate_public_key(&private_key);
+        let public_key = generate_public_key(&private_key, &mut None);
 
         let serialized = public_key.to_binary_representation();
         let deserialized = LmsPublicKey::from_binary_representation(serialized.as_slice())

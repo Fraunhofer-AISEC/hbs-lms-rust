@@ -10,6 +10,7 @@ use crate::{
         helper::read_and_advance,
         ustr::{str32u, u32str},
     },
+    LmsParameter,
 };
 use crate::{
     hss::aux::hss_get_aux_data_len,
@@ -20,8 +21,11 @@ use crate::{
     },
 };
 
-use super::rfc_private_key::generate_child_seed_I_value;
 use super::rfc_private_key::RfcPrivateKey;
+use super::{
+    aux::{hss_is_aux_data_used, MutableExpandedAuxData},
+    rfc_private_key::generate_child_seed_I_value,
+};
 
 #[derive(Default, PartialEq)]
 pub struct HssPrivateKey<H: Hasher> {
@@ -44,20 +48,18 @@ impl<H: Hasher> HssPrivateKey<H> {
 
         let top_lms_parameter = parameters[0].get_lms_parameter();
 
-        let mut expanded_aux_data = if let Some(aux_data) = aux_data {
-            let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter);
-
-            // Shrink input slice
-            let moved = core::mem::replace(aux_data, &mut []);
-            *aux_data = &mut moved[..aux_len];
-
-            let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None);
-            hss_store_aux_marker(aux_data, aux_level);
-
-            hss_expand_aux_data::<H>(Some(aux_data), H::OUTPUT_SIZE, None)
+        let is_aux_data_used = if let Some(ref aux_data) = aux_data {
+            hss_is_aux_data_used(aux_data)
         } else {
-            None
+            false
         };
+
+        let mut expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
+            aux_data,
+            private_key,
+            top_lms_parameter,
+            is_aux_data_used,
+        );
 
         let mut hss_private_key: HssPrivateKey<H> = Default::default();
 
@@ -111,10 +113,38 @@ impl<H: Hasher> HssPrivateKey<H> {
         hss_private_key.signatures.push(dummy_signature);
 
         if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
-            hss_finalize_aux_data::<H>(expanded_aux_data, &private_key.seed);
+            if !is_aux_data_used {
+                hss_finalize_aux_data::<H>(expanded_aux_data, &private_key.seed);
+            }
         }
 
         Ok(hss_private_key)
+    }
+
+    fn get_expanded_aux_data<'a>(
+        aux_data: Option<&'a mut &mut [u8]>,
+        private_key: &'a RfcPrivateKey<H>,
+        top_lms_parameter: &LmsParameter<H>,
+        is_aux_data_used: bool,
+    ) -> Option<MutableExpandedAuxData<'a>> {
+        if let Some(aux_data) = aux_data {
+            if is_aux_data_used {
+                hss_expand_aux_data::<H>(Some(aux_data), Some(&private_key.seed))
+            } else {
+                let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter);
+
+                // Shrink input slice
+                let moved = core::mem::replace(aux_data, &mut []);
+                *aux_data = &mut moved[..aux_len];
+
+                let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None);
+                hss_store_aux_marker(aux_data, aux_level);
+
+                hss_expand_aux_data::<H>(Some(aux_data), None)
+            }
+        } else {
+            None
+        }
     }
 
     pub fn get_public_key(&self) -> HssPublicKey<H> {

@@ -87,7 +87,6 @@ pub fn hss_smallest_subtree_size(_tree_height: u8, _i: usize, _n: usize) -> u32 
 
 pub fn hss_expand_aux_data<'a, H: Hasher>(
     aux_data: Option<&'a mut [u8]>,
-    size_hash: usize,
     seed: Option<&'a [u8]>,
 ) -> Option<MutableExpandedAuxData<'a>> {
     aux_data.as_ref()?;
@@ -106,6 +105,8 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     aux_level &= 0x7ffffffff;
 
     let mut expanded_aux_data: MutableExpandedAuxData = Default::default();
+
+    let size_hash = H::OUTPUT_SIZE;
 
     let mut h = 0;
     while h <= MAX_H {
@@ -166,6 +167,10 @@ pub fn hss_store_aux_marker(aux_data: &mut [u8], aux_level: AuxLevel) {
         let levels = u32str(aux_level);
         aux_data[0..4].copy_from_slice(&levels);
     }
+}
+
+pub fn hss_is_aux_data_used(aux_data: &[u8]) -> bool {
+    aux_data[AUX_DATA_MARKER] != NO_AUX_DATA
 }
 
 pub fn hss_save_aux_data(

@@ -31,7 +31,7 @@ pub struct HssPrivateKey<H: Hasher> {
 }
 
 impl<H: Hasher> HssPrivateKey<H> {
-    pub fn get_l(&self) -> usize {
+    pub fn get_length(&self) -> usize {
         self.private_key.len()
     }
 
@@ -120,7 +120,7 @@ impl<H: Hasher> HssPrivateKey<H> {
     pub fn get_public_key(&self) -> HssPublicKey<H> {
         HssPublicKey {
             public_key: self.public_key[0].clone(),
-            level: self.get_l(),
+            level: self.get_length(),
         }
     }
 }

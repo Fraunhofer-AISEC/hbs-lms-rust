@@ -27,7 +27,7 @@ impl<H: Hasher> HssSignature<H> {
         private_key: &mut HssPrivateKey<H>,
         message: &[u8],
     ) -> Result<HssSignature<H>, &'static str> {
-        let l = private_key.get_l();
+        let l = private_key.get_length();
 
         let lmots_parameter = private_key.private_key[0].lmots_parameter;
         let lms_parameter = private_key.private_key[0].lms_parameter;

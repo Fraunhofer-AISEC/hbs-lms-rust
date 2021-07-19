@@ -45,13 +45,16 @@ fn create_signature_with_own_implementation() {
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();
 
+    let mut aux_data = vec![0u8; 2000];
+    let mut aux_slice = &mut &mut aux_data[..];
+
     let mut keys = hss_keygen::<Sha256Hasher>(
         &[
             HssParameter::construct_default_parameters(),
             HssParameter::construct_default_parameters(),
         ],
         None,
-        None,
+        Some(aux_slice),
     )
     .expect("Should create HSS keys");
 
@@ -63,11 +66,11 @@ fn create_signature_with_own_implementation() {
     create_message_file(&tempdir);
     let message_data = read_message(path);
 
-    own_signing(&tempdir, &message_data, keys.private_key.as_mut_slice());
+    own_signing(&tempdir, &message_data, keys.private_key.as_mut_slice(), &mut aux_slice);
 
     reference_verify(&tempdir);
 
-    own_signing(&tempdir, &message_data, keys.private_key.as_mut_slice());
+    own_signing(&tempdir, &message_data, keys.private_key.as_mut_slice(), &mut aux_slice);
 
     reference_verify(&tempdir);
 }
@@ -82,8 +85,9 @@ fn test_private_key_format() {
 
     let mut private_key = read_private_key(path);
     let message_data = read_message(path);
+    let mut aux_data = read_aux_data(path);
 
-    own_signing(&tempdir, &message_data, &mut private_key);
+    own_signing(&tempdir, &message_data, &mut private_key, &mut aux_data);
     reference_verify(&tempdir);
 
     reference_sign(&tempdir);
@@ -166,9 +170,9 @@ fn read_file(file_name: &str) -> Vec<u8> {
     data
 }
 
-fn own_signing(temp_path: &TempDir, message_data: &[u8], private_key: &mut [u8]) {
+fn own_signing(temp_path: &TempDir, message_data: &[u8], private_key: &mut [u8], aux_data: &mut [u8]) {
     let result =
-        hss_sign::<Sha256Hasher>(&message_data, private_key).expect("Signing should succed.");
+        hss_sign::<Sha256Hasher>(&message_data, private_key, Some(aux_data)).expect("Signing should succed.");
     save_file(
         temp_path.path().join(SIGNATURE_FILE_NAME).to_str().unwrap(),
         result.as_slice(),

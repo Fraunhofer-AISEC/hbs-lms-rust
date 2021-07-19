@@ -4,6 +4,7 @@ use crate::constants::MAX_HASH;
 use crate::constants::MAX_LMS_SIGNATURE_LENGTH;
 use crate::extract_or_return;
 use crate::hasher::Hasher;
+use crate::hss::aux::MutableExpandedAuxData;
 use crate::lm_ots;
 use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::lm_ots::signing::LmotsSignature;
@@ -13,7 +14,7 @@ use crate::util::dynamic_array::DynamicArray;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
 
-use super::helper::get_tree_element_with_aux;
+use super::helper::get_tree_element_signing;
 use super::parameters::LmsParameter;
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -28,6 +29,7 @@ impl<H: Hasher> LmsSignature<H> {
     pub fn sign(
         lms_private_key: &mut LmsPrivateKey<H>,
         message: &[u8],
+        aux_data: Option<&MutableExpandedAuxData>,
     ) -> Result<LmsSignature<H>, &'static str> {
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
@@ -41,10 +43,10 @@ impl<H: Hasher> LmsSignature<H> {
 
         while i < h.into() {
             let tree_index = (r / (2usize.pow(i as u32))) ^ 0x1;
-            path.push(get_tree_element_with_aux(
+            path.push(get_tree_element_signing(
                 tree_index,
                 &lms_private_key,
-                &mut None,
+                aux_data,
             ));
             i += 1;
         }
@@ -173,7 +175,7 @@ mod tests {
         let message = "Hi, what up?".as_bytes();
 
         let signature =
-            LmsSignature::sign(&mut private_key, message).expect("Signing must succeed.");
+            LmsSignature::sign(&mut private_key, message, None).expect("Signing must succeed.");
 
         let binary = signature.to_binary_representation();
 

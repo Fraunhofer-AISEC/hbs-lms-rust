@@ -2,6 +2,7 @@ use crate::{
     constants::{DAUX_D, DAUX_PREFIX_LEN, D_DAUX, MAX_H, MAX_HASH, MIN_SUBTREE},
     hasher::Hasher,
     util::{
+        dynamic_array::DynamicArray,
         helper::split_at_mut,
         ustr::{str32u, u32str},
     },
@@ -22,11 +23,6 @@ const AUX_DATA_HASHES: usize = 4;
 
 const IPAD: u8 = 0x36;
 const OPAD: u8 = 0x5c;
-
-#[derive(Default)]
-pub struct ExpandedAuxData<'a> {
-    pub data: [Option<&'a [u8]>; MAX_H + 1],
-}
 
 #[derive(Default)]
 pub struct MutableExpandedAuxData<'a> {
@@ -230,26 +226,27 @@ pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed:
 }
 
 pub fn hss_extract_aux_data<H: Hasher>(
-    aux: &ExpandedAuxData,
-    level: u8,
-    dest: &mut [u8],
-    node_offset: MerkleIndex,
-    node_count: MerkleIndex,
-) -> bool {
-    if aux.data[level as usize].is_none() {
-        return false;
-    }
+    aux: &MutableExpandedAuxData,
+    index: usize,
+) -> Option<DynamicArray<u8, MAX_HASH>> {
+    // We need to calculate the level of the tree and the offset from the beginning
+    let level = core::mem::size_of::<usize>() * 8 - index.leading_zeros() as usize - 1;
+    let q: u32 = index as u32 - 2u32.pow(level as u32);
+
+    aux.data[level as usize].as_ref()?;
 
     let src = aux.data[level as usize].as_ref().unwrap();
 
     let hash_size = H::OUTPUT_SIZE;
 
-    let start_index = node_offset as usize * hash_size;
-    let end_index = start_index + node_count as usize * hash_size;
+    let start_index = q as usize * hash_size;
+    let end_index = start_index + hash_size;
 
-    dest[start_index..end_index].copy_from_slice(&src[start_index..end_index]);
+    let mut result = DynamicArray::new();
 
-    true
+    result.append(&src[start_index..end_index]);
+
+    Some(result)
 }
 
 fn compute_seed_derive<H: Hasher>(result: &mut [u8], seed: &[u8]) {

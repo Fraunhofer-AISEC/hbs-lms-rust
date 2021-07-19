@@ -1,4 +1,4 @@
-use super::helper::get_tree_element_with_aux;
+use super::helper::get_tree_element;
 use super::parameters::LmsParameter;
 use crate::constants::*;
 use crate::hasher::Hasher;
@@ -33,7 +33,7 @@ pub fn generate_public_key<H: Hasher>(
     private_key: &LmsPrivateKey<H>,
     aux_data: &mut Option<MutableExpandedAuxData>,
 ) -> LmsPublicKey<H> {
-    let public_key = get_tree_element_with_aux(1, private_key, aux_data);
+    let public_key = get_tree_element(1, private_key, aux_data);
 
     LmsPublicKey::new(
         public_key,

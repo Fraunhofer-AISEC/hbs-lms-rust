@@ -110,7 +110,7 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let mut private_key_data = read_file(&private_key_name);
     let message_data = read_file(&message_name);
 
-    let result = hss_sign::<Sha256Hasher>(&message_data, &mut private_key_data);
+    let result = hss_sign::<Sha256Hasher>(&message_data, &mut private_key_data, None);
 
     let result = match result {
         None => {

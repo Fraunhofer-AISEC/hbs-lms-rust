@@ -97,6 +97,7 @@ impl<H: Hasher> HssPrivateKey<H> {
                 hss_private_key.public_key[i]
                     .to_binary_representation()
                     .as_slice(),
+                None,
             )?;
 
             hss_private_key.signatures.push(signature);
@@ -109,7 +110,7 @@ impl<H: Hasher> HssPrivateKey<H> {
             *parameters[0].get_lmots_parameter(),
             *parameters[0].get_lms_parameter(),
         );
-        let dummy_signature = lms::signing::LmsSignature::sign(&mut dummy_private_key, &[0])?;
+        let dummy_signature = lms::signing::LmsSignature::sign(&mut dummy_private_key, &[0], None)?;
         hss_private_key.signatures.push(dummy_signature);
 
         if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {

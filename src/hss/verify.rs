@@ -62,7 +62,8 @@ mod tests {
         public_key: &HssPublicKey<H>,
         message: &mut [u8],
     ) {
-        let signature = HssSignature::sign(private_key, &message).expect("Should sign message");
+        let signature =
+            HssSignature::sign(private_key, &message, None).expect("Should sign message");
 
         assert!(verify(&signature, &public_key, &message).is_ok());
 

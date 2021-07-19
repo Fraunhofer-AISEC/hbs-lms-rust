@@ -4,10 +4,7 @@ use std::{
     process::Command,
 };
 
-use lms::{
-    hss_keygen, hss_keygen_with_seed, hss_sign, hss_verify, HssParameter, LmotsAlgorithm,
-    LmsAlgorithm, Sha256Hasher,
-};
+use lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher, hss_keygen, hss_keygen_with_seed, hss_keygen_with_seed_and_aux, hss_sign, hss_verify};
 use tempfile::TempDir;
 
 const MESSAGE_FILE_NAME: &str = "message.txt";
@@ -16,8 +13,14 @@ const SIGNATURE_FILE_NAME: &str = "message.txt.sig";
 const KEY_NAME: &str = "testkey";
 const PUBLIC_KEY_NAME: &str = "testkey.pub";
 const PRIVATE_KEY_NAME: &str = "testkey.prv";
+const AUX_DATA_NAME: &str = "testkey.aux";
 
-const PARAMETER: &str = "5/2";
+const PARAMETER: &str = "5/2:2000";
+
+const TEST_SEED: [u8; 32] = [
+    23, 54, 12, 64, 2, 5, 77, 23, 188, 31, 34, 46, 88, 99, 21, 22, 23, 54, 12, 64, 2, 5, 77,
+    23, 188, 31, 34, 46, 88, 99, 21, 22,
+];
 
 #[test]
 fn create_signature_with_reference_implementation() {
@@ -86,19 +89,14 @@ fn should_produce_same_private_key() {
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();
 
-    let seed: [u8; 32] = [
-        23, 54, 12, 64, 2, 5, 77, 23, 188, 31, 34, 46, 88, 99, 21, 22, 23, 54, 12, 64, 2, 5, 77,
-        23, 188, 31, 34, 46, 88, 99, 21, 22,
-    ];
-
-    reference_genkey_seed(&tempdir, &seed);
+    reference_genkey_seed(&tempdir, &TEST_SEED);
 
     let parameters = HssParameter::<Sha256Hasher>::new(
         LmotsAlgorithm::LmotsW2.construct_parameter().unwrap(),
         LmsAlgorithm::LmsH5.construct_parameter().unwrap(),
     );
 
-    let key = hss_keygen_with_seed(&[parameters], &seed).unwrap();
+    let key = hss_keygen_with_seed(&[parameters], &TEST_SEED).unwrap();
 
     let ref_private_key = read_private_key(path);
     let ref_public_key = read_public_key(path);
@@ -107,8 +105,34 @@ fn should_produce_same_private_key() {
     assert!(ref_public_key == key.public_key.as_slice());
 }
 
+#[test]
+fn should_produce_same_aux_data() {
+    let tempdir = tempfile::tempdir().unwrap();
+    let path = tempdir.path();
+
+    reference_genkey_seed(&tempdir, &TEST_SEED);
+
+    let parameters = HssParameter::<Sha256Hasher>::new(
+        LmotsAlgorithm::LmotsW2.construct_parameter().unwrap(),
+        LmsAlgorithm::LmsH5.construct_parameter().unwrap(),
+    );
+
+    let mut aux_data = vec![0u8; 2000];
+    let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+
+    let _ = hss_keygen_with_seed_and_aux(&[parameters], &TEST_SEED, aux_slice).unwrap();
+
+    let ref_aux_data = read_aux_data(path);
+
+    assert!(&ref_aux_data == aux_slice);
+}
+
 fn read_private_key(path: &Path) -> Vec<u8> {
     read_file(path.join(PRIVATE_KEY_NAME).to_str().unwrap())
+}
+
+fn read_aux_data(path: &Path) -> Vec<u8> {
+    read_file(path.join(AUX_DATA_NAME).to_str().unwrap())
 }
 
 fn read_message(path: &Path) -> Vec<u8> {

@@ -45,7 +45,7 @@ pub fn generate_public_key_with_aux<H: Hasher>(
     private_key: &LmsPrivateKey<H>,
     aux_data: &mut MutableAuxCalculation,
 ) -> LmsPublicKey<H> {
-    let public_key = get_tree_element_with_aux(1, private_key, aux_data);
+    let public_key = get_tree_element_with_aux(1, private_key, aux_data, 0);
 
     LmsPublicKey::new(
         public_key,

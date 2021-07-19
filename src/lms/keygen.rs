@@ -33,7 +33,7 @@ pub fn generate_public_key<H: Hasher>(
     private_key: &LmsPrivateKey<H>,
     aux_data: &mut Option<MutableExpandedAuxData>,
 ) -> LmsPublicKey<H> {
-    let public_key = get_tree_element_with_aux(1, private_key, aux_data, 0);
+    let public_key = get_tree_element_with_aux(1, private_key, aux_data);
 
     LmsPublicKey::new(
         public_key,

@@ -45,7 +45,6 @@ impl<H: Hasher> LmsSignature<H> {
                 tree_index,
                 &lms_private_key,
                 &mut None,
-                h - path.len() as u8,
             ));
             i += 1;
         }

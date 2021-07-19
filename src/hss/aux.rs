@@ -173,16 +173,20 @@ pub fn hss_is_aux_data_used(aux_data: &[u8]) -> bool {
     aux_data[AUX_DATA_MARKER] != NO_AUX_DATA
 }
 
-pub fn hss_save_aux_data(
+pub fn hss_save_aux_data<H: Hasher>(
     data: &mut MutableExpandedAuxData,
-    level: u8,
-    size_hash: usize,
-    q: MerkleIndex,
+    index: usize,
     cur_val: &[u8],
 ) {
+    // We need to calculate the level of the tree and the offset from the beginning
+    let level = core::mem::size_of::<usize>() * 8 - index.leading_zeros() as usize - 1;
+    let q: u32 = index as u32 - 2u32.pow(level as u32);
+
     if data.data[level as usize].is_none() {
         return;
     }
+
+    let size_hash = H::OUTPUT_SIZE;
 
     let dest = data.data[level as usize].as_mut().unwrap();
     let start_index = size_hash * q as usize;

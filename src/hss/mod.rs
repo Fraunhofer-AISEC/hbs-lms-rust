@@ -49,7 +49,7 @@ pub fn hss_sign<H: Hasher>(
 
     // let parsed_aux_data = hss_expand_aux_data::<H>(aux_data, Some(&rfc_private_key.seed));
 
-    let signature = match HssSignature::sign(&mut parsed_private_key, &message, None) {
+    let signature = match HssSignature::sign(&mut parsed_private_key, &message) {
         Err(_) => return None,
         Ok(x) => x,
     };

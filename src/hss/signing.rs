@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-use super::{aux::MutableExpandedAuxData, definitions::HssPrivateKey, parameter::HssParameter};
+use super::{definitions::HssPrivateKey, parameter::HssParameter};
 
 #[derive(PartialEq)]
 pub struct HssSignature<H: Hasher> {
@@ -26,7 +26,6 @@ impl<H: Hasher> HssSignature<H> {
     pub fn sign(
         private_key: &mut HssPrivateKey<H>,
         message: &[u8],
-        aux_data: Option<&MutableExpandedAuxData>,
     ) -> Result<HssSignature<H>, &'static str> {
         let l = private_key.get_length();
 
@@ -57,14 +56,13 @@ impl<H: Hasher> HssSignature<H> {
             let signature = lms::signing::LmsSignature::sign(
                 &mut prv[d - 1],
                 public[d].to_binary_representation().as_slice(),
-                aux_data,
             )?;
             sig[d - 1] = signature;
             d += 1;
         }
 
         // Sign the message
-        sig[l - 1] = lms::signing::LmsSignature::sign(&mut prv[l - 1], message, aux_data)?;
+        sig[l - 1] = lms::signing::LmsSignature::sign(&mut prv[l - 1], message)?;
 
         let mut signed_public_keys = DynamicArray::new();
 
@@ -205,8 +203,8 @@ mod tests {
             crate::lms::generate_key_pair(&HssParameter::construct_default_parameters());
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
-        let signature = LmsSignature::sign(&mut keypair.private_key, &message, None)
-            .expect("Signing should work");
+        let signature =
+            LmsSignature::sign(&mut keypair.private_key, &message).expect("Signing should work");
 
         let signed_public_key = HssSignedPublicKey {
             public_key: keypair.public_key,
@@ -233,8 +231,8 @@ mod tests {
 
         let message = [2, 56, 123, 22, 42, 49, 22];
 
-        let signature = HssSignature::sign(&mut private_key, &message, None)
-            .expect("Should generate HSS signature");
+        let signature =
+            HssSignature::sign(&mut private_key, &message).expect("Should generate HSS signature");
 
         let binary_representation = signature.to_binary_representation();
         let deserialized = HssSignature::<Sha256Hasher>::from_binary_representation(

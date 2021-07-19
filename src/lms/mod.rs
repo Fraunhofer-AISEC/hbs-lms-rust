@@ -35,23 +35,6 @@ pub fn generate_key_pair_with_seed_and_aux<H: Hasher>(
     }
 }
 
-pub fn generate_key_pair_with_seed<H: Hasher>(
-    seed: &SeedAndI,
-    parameter: &HssParameter<H>,
-) -> LmsKeyPair<H> {
-    let lmots_parameter = parameter.get_lmots_parameter();
-    let lms_parameter = parameter.get_lms_parameter();
-
-    let private_key =
-        keygen::generate_private_key_with_seed(seed.seed, seed.i, *lmots_parameter, *lms_parameter);
-    let public_key = keygen::generate_public_key(&private_key);
-
-    LmsKeyPair {
-        private_key,
-        public_key,
-    }
-}
-
 pub fn generate_key_pair<H: Hasher>(parameter: &HssParameter<H>) -> LmsKeyPair<H> {
     let lmots_parameter = parameter.get_lmots_parameter();
     let lms_parameter = parameter.get_lms_parameter();

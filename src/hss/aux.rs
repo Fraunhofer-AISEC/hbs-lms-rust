@@ -220,10 +220,9 @@ pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed:
     }
 }
 
-pub fn hss_extract_aux_data(
+pub fn hss_extract_aux_data<H: Hasher>(
     aux: &ExpandedAuxData,
     level: u8,
-    hash_size: usize,
     dest: &mut [u8],
     node_offset: MerkleIndex,
     node_count: MerkleIndex,
@@ -233,6 +232,8 @@ pub fn hss_extract_aux_data(
     }
 
     let src = aux.data[level as usize].as_ref().unwrap();
+
+    let hash_size = H::OUTPUT_SIZE;
 
     let start_index = node_offset as usize * hash_size;
     let end_index = start_index + node_count as usize * hash_size;

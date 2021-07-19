@@ -40,7 +40,8 @@ pub fn hss_sign<H: Hasher>(
     let mut rfc_private_key =
         extract_or_return!(RfcPrivateKey::from_binary_representation(&private_key));
 
-    let mut parsed_private_key: HssPrivateKey<H> = match HssPrivateKey::from(&rfc_private_key) {
+    let mut parsed_private_key: HssPrivateKey<H> = match HssPrivateKey::from(&rfc_private_key, None)
+    {
         Ok(x) => x,
         Err(_) => return None,
     };
@@ -58,58 +59,29 @@ pub fn hss_sign<H: Hasher>(
     Some(signature.to_binary_representation())
 }
 
-pub fn hss_keygen_with_seed<H: Hasher>(
+pub fn hss_keygen<H: Hasher>(
     parameters: &[HssParameter<H>],
-    seed: &[u8],
+    seed: Option<&[u8]>,
+    aux_data: Option<&mut &mut [u8]>,
 ) -> Option<HssBinaryData> {
-    let private_key = extract_or_return!(RfcPrivateKey::generate_with_seed(parameters, seed));
+    let private_key = if let Some(seed) = seed {
+        RfcPrivateKey::generate_with_seed(parameters, seed)
+    } else {
+        RfcPrivateKey::generate(parameters)
+    };
 
-    generate_hss_key(&private_key)
-}
-
-pub fn hss_keygen_with_seed_and_aux<H: Hasher>(
-    parameters: &[HssParameter<H>],
-    seed: &[u8],
-    aux_data: &mut &mut [u8],
-) -> Option<HssBinaryData> {
-    let private_key = extract_or_return!(RfcPrivateKey::generate_with_seed(parameters, seed));
-
-    generate_hss_key_with_aux(&private_key, aux_data)
-}
-
-pub fn hss_keygen<H: Hasher>(parameters: &[HssParameter<H>]) -> Option<HssBinaryData> {
-    let private_key = extract_or_return!(RfcPrivateKey::generate(parameters));
-
-    generate_hss_key(&private_key)
-}
-
-fn generate_hss_key_with_aux<H: Hasher>(
-    private_key: &RfcPrivateKey<H>,
-    aux_data: &mut &mut [u8],
-) -> Option<HssBinaryData> {
-    let hss_key: HssPrivateKey<H> =
-        match crate::hss::definitions::HssPrivateKey::from_with_aux_data(&private_key, aux_data) {
+    if let Some(private_key) = private_key {
+        let hss_key: HssPrivateKey<H> = match HssPrivateKey::from(&private_key, aux_data) {
             Err(_) => return None,
             Ok(x) => x,
         };
-
-    Some(HssBinaryData {
-        private_key: private_key.to_binary_representation(),
-        public_key: hss_key.get_public_key().to_binary_representation(),
-    })
-}
-
-fn generate_hss_key<H: Hasher>(private_key: &RfcPrivateKey<H>) -> Option<HssBinaryData> {
-    let hss_key: HssPrivateKey<H> = match crate::hss::definitions::HssPrivateKey::from(&private_key)
-    {
-        Err(_) => return None,
-        Ok(x) => x,
-    };
-
-    Some(HssBinaryData {
-        private_key: private_key.to_binary_representation(),
-        public_key: hss_key.get_public_key().to_binary_representation(),
-    })
+        Some(HssBinaryData {
+            private_key: private_key.to_binary_representation(),
+            public_key: hss_key.get_public_key().to_binary_representation(),
+        })
+    } else {
+        None
+    }
 }
 
 #[cfg(test)]
@@ -123,11 +95,15 @@ mod tests {
     fn test_signing() {
         type H = Sha256Hasher;
 
-        let mut keys = hss_keygen::<H>(&[
-            HssParameter::construct_default_parameters(),
-            HssParameter::construct_default_parameters(),
-            HssParameter::construct_default_parameters(),
-        ])
+        let mut keys = hss_keygen::<H>(
+            &[
+                HssParameter::construct_default_parameters(),
+                HssParameter::construct_default_parameters(),
+                HssParameter::construct_default_parameters(),
+            ],
+            None,
+            None,
+        )
         .expect("Should generate HSS keys");
 
         let mut message = [

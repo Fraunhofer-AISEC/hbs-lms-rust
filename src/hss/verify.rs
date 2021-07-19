@@ -47,7 +47,7 @@ mod tests {
         ])
         .unwrap();
 
-        let mut private_key = HssPrivateKey::from(&private_key).unwrap();
+        let mut private_key = HssPrivateKey::from(&private_key, None).unwrap();
 
         let public_key = private_key.get_public_key();
 

@@ -226,7 +226,7 @@ mod tests {
         ])
         .unwrap();
 
-        let mut private_key = HssPrivateKey::from(&private_key).unwrap();
+        let mut private_key = HssPrivateKey::from(&private_key, None).unwrap();
 
         let message = [2, 56, 123, 22, 42, 49, 22];
 

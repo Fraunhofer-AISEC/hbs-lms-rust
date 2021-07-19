@@ -189,14 +189,12 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         None
     };
 
+    let seed_slice: Option<&[u8]> = seed.as_ref().map(|x| x.as_slice());
+
     let mut aux_data = vec![0u8; genkey_parameter.aux_data];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    let keys = if let Some(ref seed) = seed {
-        hss_keygen_with_seed_and_aux(&parameter, seed, aux_slice)
-    } else {
-        hss_keygen::<Sha256Hasher>(&parameter)
-    };
+    let keys = hss_keygen(&parameter, seed_slice, Some(aux_slice));
 
     let keys = keys.unwrap();
 

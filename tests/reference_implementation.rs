@@ -4,7 +4,9 @@ use std::{
     process::Command,
 };
 
-use lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher, hss_keygen, hss_keygen_with_seed, hss_keygen_with_seed_and_aux, hss_sign, hss_verify};
+use lms::{
+    hss_keygen, hss_sign, hss_verify, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher,
+};
 use tempfile::TempDir;
 
 const MESSAGE_FILE_NAME: &str = "message.txt";
@@ -18,8 +20,8 @@ const AUX_DATA_NAME: &str = "testkey.aux";
 const PARAMETER: &str = "5/2:2000";
 
 const TEST_SEED: [u8; 32] = [
-    23, 54, 12, 64, 2, 5, 77, 23, 188, 31, 34, 46, 88, 99, 21, 22, 23, 54, 12, 64, 2, 5, 77,
-    23, 188, 31, 34, 46, 88, 99, 21, 22,
+    23, 54, 12, 64, 2, 5, 77, 23, 188, 31, 34, 46, 88, 99, 21, 22, 23, 54, 12, 64, 2, 5, 77, 23,
+    188, 31, 34, 46, 88, 99, 21, 22,
 ];
 
 #[test]
@@ -43,10 +45,14 @@ fn create_signature_with_own_implementation() {
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();
 
-    let mut keys = hss_keygen::<Sha256Hasher>(&[
-        HssParameter::construct_default_parameters(),
-        HssParameter::construct_default_parameters(),
-    ])
+    let mut keys = hss_keygen::<Sha256Hasher>(
+        &[
+            HssParameter::construct_default_parameters(),
+            HssParameter::construct_default_parameters(),
+        ],
+        None,
+        None,
+    )
     .expect("Should create HSS keys");
 
     save_file(
@@ -96,7 +102,7 @@ fn should_produce_same_private_key() {
         LmsAlgorithm::LmsH5.construct_parameter().unwrap(),
     );
 
-    let key = hss_keygen_with_seed(&[parameters], &TEST_SEED).unwrap();
+    let key = hss_keygen(&[parameters], Some(&TEST_SEED), None).unwrap();
 
     let ref_private_key = read_private_key(path);
     let ref_public_key = read_public_key(path);
@@ -120,7 +126,7 @@ fn should_produce_same_aux_data() {
     let mut aux_data = vec![0u8; 2000];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    let _ = hss_keygen_with_seed_and_aux(&[parameters], &TEST_SEED, aux_slice).unwrap();
+    let _ = hss_keygen(&[parameters], Some(&TEST_SEED), Some(aux_slice)).unwrap();
 
     let ref_aux_data = read_aux_data(path);
 

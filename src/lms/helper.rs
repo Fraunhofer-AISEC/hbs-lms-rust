@@ -1,6 +1,6 @@
 use crate::constants::MAX_HASH;
 use crate::hasher::Hasher;
-use crate::hss::aux::{hss_save_aux_data, MutableAuxCalculation};
+use crate::hss::aux::{hss_save_aux_data, MutableExpandedAuxData};
 use crate::util::dynamic_array::DynamicArray;
 use crate::{
     constants::{D_INTR, D_LEAF},
@@ -46,7 +46,7 @@ pub fn get_tree_element<H: Hasher>(
 pub fn get_tree_element_with_aux<H: Hasher>(
     index: usize,
     private_key: &LmsPrivateKey<H>,
-    aux_data: &mut MutableAuxCalculation,
+    aux_data: &mut Option<MutableExpandedAuxData>,
     tree_level: u8,
 ) -> DynamicArray<u8, MAX_HASH> {
     let mut hasher = <H>::get_hasher();
@@ -80,13 +80,15 @@ pub fn get_tree_element_with_aux<H: Hasher>(
 
     let index_in_tree_row: u32 = index as u32 - 2u32.pow(tree_level as u32);
 
-    hss_save_aux_data(
-        &mut aux_data.data,
-        tree_level,
-        H::OUTPUT_SIZE,
-        index_in_tree_row,
-        result.as_slice(),
-    );
+    if let Some(expanded_aux_data) = aux_data.as_mut() {
+        hss_save_aux_data(
+            expanded_aux_data,
+            tree_level,
+            H::OUTPUT_SIZE,
+            index_in_tree_row,
+            result.as_slice(),
+        );
+    }
 
     result
 }

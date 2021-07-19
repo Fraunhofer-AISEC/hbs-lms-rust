@@ -1,5 +1,5 @@
 use crate::hasher::Hasher;
-use crate::hss::aux::MutableAuxCalculation;
+use crate::hss::aux::MutableExpandedAuxData;
 use crate::hss::parameter::HssParameter;
 use crate::hss::rfc_private_key::SeedAndI;
 use crate::lms::definitions::LmsPrivateKey;
@@ -20,7 +20,7 @@ pub struct LmsKeyPair<H: Hasher> {
 pub fn generate_key_pair_with_seed_and_aux<H: Hasher>(
     seed: &SeedAndI,
     parameter: &HssParameter<H>,
-    aux_data: &mut MutableAuxCalculation,
+    aux_data: &mut Option<MutableExpandedAuxData>,
 ) -> LmsKeyPair<H> {
     let lmots_parameter = parameter.get_lmots_parameter();
     let lms_parameter = parameter.get_lms_parameter();

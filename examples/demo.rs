@@ -18,6 +18,8 @@ const MESSAGE_PARAMETER: &str = "file";
 const PARAMETER_PARAMETER: &str = "parameter";
 const SEED_PARAMETER: &str = "seed";
 
+const AUX_DATA_DEFAULT_SIZE: usize = 2000;
+
 #[derive(Debug)]
 struct DemoError(String);
 
@@ -32,6 +34,21 @@ impl Error for DemoError {}
 impl DemoError {
     pub fn new<R>(message: &str) -> Result<R, Box<dyn Error>> {
         Err(Box::new(Self(String::from(message))))
+    }
+}
+
+struct GenKeyParameter {
+    parameter: Vec<HssParameter<Sha256Hasher>>,
+    aux_data: usize,
+}
+
+impl GenKeyParameter {
+    pub fn new(parameter: Vec<HssParameter<Sha256Hasher>>, aux_data: Option<usize>) -> Self {
+        let aux_data = aux_data.unwrap_or(AUX_DATA_DEFAULT_SIZE);
+        Self {
+            parameter,
+            aux_data,
+        }
     }
 }
 
@@ -159,7 +176,8 @@ fn read_file(file_name: &str) -> Vec<u8> {
 fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let keyname: String = get_parameter(KEYNAME_PARAMETER, args);
 
-    let parameter = parse_genkey_parameter(&get_parameter(PARAMETER_PARAMETER, args));
+    let genkey_parameter = parse_genkey_parameter(&get_parameter(PARAMETER_PARAMETER, args));
+    let parameter = genkey_parameter.parameter;
 
     let seed = if let Some(seed) = args.value_of(SEED_PARAMETER) {
         let decoded = hex::decode(seed)?;
@@ -171,7 +189,7 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         None
     };
 
-    let mut aux_data = vec![0u8; 2000];
+    let mut aux_data = vec![0u8; genkey_parameter.aux_data];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
     let keys = if let Some(ref seed) = seed {
@@ -203,8 +221,25 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn parse_genkey_parameter(parameter: &str) -> Vec<HssParameter<Sha256Hasher>> {
+fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
     let mut result = Vec::new();
+
+    let mut aux_data_size: Option<usize> = None;
+
+    let parameter = if parameter.contains(":") {
+        let mut splitted = parameter.split(":");
+        let parameter = splitted.next().expect("Should contain parameter");
+
+        let aux_data = splitted.next().expect("Should contain aux data size");
+        let aux_data = aux_data
+            .parse::<usize>()
+            .expect("Could not parse aux data size");
+        aux_data_size = Some(aux_data);
+
+        parameter
+    } else {
+        parameter
+    };
 
     let parameters = parameter.split(",");
 
@@ -250,7 +285,7 @@ fn parse_genkey_parameter(parameter: &str) -> Vec<HssParameter<Sha256Hasher>> {
         result.push(parameter);
     }
 
-    result
+    GenKeyParameter::new(result, aux_data_size)
 }
 
 fn write(filename: &str, content: &[u8]) -> Result<(), std::io::Error> {

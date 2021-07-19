@@ -33,11 +33,6 @@ pub struct MutableExpandedAuxData<'a> {
     pub data: [Option<&'a mut [u8]>; MAX_H + 1],
 }
 
-pub struct MutableAuxCalculation<'a> {
-    pub data: MutableExpandedAuxData<'a>,
-    pub level: u8,
-}
-
 pub fn hss_optimal_aux_level<H: Hasher>(
     mut max_length: usize,
     lms_parameter: LmsParameter<H>,

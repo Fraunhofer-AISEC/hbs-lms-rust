@@ -3,7 +3,7 @@ use super::helper::get_tree_element_with_aux;
 use super::parameters::LmsParameter;
 use crate::constants::*;
 use crate::hasher::Hasher;
-use crate::hss::aux::MutableAuxCalculation;
+use crate::hss::aux::MutableExpandedAuxData;
 use crate::lm_ots::parameters::LmotsParameter;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
@@ -43,7 +43,7 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmsPrivateKey<H>) -> LmsPubl
 
 pub fn generate_public_key_with_aux<H: Hasher>(
     private_key: &LmsPrivateKey<H>,
-    aux_data: &mut MutableAuxCalculation,
+    aux_data: &mut Option<MutableExpandedAuxData>,
 ) -> LmsPublicKey<H> {
     let public_key = get_tree_element_with_aux(1, private_key, aux_data, 0);
 

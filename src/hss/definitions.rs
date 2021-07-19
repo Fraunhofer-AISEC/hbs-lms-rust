@@ -1,10 +1,8 @@
 use crate::{
     constants::{MAX_HSS_LEVELS, MAX_LMS_PUBLIC_KEY_LENGTH},
-    extract_or,
     hasher::Hasher,
     hss::aux::{
         hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
-        MutableAuxCalculation,
     },
     lms::generate_key_pair_with_seed_and_aux,
     util::{
@@ -56,15 +54,7 @@ impl<H: Hasher> HssPrivateKey<H> {
         let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None);
         hss_store_aux_marker(aux_data, aux_level);
 
-        let expanded_aux_data = extract_or!(
-            hss_expand_aux_data::<H>(Some(aux_data), H::OUTPUT_SIZE, None),
-            Err("Could not expand aux data")
-        );
-
-        let mut calculation_aux_data = MutableAuxCalculation {
-            data: expanded_aux_data,
-            level: 0,
-        };
+        let mut expanded_aux_data = hss_expand_aux_data::<H>(Some(aux_data), H::OUTPUT_SIZE, None);
 
         let mut hss_private_key: HssPrivateKey<H> = Default::default();
 
@@ -73,7 +63,7 @@ impl<H: Hasher> HssPrivateKey<H> {
         let lms_keypair = generate_key_pair_with_seed_and_aux(
             &current_seed,
             &parameters[0],
-            &mut calculation_aux_data,
+            &mut expanded_aux_data,
         );
 
         hss_private_key.private_key.push(lms_keypair.private_key);
@@ -88,12 +78,10 @@ impl<H: Hasher> HssPrivateKey<H> {
 
             current_seed = generate_child_seed_I_value(&current_seed, i as u32);
 
-            calculation_aux_data.level = i as u8;
-
             let lms_keypair = generate_key_pair_with_seed_and_aux(
                 &current_seed,
                 parameter,
-                &mut calculation_aux_data,
+                &mut expanded_aux_data,
             );
 
             hss_private_key.private_key.push(lms_keypair.private_key);
@@ -119,7 +107,9 @@ impl<H: Hasher> HssPrivateKey<H> {
         let dummy_signature = lms::signing::LmsSignature::sign(&mut dummy_private_key, &[0])?;
         hss_private_key.signatures.push(dummy_signature);
 
-        hss_finalize_aux_data::<H>(&mut calculation_aux_data.data, &private_key.seed);
+        if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
+            hss_finalize_aux_data::<H>(expanded_aux_data, &private_key.seed);
+        }
 
         Ok(hss_private_key)
     }

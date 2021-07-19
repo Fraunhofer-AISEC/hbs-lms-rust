@@ -1,5 +1,6 @@
 use crate::constants::MAX_HASH;
 use crate::hasher::Hasher;
+use crate::hss::aux::{hss_save_aux_data, MutableAuxCalculation};
 use crate::util::dynamic_array::DynamicArray;
 use crate::{
     constants::{D_INTR, D_LEAF},
@@ -40,4 +41,49 @@ pub fn get_tree_element<H: Hasher>(
     }
 
     hasher.finalize()
+}
+
+pub fn get_tree_element_with_aux<H: Hasher>(
+    index: usize,
+    private_key: &LmsPrivateKey<H>,
+    aux_data: &mut MutableAuxCalculation,
+) -> DynamicArray<u8, MAX_HASH> {
+    let mut hasher = <H>::get_hasher();
+
+    hasher.update(&private_key.I);
+    hasher.update(&u32str(index as u32));
+
+    let max_private_keys = private_key.lms_parameter.number_of_lm_ots_keys();
+
+    if index >= max_private_keys {
+        hasher.update(&D_LEAF);
+        let lms_ots_private_key = crate::lm_ots::generate_private_key(
+            u32str((index - max_private_keys) as u32),
+            private_key.I,
+            private_key.seed,
+            private_key.lmots_parameter,
+        );
+
+        let lm_ots_public_key = crate::lm_ots::generate_public_key(&lms_ots_private_key);
+        hasher.update(&lm_ots_public_key.key.as_slice());
+    } else {
+        hasher.update(&D_INTR);
+        let left = get_tree_element_with_aux(2 * index, private_key, aux_data);
+        let right = get_tree_element_with_aux(2 * index + 1, private_key, aux_data);
+
+        hasher.update(&left.as_slice());
+        hasher.update(&right.as_slice());
+    }
+
+    let result = hasher.finalize();
+
+    hss_save_aux_data(
+        &mut aux_data.data,
+        aux_data.level,
+        H::OUTPUT_SIZE,
+        index as u32,
+        result.as_slice(),
+    );
+
+    result
 }

@@ -1,16 +1,25 @@
-use crate::lms::{
-    self,
-    definitions::{LmsPrivateKey, LmsPublicKey},
-    generate_key_pair_with_seed,
-    signing::LmsSignature,
-};
 use crate::{
     constants::{MAX_HSS_LEVELS, MAX_LMS_PUBLIC_KEY_LENGTH},
+    extract_or,
     hasher::Hasher,
+    hss::aux::{
+        hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
+        MutableAuxCalculation,
+    },
+    lms::generate_key_pair_with_seed_and_aux,
     util::{
         dynamic_array::DynamicArray,
         helper::read_and_advance,
         ustr::{str32u, u32str},
+    },
+};
+use crate::{
+    hss::aux::hss_get_aux_data_len,
+    lms::{
+        self,
+        definitions::{LmsPrivateKey, LmsPublicKey},
+        generate_key_pair_with_seed,
+        signing::LmsSignature,
     },
 };
 
@@ -27,6 +36,92 @@ pub struct HssPrivateKey<H: Hasher> {
 impl<H: Hasher> HssPrivateKey<H> {
     pub fn get_l(&self) -> usize {
         self.private_key.len()
+    }
+
+    pub fn from_with_aux_data(
+        private_key: &RfcPrivateKey<H>,
+        aux_data: &mut &mut [u8],
+    ) -> Result<Self, &'static str> {
+        let parameters = private_key.compressed_parameter.to::<H>();
+        let levels = parameters.len();
+
+        let top_lms_parameter = parameters[0].get_lms_parameter();
+
+        let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter);
+
+        // Shrink input slice
+        let moved = core::mem::replace(aux_data, &mut []);
+        *aux_data = &mut moved[..aux_len];
+
+        let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None);
+        hss_store_aux_marker(aux_data, aux_level);
+
+        let expanded_aux_data = extract_or!(
+            hss_expand_aux_data::<H>(Some(aux_data), H::OUTPUT_SIZE, None),
+            Err("Could not expand aux data")
+        );
+
+        let mut calculation_aux_data = MutableAuxCalculation {
+            data: expanded_aux_data,
+            level: 0,
+        };
+
+        let mut hss_private_key: HssPrivateKey<H> = Default::default();
+
+        let mut current_seed = private_key.generate_root_seed_I_value();
+
+        let lms_keypair = generate_key_pair_with_seed_and_aux(
+            &current_seed,
+            &parameters[0],
+            &mut calculation_aux_data,
+        );
+
+        hss_private_key.private_key.push(lms_keypair.private_key);
+        hss_private_key.public_key.push(lms_keypair.public_key);
+
+        for i in 1..levels {
+            let parameter = if parameters.len() == 1 {
+                &parameters[0]
+            } else {
+                &parameters[i]
+            };
+
+            current_seed = generate_child_seed_I_value(&current_seed, i as u32);
+
+            calculation_aux_data.level = i as u8;
+
+            let lms_keypair = generate_key_pair_with_seed_and_aux(
+                &current_seed,
+                parameter,
+                &mut calculation_aux_data,
+            );
+
+            hss_private_key.private_key.push(lms_keypair.private_key);
+            hss_private_key.public_key.push(lms_keypair.public_key);
+
+            let signature = lms::signing::LmsSignature::sign(
+                &mut hss_private_key.private_key[i - 1],
+                hss_private_key.public_key[i]
+                    .to_binary_representation()
+                    .as_slice(),
+            )?;
+
+            hss_private_key.signatures.push(signature);
+        }
+
+        // TODO: Remove
+        // Add dummy signature to first key generation such that the private key size stays always the same.
+        // This prevents for passing in a too short slice when the private key gets updated
+        let mut dummy_private_key = lms::keygen::generate_private_key(
+            *parameters[0].get_lmots_parameter(),
+            *parameters[0].get_lms_parameter(),
+        );
+        let dummy_signature = lms::signing::LmsSignature::sign(&mut dummy_private_key, &[0])?;
+        hss_private_key.signatures.push(dummy_signature);
+
+        hss_finalize_aux_data::<H>(&mut calculation_aux_data.data, &private_key.seed);
+
+        Ok(hss_private_key)
     }
 
     pub fn from(private_key: &RfcPrivateKey<H>) -> Result<Self, &'static str> {

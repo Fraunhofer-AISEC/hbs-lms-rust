@@ -5,7 +5,7 @@ use crate::{
         helper::split_at_mut,
         ustr::{str32u, u32str},
     },
-    LmotsParameter, LmsParameter,
+    LmsParameter,
 };
 
 /**
@@ -40,7 +40,6 @@ pub struct MutableAuxCalculation<'a> {
 
 pub fn hss_optimal_aux_level<H: Hasher>(
     mut max_length: usize,
-    lmots_parameter: LmotsParameter<H>,
     lms_parameter: LmsParameter<H>,
     actual_len: Option<&mut usize>,
 ) -> AuxLevel {
@@ -81,14 +80,14 @@ pub fn hss_optimal_aux_level<H: Hasher>(
         *actual_len = orig_max_length - max_length;
     }
 
-    return aux_level;
+    aux_level
 }
 
 pub fn hss_smallest_subtree_size(_tree_height: u8, _i: usize, _n: usize) -> u32 {
     if MIN_SUBTREE > 2 {
         panic!("We assume that a subtree of size 2 is allowed");
     }
-    return 2;
+    2
 }
 
 pub fn hss_expand_aux_data<'a, H: Hasher>(
@@ -96,9 +95,7 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     size_hash: usize,
     seed: Option<&'a [u8]>,
 ) -> Option<MutableExpandedAuxData<'a>> {
-    if aux_data.is_none() {
-        return None;
-    }
+    aux_data.as_ref()?;
 
     let mut aux_data = aux_data.unwrap();
 
@@ -109,6 +106,8 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     let mut aux_level = str32u(&aux_data[0..4]) as u64;
     aux_data = &mut aux_data[4..];
 
+    let mut index = 4;
+
     aux_level &= 0x7ffffffff;
 
     let mut expanded_aux_data: MutableExpandedAuxData = Default::default();
@@ -117,7 +116,8 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     while h <= MAX_H {
         if aux_level & 1 != 0 {
             let len = size_hash << h;
-            let (left, rest) = split_at_mut(&mut aux_data[..], len);
+            index += len;
+            let (left, rest) = split_at_mut(&mut *aux_data, len);
             aux_data = rest;
             expanded_aux_data.data[h] = Some(left);
         }
@@ -127,42 +127,37 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     }
 
     // Check if data is valid
-    // if let Some(seed) = seed {
-    //     let expected_len = index + size_hash;
+    if let Some(seed) = seed {
+        let expected_len = index + size_hash;
 
-    //     if expected_len > aux_data.len() {
-    //         return None;
-    //     }
+        if expected_len > aux_data.len() {
+            return None;
+        }
 
-    //     if aux_data.len() < 4 + size_hash {
-    //         return None;
-    //     }
+        if aux_data.len() < 4 + size_hash {
+            return None;
+        }
 
-    //     let mut key = [0u8; MAX_M];
-    //     compute_seed_derive::<H>(&mut key, &seed);
+        let mut key = [0u8; MAX_HASH];
+        compute_seed_derive::<H>(&mut key, &seed);
 
-    //     let mut expected_mac = [0u8; MAX_M];
-    //     compute_hmac::<H>(&mut expected_mac, &mut key, &aux_data);
+        let mut expected_mac = [0u8; MAX_HASH];
+        compute_hmac::<H>(&mut expected_mac, &mut key, &aux_data);
 
-    //     let hash_size = H::OUTPUT_SIZE;
+        let hash_size = H::OUTPUT_SIZE;
 
-    //     if expected_mac[..hash_size] != aux_data[index..index + hash_size] {
-    //         return None;
-    //     }
-    // }
+        if expected_mac[..hash_size] != aux_data[index..index + hash_size] {
+            return None;
+        }
+    }
 
     Some(expanded_aux_data)
 }
 
-pub fn hss_get_aux_data_len<H: Hasher>(
-    max_length: usize,
-    _levels: u8,
-    lmots_parameter: LmotsParameter<H>,
-    lms_parameter: LmsParameter<H>,
-) -> usize {
+pub fn hss_get_aux_data_len<H: Hasher>(max_length: usize, lms_parameter: LmsParameter<H>) -> usize {
     let mut len = 0;
 
-    if hss_optimal_aux_level(max_length, lmots_parameter, lms_parameter, Some(&mut len)) == 0 {
+    if hss_optimal_aux_level(max_length, lms_parameter, Some(&mut len)) == 0 {
         return 1;
     }
 

@@ -1,4 +1,4 @@
-mod aux;
+pub mod aux;
 pub mod definitions;
 pub mod parameter;
 pub mod rfc_private_key;
@@ -67,10 +67,36 @@ pub fn hss_keygen_with_seed<H: Hasher>(
     generate_hss_key(&private_key)
 }
 
+pub fn hss_keygen_with_seed_and_aux<H: Hasher>(
+    parameters: &[HssParameter<H>],
+    seed: &[u8],
+    aux_data: &mut &mut [u8],
+) -> Option<HssBinaryData> {
+    let private_key = extract_or_return!(RfcPrivateKey::generate_with_seed(parameters, seed));
+
+    generate_hss_key_with_aux(&private_key, aux_data)
+}
+
 pub fn hss_keygen<H: Hasher>(parameters: &[HssParameter<H>]) -> Option<HssBinaryData> {
     let private_key = extract_or_return!(RfcPrivateKey::generate(parameters));
 
     generate_hss_key(&private_key)
+}
+
+fn generate_hss_key_with_aux<H: Hasher>(
+    private_key: &RfcPrivateKey<H>,
+    aux_data: &mut &mut [u8],
+) -> Option<HssBinaryData> {
+    let hss_key: HssPrivateKey<H> =
+        match crate::hss::definitions::HssPrivateKey::from_with_aux_data(&private_key, aux_data) {
+            Err(_) => return None,
+            Ok(x) => x,
+        };
+
+    Some(HssBinaryData {
+        private_key: private_key.to_binary_representation(),
+        public_key: hss_key.get_public_key().to_binary_representation(),
+    })
 }
 
 fn generate_hss_key<H: Hasher>(private_key: &RfcPrivateKey<H>) -> Option<HssBinaryData> {

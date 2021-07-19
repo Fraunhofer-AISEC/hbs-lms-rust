@@ -135,6 +135,10 @@ fn get_private_key_name(private_key: &String) -> String {
     private_key.clone() + ".prv"
 }
 
+fn get_aux_name(keyname: &String) -> String {
+    keyname.clone() + ".aux"
+}
+
 fn get_parameter(name: &str, args: &ArgMatches) -> String {
     args.value_of(name)
         .expect("Parameter must be present.")
@@ -167,8 +171,11 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         None
     };
 
-    let keys = if let Some(seed) = seed {
-        hss_keygen_with_seed(&parameter, &seed)
+    let mut aux_data = vec![0u8; 2000];
+    let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+
+    let keys = if let Some(ref seed) = seed {
+        hss_keygen_with_seed_and_aux(&parameter, seed, aux_slice)
     } else {
         hss_keygen::<Sha256Hasher>(&parameter)
     };
@@ -180,6 +187,12 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 
     let private_key_binary = keys.private_key;
     let private_key_filename = get_private_key_name(&keyname);
+
+    let aux_name = get_aux_name(&keyname);
+
+    if seed.is_some() {
+        write(&aux_name, aux_slice)?;
+    }
 
     write(public_key_filename.as_str(), &public_key_binary.as_slice())?;
     write(

@@ -1,6 +1,13 @@
-use std::{io::{Read, Write}, path::{Path, PathBuf}, process::Command};
+use std::{
+    io::{Read, Write},
+    path::{Path, PathBuf},
+    process::Command,
+};
 
-use lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher, hss_keygen, hss_keygen_with_seed, hss_sign, hss_verify};
+use lms::{
+    hss_keygen, hss_keygen_with_seed, hss_sign, hss_verify, HssParameter, LmotsAlgorithm,
+    LmsAlgorithm, Sha256Hasher,
+};
 use tempfile::TempDir;
 
 const MESSAGE_FILE_NAME: &str = "message.txt";
@@ -79,11 +86,17 @@ fn should_produce_same_private_key() {
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();
 
-    let seed: [u8; 32] = [23, 54, 12, 64, 2, 5, 77, 23, 188, 31, 34, 46, 88, 99, 21, 22, 23, 54, 12, 64, 2, 5, 77, 23, 188, 31, 34, 46, 88, 99, 21, 22];
+    let seed: [u8; 32] = [
+        23, 54, 12, 64, 2, 5, 77, 23, 188, 31, 34, 46, 88, 99, 21, 22, 23, 54, 12, 64, 2, 5, 77,
+        23, 188, 31, 34, 46, 88, 99, 21, 22,
+    ];
 
     reference_genkey_seed(&tempdir, &seed);
 
-    let parameters = HssParameter::<Sha256Hasher>::new(LmotsAlgorithm::LmotsW2.construct_parameter().unwrap(), LmsAlgorithm::LmsH5.construct_parameter().unwrap());
+    let parameters = HssParameter::<Sha256Hasher>::new(
+        LmotsAlgorithm::LmotsW2.construct_parameter().unwrap(),
+        LmsAlgorithm::LmsH5.construct_parameter().unwrap(),
+    );
 
     let key = hss_keygen_with_seed(&[parameters], &seed).unwrap();
 
@@ -185,12 +198,12 @@ fn reference_genkey_seed(temp_path: &TempDir, seed: &[u8]) {
     let i = String::from("i=") + &ascii;
 
     let result = Command::new(&demo_path)
-    .args(&["genkey", KEY_NAME, PARAMETER, &seed, &i])
-    .current_dir(temp_path)
-    .output()
-    .expect("Reference key generation should succeed.");
+        .args(&["genkey", KEY_NAME, PARAMETER, &seed, &i])
+        .current_dir(temp_path)
+        .output()
+        .expect("Reference key generation should succeed.");
 
-assert!(result.status.success());   
+    assert!(result.status.success());
 }
 
 fn reference_sign(temp_path: &TempDir) {

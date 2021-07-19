@@ -66,11 +66,21 @@ fn create_signature_with_own_implementation() {
     create_message_file(&tempdir);
     let message_data = read_message(path);
 
-    own_signing(&tempdir, &message_data, keys.private_key.as_mut_slice(), &mut aux_slice);
+    own_signing(
+        &tempdir,
+        &message_data,
+        keys.private_key.as_mut_slice(),
+        &mut aux_slice,
+    );
 
     reference_verify(&tempdir);
 
-    own_signing(&tempdir, &message_data, keys.private_key.as_mut_slice(), &mut aux_slice);
+    own_signing(
+        &tempdir,
+        &message_data,
+        keys.private_key.as_mut_slice(),
+        &mut aux_slice,
+    );
 
     reference_verify(&tempdir);
 }
@@ -170,9 +180,16 @@ fn read_file(file_name: &str) -> Vec<u8> {
     data
 }
 
-fn own_signing(temp_path: &TempDir, message_data: &[u8], private_key: &mut [u8], aux_data: &mut [u8]) {
-    let result =
-        hss_sign::<Sha256Hasher>(&message_data, private_key, Some(aux_data)).expect("Signing should succed.");
+fn own_signing(
+    temp_path: &TempDir,
+    message_data: &[u8],
+    private_key: &mut [u8],
+    mut aux_data: &mut [u8],
+) {
+    let aux_slice: &mut &mut [u8] = &mut aux_data;
+
+    let result = hss_sign::<Sha256Hasher>(&message_data, private_key, Some(aux_slice))
+        .expect("Signing should succed.");
     save_file(
         temp_path.path().join(SIGNATURE_FILE_NAME).to_str().unwrap(),
         result.as_slice(),

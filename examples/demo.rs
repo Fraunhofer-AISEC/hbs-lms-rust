@@ -3,7 +3,7 @@ use lms::*;
 use std::{
     error::Error,
     fmt,
-    fs::File,
+    fs::{read, File},
     io::{Read, Write},
     mem::size_of,
     process::exit,
@@ -110,7 +110,12 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let mut private_key_data = read_file(&private_key_name);
     let message_data = read_file(&message_name);
 
-    let result = hss_sign::<Sha256Hasher>(&message_data, &mut private_key_data, None);
+    let aux_data_name = get_aux_name(&keyname);
+    let mut aux_data = read(aux_data_name)?;
+
+    let aux_slice = &mut aux_data.as_mut_slice();
+
+    let result = hss_sign::<Sha256Hasher>(&message_data, &mut private_key_data, Some(aux_slice));
 
     let result = match result {
         None => {

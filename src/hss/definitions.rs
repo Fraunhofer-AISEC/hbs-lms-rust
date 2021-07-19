@@ -83,11 +83,8 @@ impl<H: Hasher> HssPrivateKey<H> {
 
             current_seed = generate_child_seed_I_value(&current_seed, i as u32);
 
-            let lms_keypair = generate_key_pair_with_seed_and_aux(
-                &current_seed,
-                parameter,
-                &mut expanded_aux_data,
-            );
+            let lms_keypair =
+                generate_key_pair_with_seed_and_aux(&current_seed, parameter, &mut None);
 
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);

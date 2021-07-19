@@ -15,7 +15,6 @@ For comments see the original source code.
 */
 
 type AuxLevel = u32;
-type MerkleIndex = u32;
 
 const AUX_DATA_MARKER: usize = 0;
 const NO_AUX_DATA: u8 = 0x00;

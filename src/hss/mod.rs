@@ -10,7 +10,7 @@ use crate::{
     constants::{MAX_HASH, MAX_HSS_SIGNATURE_LENGTH, RFC_PRIVATE_KEY_SIZE},
     extract_or, extract_or_return,
     hasher::Hasher,
-    hss::{aux::hss_expand_aux_data, definitions::HssPublicKey},
+    hss::definitions::HssPublicKey,
     util::dynamic_array::DynamicArray,
 };
 
@@ -36,24 +36,23 @@ pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]
 pub fn hss_sign<H: Hasher>(
     message: &[u8],
     private_key: &mut [u8],
-    aux_data: Option<&mut [u8]>,
+    aux_data: Option<&mut &mut [u8]>,
 ) -> Option<DynamicArray<u8, MAX_HSS_SIGNATURE_LENGTH>> {
     let mut rfc_private_key =
         extract_or_return!(RfcPrivateKey::from_binary_representation(&private_key));
 
-    let mut parsed_private_key: HssPrivateKey<H> = match HssPrivateKey::from(&rfc_private_key, None)
-    {
-        Ok(x) => x,
-        Err(_) => return None,
-    };
-
-    let parsed_aux_data = hss_expand_aux_data::<H>(aux_data, Some(&rfc_private_key.seed));
-
-    let signature =
-        match HssSignature::sign(&mut parsed_private_key, &message, parsed_aux_data.as_ref()) {
-            Err(_) => return None,
+    let mut parsed_private_key: HssPrivateKey<H> =
+        match HssPrivateKey::from(&rfc_private_key, aux_data) {
             Ok(x) => x,
+            Err(_) => return None,
         };
+
+    // let parsed_aux_data = hss_expand_aux_data::<H>(aux_data, Some(&rfc_private_key.seed));
+
+    let signature = match HssSignature::sign(&mut parsed_private_key, &message, None) {
+        Err(_) => return None,
+        Ok(x) => x,
+    };
 
     // Overwrite advanced private key
     // TODO: HssPrivateKey should not be existent

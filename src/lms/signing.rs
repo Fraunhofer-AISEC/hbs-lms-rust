@@ -33,12 +33,30 @@ pub struct InMemoryLmsSignature<'a, H: Hasher> {
     pub lms_parameter: LmsParameter<H>,
 }
 
-// impl<'a, H: Hasher> PartialEq<LmsSignature<H>> for InMemoryLmsSignature<'a, H> {
-//     fn eq(&self, other: &LmsSignature<H>) -> bool {
-//         self.q == str32u(&other.q[..]) &&
-//         self.
-//     }
-// }
+impl<'a, H: Hasher> PartialEq<LmsSignature<H>> for InMemoryLmsSignature<'a, H> {
+    fn eq(&self, other: &LmsSignature<H>) -> bool {
+        let first_condition = self.q == str32u(&other.q[..])
+            && self.lmots_signature == other.lmots_signature
+            && self.lms_parameter == other.lms_parameter;
+
+        if !first_condition {
+            return false;
+        }
+
+        let mut curr = self.path;
+
+        for x in other.path.iter() {
+            for y in x.iter() {
+                if curr[0] != *y {
+                    return false;
+                }
+                curr = &curr[1..];
+            }
+        }
+
+        true
+    }
+}
 
 impl<H: Hasher> LmsSignature<H> {
     pub fn sign(
@@ -87,82 +105,6 @@ impl<H: Hasher> LmsSignature<H> {
         }
 
         result
-    }
-
-    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
-        // Parsing like 5.4.2 Algorithm 6a
-
-        if data.len() < 8 {
-            return None;
-        }
-
-        let mut consumed_data = data;
-
-        let q = str32u(&consumed_data[..4]);
-        consumed_data = &consumed_data[4..];
-
-        let lm_ots_type = str32u(&consumed_data[..4]);
-        // consumed_data = &consumed_data[4..];
-
-        let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type::<H>(lm_ots_type));
-
-        let n = lmots_parameter.get_n();
-        let p = lmots_parameter.get_p();
-
-        if data.len() < 12 + n as usize * (p as usize + 1) {
-            return None;
-        }
-
-        let lmots_signature = match lm_ots::signing::LmotsSignature::from_binary_representation(
-            &data[4..=(7 + n as usize * (p as usize + 1))],
-        ) {
-            None => return None,
-            Some(x) => x,
-        };
-
-        let lms_type_start = 8 + n as usize * (p as usize + 1);
-        let lms_type_end = 11 + n as usize * (p as usize + 1);
-
-        let lms_type = str32u(&data[lms_type_start..=lms_type_end]);
-
-        let lms_parameter = extract_or_return!(LmsAlgorithm::get_from_type(lms_type));
-
-        let tree_height = lms_parameter.get_height();
-
-        if q >= 2u32.pow(tree_height as u32) {
-            return None;
-        }
-
-        let m = lms_parameter.get_m();
-
-        if data.len() < 12 + n as usize * (p as usize + 1) + m as usize * tree_height as usize {
-            return None;
-        }
-
-        let mut tree_slice = data;
-        let tree_start =
-            12 + lmots_parameter.get_n() as usize * (lmots_parameter.get_p() as usize + 1);
-
-        tree_slice = &tree_slice[tree_start..];
-
-        let mut trees: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_H> = DynamicArray::new();
-
-        for _ in 0..tree_height {
-            let mut path = DynamicArray::new();
-            path.append(&tree_slice[..m as usize]);
-            trees.push(path);
-
-            tree_slice = &tree_slice[m as usize..];
-        }
-
-        let signature = Self {
-            lmots_signature,
-            q: u32str(q),
-            path: trees,
-            lms_parameter,
-        };
-
-        Some(signature)
     }
 }
 
@@ -225,16 +167,6 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
 
         let trees: &[u8] = &tree_slice[..lms_parameter.get_m() * tree_height as usize];
 
-        // let mut trees: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_H> = DynamicArray::new();
-
-        // for _ in 0..tree_height {
-        //     let mut path = DynamicArray::new();
-        //     path.append(&tree_slice[..lms_parameter.get_m() as usize]);
-        //     trees.push(path);
-
-        //     tree_slice = &tree_slice[m as usize..];
-        // }
-
         let signature = Self {
             lms_parameter,
             q,
@@ -257,7 +189,9 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
 mod tests {
     use crate::{
         lm_ots::parameters::LmotsAlgorithm,
-        lms::{keygen::generate_private_key, parameters::LmsAlgorithm},
+        lms::{
+            keygen::generate_private_key, parameters::LmsAlgorithm, signing::InMemoryLmsSignature,
+        },
     };
 
     use super::LmsSignature;
@@ -276,9 +210,9 @@ mod tests {
 
         let binary = signature.to_binary_representation();
 
-        let deserialized = LmsSignature::from_binary_representation(&binary.as_slice())
-            .expect("Deserialization must succeed.");
+        let deserialized =
+            InMemoryLmsSignature::new(&binary.as_slice()).expect("Deserialization must succeed.");
 
-        assert!(signature == deserialized);
+        assert!(deserialized == signature);
     }
 }

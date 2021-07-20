@@ -32,6 +32,32 @@ pub struct InMemoryHssSignature<'a, H: Hasher> {
     pub signature: InMemoryLmsSignature<'a, H>,
 }
 
+impl<'a, H: Hasher> PartialEq<HssSignature<H>> for InMemoryHssSignature<'a, H> {
+    fn eq(&self, other: &HssSignature<H>) -> bool {
+        let first_condition = self.level == other.level && self.signature == other.signature;
+
+        if !first_condition {
+            return false;
+        }
+
+        for (x, y) in self
+            .signed_public_keys
+            .iter()
+            .zip(other.signed_public_keys.iter())
+        {
+            if let Some(x) = x {
+                if x != y {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
 impl<H: Hasher> HssSignature<H> {
     pub fn sign(
         private_key: &mut HssPrivateKey<H>,
@@ -107,33 +133,6 @@ impl<H: Hasher> HssSignature<H> {
 
         result
     }
-
-    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
-        let mut index = 0;
-
-        let level = str32u(read_and_advance(data, 4, &mut index));
-
-        let mut signed_public_keys = DynamicArray::new();
-
-        for _ in 0..level {
-            let signed_public_key = extract_or_return!(
-                HssSignedPublicKey::from_binary_representation(&data[index..])
-            );
-            index += signed_public_key.len();
-            signed_public_keys.push(signed_public_key);
-        }
-
-        let signature = match LmsSignature::from_binary_representation(&data[index..]) {
-            None => return None,
-            Some(x) => x,
-        };
-
-        Some(Self {
-            level: level as usize,
-            signed_public_keys,
-            signature,
-        })
-    }
 }
 
 impl<'a, H: Hasher> InMemoryHssSignature<'a, H> {
@@ -158,8 +157,8 @@ impl<'a, H: Hasher> InMemoryHssSignature<'a, H> {
 
         Some(Self {
             level,
-            signature,
             signed_public_keys,
+            signature,
         })
     }
 }
@@ -174,6 +173,12 @@ pub struct HssSignedPublicKey<H: Hasher> {
 pub struct InMemoryHssSignedPublicKey<'a, H: Hasher> {
     pub sig: InMemoryLmsSignature<'a, H>,
     pub public_key: InMemoryLmsPublicKey<'a, H>,
+}
+
+impl<'a, H: Hasher> PartialEq<HssSignedPublicKey<H>> for InMemoryHssSignedPublicKey<'a, H> {
+    fn eq(&self, other: &HssSignedPublicKey<H>) -> bool {
+        self.sig == other.sig && self.public_key == other.public_key
+    }
 }
 
 impl<H: Hasher> HssSignedPublicKey<H> {
@@ -193,40 +198,6 @@ impl<H: Hasher> HssSignedPublicKey<H> {
         result.append(self.public_key.to_binary_representation().as_slice());
 
         result
-    }
-
-    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
-        let sig = match LmsSignature::from_binary_representation(data) {
-            None => return None,
-            Some(x) => x,
-        };
-
-        let sig_size = lms_signature_length(
-            sig.lmots_signature.lmots_parameter.get_n(),
-            sig.lmots_signature.lmots_parameter.get_p() as usize,
-            sig.lms_parameter.get_m(),
-            sig.lms_parameter.get_height() as usize,
-        );
-
-        let public_key = match LmsPublicKey::from_binary_representation(&data[sig_size..]) {
-            None => return None,
-            Some(x) => x,
-        };
-
-        Some(Self { sig, public_key })
-    }
-
-    pub fn len(&self) -> usize {
-        let sig = &self.sig;
-        let sig_size = lms_signature_length(
-            sig.lmots_signature.lmots_parameter.get_n(),
-            sig.lmots_signature.lmots_parameter.get_p() as usize,
-            sig.lms_parameter.get_m(),
-            sig.lms_parameter.get_height() as usize,
-        );
-        let public_key_size = lms_public_key_length(sig.lms_parameter.get_m());
-
-        sig_size + public_key_size
     }
 }
 
@@ -270,6 +241,8 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
 mod tests {
     use crate::hasher::sha256::Sha256Hasher;
     use crate::hss::rfc_private_key::RfcPrivateKey;
+    use crate::hss::signing::InMemoryHssSignature;
+    use crate::hss::signing::InMemoryHssSignedPublicKey;
     use crate::lms::signing::LmsSignature;
     use crate::HssParameter;
 
@@ -292,11 +265,10 @@ mod tests {
         };
 
         let binary_representation = signed_public_key.to_binary_representation();
-        let deserialized =
-            HssSignedPublicKey::from_binary_representation(binary_representation.as_slice())
-                .expect("Deserialization should work.");
+        let deserialized = InMemoryHssSignedPublicKey::new(binary_representation.as_slice())
+            .expect("Deserialization should work.");
 
-        assert!(signed_public_key == deserialized);
+        assert!(deserialized == signed_public_key);
     }
 
     #[test]
@@ -315,11 +287,10 @@ mod tests {
             HssSignature::sign(&mut private_key, &message).expect("Should generate HSS signature");
 
         let binary_representation = signature.to_binary_representation();
-        let deserialized = HssSignature::<Sha256Hasher>::from_binary_representation(
-            binary_representation.as_slice(),
-        )
-        .expect("Deserialization should work.");
+        let deserialized =
+            InMemoryHssSignature::<Sha256Hasher>::new(binary_representation.as_slice())
+                .expect("Deserialization should work.");
 
-        assert!(signature == deserialized);
+        assert!(deserialized == signature);
     }
 }

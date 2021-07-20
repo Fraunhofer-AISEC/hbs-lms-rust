@@ -1,8 +1,4 @@
-use crate::{
-    constants::MAX_HASH,
-    constants::{IType, QType},
-    util::dynamic_array::DynamicArray,
-};
+use crate::{constants::MAX_HASH, util::dynamic_array::DynamicArray};
 
 pub mod sha256;
 

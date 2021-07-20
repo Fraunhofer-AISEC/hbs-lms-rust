@@ -10,10 +10,7 @@ use crate::{
     constants::{MAX_HASH, MAX_HSS_SIGNATURE_LENGTH, RFC_PRIVATE_KEY_SIZE},
     extract_or, extract_or_return,
     hasher::Hasher,
-    hss::{
-        definitions::{HssPublicKey, InMemoryHssPublicKey},
-        signing::InMemoryHssSignature,
-    },
+    hss::{definitions::InMemoryHssPublicKey, signing::InMemoryHssSignature},
     util::dynamic_array::DynamicArray,
 };
 

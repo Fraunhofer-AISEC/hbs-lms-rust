@@ -75,6 +75,16 @@ pub struct InMemoryLmsPublicKey<'a, H: Hasher> {
     complete_data: &'a [u8],
 }
 
+impl<'a, H: Hasher> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H> {
+    fn eq(&self, other: &LmsPublicKey<H>) -> bool {
+        self.key == other.key.as_slice()
+            && self.I == &other.I[..]
+            && self.lmots_parameter == other.lmots_parameter
+            && self.lms_parameter == other.lms_parameter
+            && self.complete_data == other.to_binary_representation().as_slice()
+    }
+}
+
 impl<H: Hasher> LmsPublicKey<H> {
     pub fn new(
         public_key: DynamicArray<u8, MAX_HASH>,
@@ -100,43 +110,6 @@ impl<H: Hasher> LmsPublicKey<H> {
         result.append(&self.key.as_slice());
 
         result
-    }
-
-    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
-        // Parsing like desribed in 5.4.2
-        if data.len() < 8 {
-            return None;
-        }
-
-        let mut data_index = 0;
-
-        let lms_type = str32u(read_and_advance(data, 4, &mut data_index));
-
-        let lms_parameter = extract_or_return!(LmsAlgorithm::get_from_type(lms_type));
-
-        let lm_ots_typecode = str32u(read_and_advance(data, 4, &mut data_index));
-
-        let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type(lm_ots_typecode));
-
-        if data.len() - data_index == 24 + lms_parameter.get_m() as usize {
-            return None;
-        }
-
-        let mut initial: IType = [0u8; 16];
-        initial.clone_from_slice(read_and_advance(data, 16, &mut data_index));
-
-        let mut key: DynamicArray<u8, MAX_HASH> = DynamicArray::new();
-
-        key.append(&data[data_index..data_index + lms_parameter.get_m() as usize]);
-
-        let public_key = LmsPublicKey {
-            I: initial,
-            key,
-            lmots_parameter,
-            lms_parameter,
-        };
-
-        Some(public_key)
     }
 }
 
@@ -188,12 +161,11 @@ mod tests {
         hasher::sha256::Sha256Hasher,
         lm_ots::parameters::LmotsAlgorithm,
         lms::{
+            definitions::InMemoryLmsPublicKey,
             keygen::{generate_private_key, generate_public_key},
             parameters::LmsAlgorithm,
         },
     };
-
-    use super::LmsPublicKey;
 
     #[test]
     fn test_public_key_binary_representation() {
@@ -205,9 +177,9 @@ mod tests {
         let public_key = generate_public_key(&private_key, &mut None);
 
         let serialized = public_key.to_binary_representation();
-        let deserialized = LmsPublicKey::from_binary_representation(serialized.as_slice())
+        let deserialized = InMemoryLmsPublicKey::new(serialized.as_slice())
             .expect("Deserialization must succeed.");
 
-        assert!(public_key == deserialized);
+        assert!(deserialized == public_key);
     }
 }

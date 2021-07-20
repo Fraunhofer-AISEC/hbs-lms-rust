@@ -4,7 +4,6 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     constants::MAX_HASH,
-    constants::{IType, QType},
     util::{
         dynamic_array::DynamicArray,
         ustr::{u16str, u8str},

@@ -163,6 +163,12 @@ pub struct InMemoryHssPublicKey<'a, H: Hasher> {
     pub level: usize,
 }
 
+impl<'a, H: Hasher> PartialEq<HssPublicKey<H>> for InMemoryHssPublicKey<'a, H> {
+    fn eq(&self, other: &HssPublicKey<H>) -> bool {
+        self.public_key == other.public_key && self.level == other.level
+    }
+}
+
 impl<H: Hasher> HssPublicKey<H> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + MAX_LMS_PUBLIC_KEY_LENGTH }> {
         let mut result = DynamicArray::new();
@@ -171,22 +177,6 @@ impl<H: Hasher> HssPublicKey<H> {
         result.append(self.public_key.to_binary_representation().as_slice());
 
         result
-    }
-
-    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
-        let mut index = 0;
-
-        let level = str32u(read_and_advance(data, 4, &mut index));
-
-        let public_key = match LmsPublicKey::from_binary_representation(&data[index..]) {
-            None => return None,
-            Some(x) => x,
-        };
-
-        Some(Self {
-            public_key,
-            level: level as usize,
-        })
     }
 }
 
@@ -212,6 +202,7 @@ impl<'a, H: Hasher> InMemoryHssPublicKey<'a, H> {
 mod tests {
     use super::HssPublicKey;
     use crate::hasher::sha256::Sha256Hasher;
+    use crate::hss::definitions::InMemoryHssPublicKey;
     use crate::HssParameter;
 
     #[test]
@@ -225,10 +216,9 @@ mod tests {
 
         let binary_representation = public_key.to_binary_representation();
 
-        let deserialized: HssPublicKey<Sha256Hasher> =
-            HssPublicKey::from_binary_representation(binary_representation.as_slice())
-                .expect("Deserialization should work.");
+        let deserialized = InMemoryHssPublicKey::new(binary_representation.as_slice())
+            .expect("Deserialization should work.");
 
-        assert!(public_key == deserialized);
+        assert!(deserialized == public_key);
     }
 }

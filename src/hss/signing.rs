@@ -5,7 +5,11 @@ use crate::{
     },
     extract_or_return,
     hasher::Hasher,
-    lms::{self, definitions::LmsPublicKey, signing::LmsSignature},
+    lms::{
+        self,
+        definitions::{InMemoryLmsPublicKey, LmsPublicKey},
+        signing::{InMemoryLmsSignature, LmsSignature},
+    },
     util::{
         dynamic_array::DynamicArray,
         helper::read_and_advance,
@@ -20,6 +24,12 @@ pub struct HssSignature<H: Hasher> {
     pub level: usize,
     pub signed_public_keys: DynamicArray<HssSignedPublicKey<H>, MAX_HSS_LEVELS>,
     pub signature: LmsSignature<H>,
+}
+
+pub struct InMemoryHssSignature<'a, H: Hasher> {
+    pub level: u32,
+    pub signed_public_keys: DynamicArray<Option<InMemoryHssSignedPublicKey<'a, H>>, MAX_HSS_LEVELS>,
+    pub signature: InMemoryLmsSignature<'a, H>,
 }
 
 impl<H: Hasher> HssSignature<H> {
@@ -126,10 +136,44 @@ impl<H: Hasher> HssSignature<H> {
     }
 }
 
+impl<'a, H: Hasher> InMemoryHssSignature<'a, H> {
+    pub fn new(data: &'a [u8]) -> Option<Self> {
+        let mut index = 0;
+
+        let level = str32u(read_and_advance(data, 4, &mut index));
+
+        let mut signed_public_keys = DynamicArray::new();
+
+        for _ in 0..level {
+            let signed_public_key =
+                extract_or_return!(InMemoryHssSignedPublicKey::<'a, H>::new(&data[index..]));
+            index += signed_public_key.len();
+            signed_public_keys.push(Some(signed_public_key));
+        }
+
+        let signature = match InMemoryLmsSignature::<'a, H>::new(&data[index..]) {
+            None => return None,
+            Some(x) => x,
+        };
+
+        Some(Self {
+            level,
+            signature,
+            signed_public_keys,
+        })
+    }
+}
+
 #[derive(Default, Clone, PartialEq)]
 pub struct HssSignedPublicKey<H: Hasher> {
     pub sig: LmsSignature<H>,
     pub public_key: LmsPublicKey<H>,
+}
+
+#[derive(Clone)]
+pub struct InMemoryHssSignedPublicKey<'a, H: Hasher> {
+    pub sig: InMemoryLmsSignature<'a, H>,
+    pub public_key: InMemoryLmsPublicKey<'a, H>,
 }
 
 impl<H: Hasher> HssSignedPublicKey<H> {
@@ -165,6 +209,42 @@ impl<H: Hasher> HssSignedPublicKey<H> {
         );
 
         let public_key = match LmsPublicKey::from_binary_representation(&data[sig_size..]) {
+            None => return None,
+            Some(x) => x,
+        };
+
+        Some(Self { sig, public_key })
+    }
+
+    pub fn len(&self) -> usize {
+        let sig = &self.sig;
+        let sig_size = lms_signature_length(
+            sig.lmots_signature.lmots_parameter.get_n(),
+            sig.lmots_signature.lmots_parameter.get_p() as usize,
+            sig.lms_parameter.get_m(),
+            sig.lms_parameter.get_height() as usize,
+        );
+        let public_key_size = lms_public_key_length(sig.lms_parameter.get_m());
+
+        sig_size + public_key_size
+    }
+}
+
+impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
+    pub fn new(data: &'a [u8]) -> Option<Self> {
+        let sig = match InMemoryLmsSignature::new(data) {
+            None => return None,
+            Some(x) => x,
+        };
+
+        let sig_size = lms_signature_length(
+            sig.lmots_signature.lmots_parameter.get_n(),
+            sig.lmots_signature.lmots_parameter.get_p() as usize,
+            sig.lms_parameter.get_m(),
+            sig.lms_parameter.get_height() as usize,
+        );
+
+        let public_key = match InMemoryLmsPublicKey::new(&data[sig_size..]) {
             None => return None,
             Some(x) => x,
         };

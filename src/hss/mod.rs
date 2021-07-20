@@ -10,7 +10,10 @@ use crate::{
     constants::{MAX_HASH, MAX_HSS_SIGNATURE_LENGTH, RFC_PRIVATE_KEY_SIZE},
     extract_or, extract_or_return,
     hasher::Hasher,
-    hss::definitions::HssPublicKey,
+    hss::{
+        definitions::{HssPublicKey, InMemoryHssPublicKey},
+        signing::InMemoryHssSignature,
+    },
     util::dynamic_array::DynamicArray,
 };
 
@@ -25,10 +28,8 @@ pub struct HssBinaryData {
 }
 
 pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
-    let signature: HssSignature<H> =
-        extract_or!(HssSignature::from_binary_representation(signature), false);
-    let public_key: HssPublicKey<H> =
-        extract_or!(HssPublicKey::from_binary_representation(public_key), false);
+    let signature = extract_or!(InMemoryHssSignature::new(signature), false);
+    let public_key = extract_or!(InMemoryHssPublicKey::new(public_key), false);
 
     crate::hss::verify::verify(&signature, &public_key, &message).is_ok()
 }

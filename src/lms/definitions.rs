@@ -66,6 +66,14 @@ pub struct LmsPublicKey<H: Hasher> {
     pub lms_parameter: LmsParameter<H>,
 }
 
+#[derive(Clone)]
+pub struct InMemoryLmsPublicKey<'a, H: Hasher> {
+    pub key: &'a [u8],
+    pub I: &'a [u8],
+    pub lmots_parameter: LmotsParameter<H>,
+    pub lms_parameter: LmsParameter<H>,
+}
+
 impl<H: Hasher> LmsPublicKey<H> {
     pub fn new(
         public_key: DynamicArray<u8, MAX_HASH>,
@@ -125,6 +133,43 @@ impl<H: Hasher> LmsPublicKey<H> {
             key,
             lmots_parameter,
             lms_parameter,
+        };
+
+        Some(public_key)
+    }
+}
+
+impl<'a, H: Hasher> InMemoryLmsPublicKey<'a, H> {
+    pub fn new(data: &'a [u8]) -> Option<Self> {
+        // Parsing like desribed in 5.4.2
+        if data.len() < 8 {
+            return None;
+        }
+
+        let mut data_index = 0;
+
+        let lms_type = str32u(read_and_advance(data, 4, &mut data_index));
+
+        let lms_parameter = extract_or_return!(LmsAlgorithm::get_from_type(lms_type));
+
+        let lm_ots_typecode = str32u(read_and_advance(data, 4, &mut data_index));
+
+        let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type(lm_ots_typecode));
+
+        if data.len() - data_index == 24 + lms_parameter.get_m() as usize {
+            return None;
+        }
+
+        let i: &'a [u8] = &data[data_index..data_index + 16];
+        data_index += 16;
+
+        let key: &'a [u8] = &data[data_index..data_index + lms_parameter.get_m() as usize];
+
+        let public_key = Self {
+            lmots_parameter,
+            lms_parameter,
+            I: i,
+            key,
         };
 
         Some(public_key)

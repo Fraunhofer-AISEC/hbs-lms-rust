@@ -4,7 +4,7 @@ use crate::{
     hss::aux::{
         hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
     },
-    lms::generate_key_pair_with_seed_and_aux,
+    lms::{definitions::InMemoryLmsPublicKey, generate_key_pair_with_seed_and_aux},
     util::{
         dynamic_array::DynamicArray,
         helper::read_and_advance,
@@ -158,6 +158,11 @@ pub struct HssPublicKey<H: Hasher> {
     pub level: usize,
 }
 
+pub struct InMemoryHssPublicKey<'a, H: Hasher> {
+    pub public_key: InMemoryLmsPublicKey<'a, H>,
+    pub level: usize,
+}
+
 impl<H: Hasher> HssPublicKey<H> {
     pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + MAX_LMS_PUBLIC_KEY_LENGTH }> {
         let mut result = DynamicArray::new();
@@ -174,6 +179,24 @@ impl<H: Hasher> HssPublicKey<H> {
         let level = str32u(read_and_advance(data, 4, &mut index));
 
         let public_key = match LmsPublicKey::from_binary_representation(&data[index..]) {
+            None => return None,
+            Some(x) => x,
+        };
+
+        Some(Self {
+            public_key,
+            level: level as usize,
+        })
+    }
+}
+
+impl<'a, H: Hasher> InMemoryHssPublicKey<'a, H> {
+    pub fn new(data: &'a [u8]) -> Option<Self> {
+        let mut index = 0;
+
+        let level = str32u(read_and_advance(data, 4, &mut index));
+
+        let public_key = match InMemoryLmsPublicKey::new(&data[index..]) {
             None => return None,
             Some(x) => x,
         };

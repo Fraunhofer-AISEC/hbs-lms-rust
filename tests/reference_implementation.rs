@@ -116,7 +116,12 @@ fn should_produce_same_private_key() {
         LmsAlgorithm::LmsH5.construct_parameter().unwrap(),
     );
 
-    let key = hss_keygen(&[parameters.clone(), parameters.clone()], Some(&TEST_SEED), None).unwrap();
+    let key = hss_keygen(
+        &[parameters.clone(), parameters.clone()],
+        Some(&TEST_SEED),
+        None,
+    )
+    .unwrap();
 
     let ref_private_key = read_private_key(path);
     let ref_public_key = read_public_key(path);
@@ -140,7 +145,12 @@ fn should_produce_same_aux_data() {
     let mut aux_data = vec![0u8; 2000];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    let _ = hss_keygen(&[parameters.clone(), parameters.clone()], Some(&TEST_SEED), Some(aux_slice)).unwrap();
+    let _ = hss_keygen(
+        &[parameters.clone(), parameters.clone()],
+        Some(&TEST_SEED),
+        Some(aux_slice),
+    )
+    .unwrap();
 
     let ref_aux_data = read_aux_data(path);
 
@@ -238,7 +248,10 @@ fn reference_genkey(temp_path: &TempDir) {
         .output()
         .expect("Reference key generation should succeed.");
 
-    println!("Genkey output: {}", String::from_utf8(result.stdout).unwrap());
+    println!(
+        "Genkey output: {}",
+        String::from_utf8(result.stdout).unwrap()
+    );
 
     assert!(result.status.success());
 }
@@ -268,9 +281,8 @@ fn reference_sign(temp_path: &TempDir) {
         .output()
         .expect("Reference signing should succeed.");
 
-
     println!("Sign output: {}", String::from_utf8(result.stdout).unwrap());
-    
+
     assert!(result.status.success());
 }
 

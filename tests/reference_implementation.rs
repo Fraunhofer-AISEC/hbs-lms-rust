@@ -17,7 +17,7 @@ const PUBLIC_KEY_NAME: &str = "testkey.pub";
 const PRIVATE_KEY_NAME: &str = "testkey.prv";
 const AUX_DATA_NAME: &str = "testkey.aux";
 
-const PARAMETER: &str = "5/2:2000";
+const PARAMETER: &str = "5/1,5/1:2000";
 
 const TEST_SEED: [u8; 32] = [
     23, 54, 12, 64, 2, 5, 77, 23, 188, 31, 34, 46, 88, 99, 21, 22, 23, 54, 12, 64, 2, 5, 77, 23,
@@ -112,11 +112,11 @@ fn should_produce_same_private_key() {
     reference_genkey_seed(&tempdir, &TEST_SEED);
 
     let parameters = HssParameter::<Sha256Hasher>::new(
-        LmotsAlgorithm::LmotsW2.construct_parameter().unwrap(),
+        LmotsAlgorithm::LmotsW1.construct_parameter().unwrap(),
         LmsAlgorithm::LmsH5.construct_parameter().unwrap(),
     );
 
-    let key = hss_keygen(&[parameters], Some(&TEST_SEED), None).unwrap();
+    let key = hss_keygen(&[parameters.clone(), parameters.clone()], Some(&TEST_SEED), None).unwrap();
 
     let ref_private_key = read_private_key(path);
     let ref_public_key = read_public_key(path);
@@ -133,14 +133,14 @@ fn should_produce_same_aux_data() {
     reference_genkey_seed(&tempdir, &TEST_SEED);
 
     let parameters = HssParameter::<Sha256Hasher>::new(
-        LmotsAlgorithm::LmotsW2.construct_parameter().unwrap(),
+        LmotsAlgorithm::LmotsW1.construct_parameter().unwrap(),
         LmsAlgorithm::LmsH5.construct_parameter().unwrap(),
     );
 
     let mut aux_data = vec![0u8; 2000];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    let _ = hss_keygen(&[parameters], Some(&TEST_SEED), Some(aux_slice)).unwrap();
+    let _ = hss_keygen(&[parameters.clone(), parameters.clone()], Some(&TEST_SEED), Some(aux_slice)).unwrap();
 
     let ref_aux_data = read_aux_data(path);
 
@@ -238,6 +238,8 @@ fn reference_genkey(temp_path: &TempDir) {
         .output()
         .expect("Reference key generation should succeed.");
 
+    println!("Genkey output: {}", String::from_utf8(result.stdout).unwrap());
+
     assert!(result.status.success());
 }
 
@@ -266,6 +268,9 @@ fn reference_sign(temp_path: &TempDir) {
         .output()
         .expect("Reference signing should succeed.");
 
+
+    println!("Sign output: {}", String::from_utf8(result.stdout).unwrap());
+    
     assert!(result.status.success());
 }
 

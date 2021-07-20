@@ -14,8 +14,8 @@ pub use crate::hss::parameter::HssParameter;
 pub use crate::lm_ots::parameters::*;
 pub use crate::lms::parameters::*;
 
-pub use crate::hss::definitions::HssPublicKey;
-pub use crate::hss::signing::HssSignature;
+pub use crate::hss::definitions::InMemoryHssPublicKey;
+pub use crate::hss::signing::InMemoryHssSignature;
 
 pub use crate::hss::hss_keygen;
 pub use crate::hss::hss_sign;

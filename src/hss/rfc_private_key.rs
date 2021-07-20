@@ -208,7 +208,6 @@ impl CompressedParameterSet {
     }
 }
 
-// TODO: Write tests
 #[cfg(test)]
 mod tests {
 

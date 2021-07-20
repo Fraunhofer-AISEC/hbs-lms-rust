@@ -72,6 +72,7 @@ pub struct InMemoryLmsPublicKey<'a, H: Hasher> {
     pub I: &'a [u8],
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
+    complete_data: &'a [u8],
 }
 
 impl<H: Hasher> LmsPublicKey<H> {
@@ -170,9 +171,14 @@ impl<'a, H: Hasher> InMemoryLmsPublicKey<'a, H> {
             lms_parameter,
             I: i,
             key,
+            complete_data: &data[..data_index + lms_parameter.get_m() as usize],
         };
 
         Some(public_key)
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        self.complete_data
     }
 }
 

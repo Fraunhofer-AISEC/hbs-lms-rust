@@ -30,6 +30,14 @@ pub struct InMemoryLmotsSignature<'a, H: Hasher> {
     pub lmots_parameter: LmotsParameter<H>,
 }
 
+// impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, H> {
+//     fn eq(&self, other: &LmotsSignature<H>) -> bool {
+//         self.C == other.C.as_slice() &&
+//         self.y == other.y &&
+//         self.lmots_parameter == other.lmots_parameter
+//     }
+// }
+
 impl<H: Hasher> LmotsSignature<H> {
     pub fn sign(private_key: &LmotsPrivateKey<H>, message: &[u8]) -> Self {
         let mut C = DynamicArray::new();
@@ -168,6 +176,13 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
         };
 
         Some(signature)
+    }
+
+    pub fn get_y(&self, index: usize) -> &[u8] {
+        let step = self.lmots_parameter.get_n();
+        let start = step * index;
+        let end = start + step;
+        &self.y[start..end]
     }
 }
 

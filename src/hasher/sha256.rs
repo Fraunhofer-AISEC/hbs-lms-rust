@@ -74,8 +74,8 @@ impl Hasher for Sha256Hasher {
 
     fn do_hash_chain<'a>(
         &mut self,
-        I: &IType,
-        q: &QType,
+        I: &[u8],
+        q: &[u8],
         i: u16,
         from: usize,
         to: usize,

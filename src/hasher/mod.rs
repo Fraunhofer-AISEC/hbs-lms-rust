@@ -18,8 +18,8 @@ pub trait Hasher: Default + Clone + PartialEq {
 
     fn do_hash_chain(
         &mut self,
-        I: &IType,
-        q: &QType,
+        I: &[u8],
+        q: &[u8],
         i: u16,
         from: usize,
         to: usize,

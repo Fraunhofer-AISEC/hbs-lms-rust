@@ -28,10 +28,10 @@ pub struct HssBinaryData {
 }
 
 pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
-    let signature = extract_or!(InMemoryHssSignature::new(signature), false);
-    let public_key = extract_or!(InMemoryHssPublicKey::new(public_key), false);
+    let signature = extract_or!(InMemoryHssSignature::<H>::new(signature), false);
+    let public_key = extract_or!(InMemoryHssPublicKey::<H>::new(public_key), false);
 
-    crate::hss::verify::verify(&signature, &public_key, &message).is_ok()
+    crate::hss::verify::verify_inmemory(&signature, &public_key, &message).is_ok()
 }
 
 pub fn hss_sign<H: Hasher>(

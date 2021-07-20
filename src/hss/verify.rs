@@ -3,11 +3,11 @@ use crate::{
     lms::{self},
 };
 
-use super::{definitions::HssPublicKey, signing::HssSignature};
+use super::{definitions::InMemoryHssPublicKey, signing::InMemoryHssSignature};
 
-pub fn verify<H: Hasher>(
-    signature: &HssSignature<H>,
-    public_key: &HssPublicKey<H>,
+pub fn verify_inmemory<'a, H: Hasher>(
+    signature: &InMemoryHssSignature<'a, H>,
+    public_key: &InMemoryHssPublicKey<'a, H>,
     message: &[u8],
 ) -> Result<(), &'static str> {
     if signature.level + 1 != public_key.level {
@@ -16,16 +16,16 @@ pub fn verify<H: Hasher>(
 
     let mut key = &public_key.public_key;
     for i in 0..public_key.level - 1 {
-        let sig = &signature.signed_public_keys[i].sig;
-        let msg = &signature.signed_public_keys[i].public_key;
+        let sig = &signature.signed_public_keys[i].as_ref().unwrap().sig;
+        let msg = &signature.signed_public_keys[i].as_ref().unwrap().public_key;
 
-        if lms::verify::verify(sig, key, msg.to_binary_representation().as_slice()).is_err() {
+        if lms::verify::verify_inmemory(sig, key, msg.as_slice()).is_err() {
             return Err("Could not verify next public key.");
         }
         key = msg;
     }
 
-    lms::verify::verify(&signature.signature, key, message)
+    lms::verify::verify_inmemory(&signature.signature, key, message)
 }
 
 #[cfg(test)]
@@ -34,9 +34,11 @@ mod tests {
     use crate::hasher::Hasher;
     use crate::hss::definitions::HssPrivateKey;
     use crate::hss::definitions::HssPublicKey;
+    use crate::hss::definitions::InMemoryHssPublicKey;
     use crate::hss::rfc_private_key::RfcPrivateKey;
     use crate::hss::signing::HssSignature;
-    use crate::hss::verify::verify;
+    use crate::hss::signing::InMemoryHssSignature;
+    use crate::hss::verify::verify_inmemory;
     use crate::HssParameter;
 
     #[test]
@@ -64,10 +66,16 @@ mod tests {
     ) {
         let signature = HssSignature::sign(private_key, &message).expect("Should sign message");
 
-        assert!(verify(&signature, &public_key, &message).is_ok());
+        let mem_sig = signature.to_binary_representation();
+        let mem_sig = InMemoryHssSignature::<H>::new(mem_sig.as_slice()).unwrap();
+
+        let mem_pub = public_key.to_binary_representation();
+        let mem_pub = InMemoryHssPublicKey::new(mem_pub.as_slice()).unwrap();
+
+        assert!(verify_inmemory(&mem_sig, &mem_pub, &message).is_ok());
 
         message[0] = !message[0];
 
-        assert!(verify(&signature, &public_key, &message).is_err());
+        assert!(verify_inmemory(&mem_sig, &mem_pub, &message).is_err());
     }
 }

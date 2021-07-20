@@ -3,14 +3,18 @@ use core::usize;
 use crate::{
     constants::*,
     hasher::Hasher,
-    util::{coef::coef, dynamic_array::DynamicArray},
+    util::{
+        coef::coef,
+        dynamic_array::DynamicArray,
+        ustr::{str32u, u32str},
+    },
 };
 
-use super::{definitions::LmotsPublicKey, signing::LmotsSignature};
+use super::{definitions::LmotsPublicKey, signing::InMemoryLmotsSignature};
 
 #[allow(dead_code)]
-pub fn verify_signature<H: Hasher>(
-    signature: &LmotsSignature<H>,
+pub fn verify_signature_inmemory<'a, H: Hasher>(
+    signature: &InMemoryLmotsSignature<'a, H>,
     public_key: &LmotsPublicKey<H>,
     message: &[u8],
 ) -> bool {
@@ -18,25 +22,31 @@ pub fn verify_signature<H: Hasher>(
         return false;
     }
 
-    let public_key_candidate =
-        generate_public_key_canditate(signature, &public_key.I, &public_key.q, message);
+    let public_key_candidate = generate_public_key_candiate_inmemory(
+        signature,
+        &public_key.I,
+        str32u(&public_key.q[..]),
+        message,
+    );
 
     public_key_candidate == public_key.key
 }
 
-pub fn generate_public_key_canditate<H: Hasher>(
-    signature: &LmotsSignature<H>,
-    I: &IType,
-    q: &QType,
+pub fn generate_public_key_candiate_inmemory<'a, H: Hasher>(
+    signature: &InMemoryLmotsSignature<'a, H>,
+    I: &[u8],
+    q: u32,
     message: &[u8],
 ) -> DynamicArray<u8, MAX_HASH> {
     let lmots_parameter = signature.lmots_parameter;
     let mut hasher = lmots_parameter.get_hasher();
 
+    let q = &u32str(q);
+
     hasher.update(I);
     hasher.update(q);
     hasher.update(&D_MESG);
-    hasher.update(signature.C.as_slice());
+    hasher.update(signature.C);
     hasher.update(message);
 
     let Q = hasher.finalize_reset();
@@ -51,9 +61,10 @@ pub fn generate_public_key_canditate<H: Hasher>(
             i as u64,
             lmots_parameter.get_winternitz() as u64,
         ) as usize;
-        let mut tmp = signature.y[i as usize].clone();
+        let mut tmp: DynamicArray<u8, MAX_HASH> = DynamicArray::new();
+        tmp.append(signature.get_y(i as usize));
 
-        hasher.do_hash_chain(&I, &q, i, a, max_w, tmp.as_mut_slice());
+        hasher.do_hash_chain(I, &q[..], i, a, max_w, tmp.as_mut_slice());
 
         z.push(tmp);
     }
@@ -77,8 +88,8 @@ mod tests {
     use crate::lm_ots::{
         definitions::LmotsPublicKey,
         keygen::{generate_private_key, generate_public_key},
-        signing::LmotsSignature,
-        verify::verify_signature,
+        signing::{InMemoryLmotsSignature, LmotsSignature},
+        verify::verify_signature_inmemory,
     };
 
     macro_rules! generate_test {
@@ -100,10 +111,14 @@ mod tests {
 
                 let signature = LmotsSignature::sign(&private_key, &message);
 
-                assert!(verify_signature(&signature, &public_key, &message) == true);
+                let bin_representation = signature.to_binary_representation();
+
+                let signature = InMemoryLmotsSignature::new(bin_representation.as_slice()).unwrap();
+
+                assert!(verify_signature_inmemory(&signature, &public_key, &message) == true);
 
                 message[0] = 5;
-                assert!(verify_signature(&signature, &public_key, &message) == false);
+                assert!(verify_signature_inmemory(&signature, &public_key, &message) == false);
             }
         };
     }

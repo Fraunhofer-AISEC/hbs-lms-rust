@@ -27,7 +27,7 @@ pub struct HssSignature<H: Hasher> {
 }
 
 pub struct InMemoryHssSignature<'a, H: Hasher> {
-    pub level: u32,
+    pub level: usize,
     pub signed_public_keys: DynamicArray<Option<InMemoryHssSignedPublicKey<'a, H>>, MAX_HSS_LEVELS>,
     pub signature: InMemoryLmsSignature<'a, H>,
 }
@@ -140,7 +140,7 @@ impl<'a, H: Hasher> InMemoryHssSignature<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         let mut index = 0;
 
-        let level = str32u(read_and_advance(data, 4, &mut index));
+        let level = str32u(read_and_advance(data, 4, &mut index)) as usize;
 
         let mut signed_public_keys = DynamicArray::new();
 

@@ -33,6 +33,13 @@ pub struct InMemoryLmsSignature<'a, H: Hasher> {
     pub lms_parameter: LmsParameter<H>,
 }
 
+// impl<'a, H: Hasher> PartialEq<LmsSignature<H>> for InMemoryLmsSignature<'a, H> {
+//     fn eq(&self, other: &LmsSignature<H>) -> bool {
+//         self.q == str32u(&other.q[..]) &&
+//         self.
+//     }
+// }
+
 impl<H: Hasher> LmsSignature<H> {
     pub fn sign(
         lms_private_key: &mut LmsPrivateKey<H>,
@@ -142,7 +149,7 @@ impl<H: Hasher> LmsSignature<H> {
 
         for _ in 0..tree_height {
             let mut path = DynamicArray::new();
-            path.append(&tree_slice[..lms_parameter.get_m() as usize]);
+            path.append(&tree_slice[..m as usize]);
             trees.push(path);
 
             tree_slice = &tree_slice[m as usize..];
@@ -236,6 +243,13 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
         };
 
         Some(signature)
+    }
+
+    pub fn get_path(&self, index: usize) -> &[u8] {
+        let step = self.lms_parameter.get_m();
+        let start = step * index;
+        let end = start + step;
+        &self.path[start..end]
     }
 }
 

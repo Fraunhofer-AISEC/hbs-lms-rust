@@ -20,6 +20,3 @@ pub use crate::hss::signing::InMemoryHssSignature;
 pub use crate::hss::hss_keygen;
 pub use crate::hss::hss_sign;
 pub use crate::hss::hss_verify;
-
-pub use crate::hss::parser::parse_public_key as hss_parse_public_key;
-pub use crate::hss::parser::parse_signature as hss_parse_signature;

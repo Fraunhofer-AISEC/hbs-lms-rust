@@ -1,7 +1,6 @@
 pub mod aux;
 pub mod definitions;
 pub mod parameter;
-pub mod parser;
 pub mod rfc_private_key;
 mod seed_derive;
 pub mod signing;

@@ -62,7 +62,7 @@ impl<H: Hasher> LmsSignature<H> {
     pub fn sign(
         lms_private_key: &mut LmsPrivateKey<H>,
         message: &[u8],
-    ) -> Result<LmsSignature<H>, &'static str> {
+    ) -> Result<LmsSignature<H>, ()> {
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
         let ots_signature = LmotsSignature::sign(&lm_ots_private_key, message);

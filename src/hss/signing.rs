@@ -59,10 +59,7 @@ impl<'a, H: Hasher> PartialEq<HssSignature<H>> for InMemoryHssSignature<'a, H> {
 }
 
 impl<H: Hasher> HssSignature<H> {
-    pub fn sign(
-        private_key: &mut HssPrivateKey<H>,
-        message: &[u8],
-    ) -> Result<HssSignature<H>, &'static str> {
+    pub fn sign(private_key: &mut HssPrivateKey<H>, message: &[u8]) -> Result<HssSignature<H>, ()> {
         let l = private_key.get_length();
 
         let lmots_parameter = private_key.private_key[0].lmots_parameter;
@@ -80,7 +77,7 @@ impl<H: Hasher> HssSignature<H> {
         while prv[d - 1].q == 2u32.pow(prv[d - 1].lms_parameter.get_height() as u32) {
             d -= 1;
             if d == 0 {
-                return Err("All keys are exhausted.");
+                return Err(());
             }
         }
 

@@ -13,11 +13,11 @@ pub fn verify_inmemory<'a, H: Hasher>(
     signature: &InMemoryLmsSignature<'a, H>,
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],
-) -> Result<(), &'static str> {
+) -> Result<(), ()> {
     if signature.lmots_signature.lmots_parameter != public_key.lmots_parameter
         || signature.lms_parameter != public_key.lms_parameter
     {
-        return Err("Signature parameter and public key parameter do not match.");
+        return Err(());
     }
 
     let public_key_canditate =
@@ -26,7 +26,7 @@ pub fn verify_inmemory<'a, H: Hasher>(
     if public_key_canditate.as_slice() == public_key.key {
         Ok(())
     } else {
-        Err("Public key canditate is not equal to public key.")
+        Err(())
     }
 }
 
@@ -34,14 +34,14 @@ fn generate_public_key_candiate_inemory<'a, H: Hasher>(
     signature: &InMemoryLmsSignature<'a, H>,
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],
-) -> Result<DynamicArray<u8, MAX_HASH>, &'static str> {
+) -> Result<DynamicArray<u8, MAX_HASH>, ()> {
     let mut hasher = <H>::get_hasher();
 
     let leafs = signature.lms_parameter.number_of_lm_ots_keys() as u32;
 
     let curr = signature.q;
     if curr >= leafs {
-        return Err("q is larger than the maximum number of private keys.");
+        return Err(());
     }
 
     let ots_public_key_canditate = crate::lm_ots::verify::generate_public_key_candiate_inmemory(

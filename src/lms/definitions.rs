@@ -38,11 +38,11 @@ impl<H: Hasher> LmsPrivateKey<H> {
         }
     }
 
-    pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey<H>, &'static str> {
+    pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey<H>, ()> {
         let number_of_lm_ots_keys = self.lms_parameter.number_of_lm_ots_keys();
 
         if self.q as usize >= number_of_lm_ots_keys {
-            return Err("All private keys already used.");
+            return Err(());
         }
 
         self.q += 1;

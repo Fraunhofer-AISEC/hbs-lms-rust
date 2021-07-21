@@ -9,9 +9,9 @@ pub fn verify_inmemory<'a, H: Hasher>(
     signature: &InMemoryHssSignature<'a, H>,
     public_key: &InMemoryHssPublicKey<'a, H>,
     message: &[u8],
-) -> Result<(), &'static str> {
+) -> Result<(), ()> {
     if signature.level + 1 != public_key.level {
-        return Err("Signature level and public key level does not match");
+        return Err(());
     }
 
     let mut key = &public_key.public_key;
@@ -20,7 +20,7 @@ pub fn verify_inmemory<'a, H: Hasher>(
         let msg = &signature.signed_public_keys[i].as_ref().unwrap().public_key;
 
         if lms::verify::verify_inmemory(sig, key, msg.as_slice()).is_err() {
-            return Err("Could not verify next public key.");
+            return Err(());
         }
         key = msg;
     }

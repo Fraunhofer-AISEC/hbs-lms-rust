@@ -42,7 +42,7 @@ impl<H: Hasher> HssPrivateKey<H> {
     pub fn from(
         private_key: &RfcPrivateKey<H>,
         aux_data: Option<&mut &mut [u8]>,
-    ) -> Result<Self, &'static str> {
+    ) -> Result<Self, ()> {
         let parameters = private_key.compressed_parameter.to::<H>();
         let levels = parameters.len();
 

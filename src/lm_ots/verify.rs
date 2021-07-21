@@ -52,12 +52,8 @@ pub fn generate_public_key_candiate_inmemory<'a, H: Hasher>(
     let Q = hasher.finalize_reset();
     let Q_and_checksum = lmots_parameter.get_appended_with_checksum(Q.as_slice());
 
+    let mut z: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
     let max_w = 2usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
-
-    let mut end_result_hasher = lmots_parameter.get_hasher();
-    end_result_hasher.update(I);
-    end_result_hasher.update(q);
-    end_result_hasher.update(&D_PBLC);
 
     for i in 0..lmots_parameter.get_p() {
         let a = coef(
@@ -70,10 +66,18 @@ pub fn generate_public_key_candiate_inmemory<'a, H: Hasher>(
 
         hasher.do_hash_chain(I, &q[..], i, a, max_w, tmp.as_mut_slice());
 
-        end_result_hasher.update(tmp.as_slice());
+        z.push(tmp);
     }
 
-    end_result_hasher.finalize()
+    hasher.update(I);
+    hasher.update(q);
+    hasher.update(&D_PBLC);
+
+    for item in z.into_iter() {
+        hasher.update(item.as_slice());
+    }
+
+    hasher.finalize()
 }
 
 #[cfg(test)]

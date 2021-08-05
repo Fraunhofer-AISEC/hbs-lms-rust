@@ -38,14 +38,14 @@ pub fn get_tree_element<H: Hasher>(
         );
 
         let lm_ots_public_key = crate::lm_ots::generate_public_key(&lms_ots_private_key);
-        hasher.update(&lm_ots_public_key.key.as_slice());
+        hasher.update(lm_ots_public_key.key.as_slice());
     } else {
         hasher.update(&D_INTR);
         let left = get_tree_element(2 * index, private_key, aux_data);
         let right = get_tree_element(2 * index + 1, private_key, aux_data);
 
-        hasher.update(&left.as_slice());
-        hasher.update(&right.as_slice());
+        hasher.update(left.as_slice());
+        hasher.update(right.as_slice());
     }
 
     let result = hasher.finalize();

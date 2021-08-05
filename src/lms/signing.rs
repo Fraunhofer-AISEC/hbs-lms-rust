@@ -75,7 +75,7 @@ impl<H: Hasher> LmsSignature<H> {
 
         while i < h.into() {
             let tree_index = (r / (2usize.pow(i as u32))) ^ 0x1;
-            path.push(get_tree_element(tree_index, &lms_private_key, &mut None));
+            path.push(get_tree_element(tree_index, lms_private_key, &mut None));
             i += 1;
         }
 
@@ -96,7 +96,7 @@ impl<H: Hasher> LmsSignature<H> {
 
         let lmots_signature = self.lmots_signature.to_binary_representation();
 
-        result.append(&lmots_signature.as_slice());
+        result.append(lmots_signature.as_slice());
 
         result.append(&u32str(self.lms_parameter.get_type() as u32));
 

@@ -69,17 +69,17 @@ impl<H: Hasher> LmotsSignature<H> {
         hasher.update(&private_key.I);
         hasher.update(&private_key.q);
         hasher.update(&D_MESG);
-        hasher.update(&C.as_slice());
+        hasher.update(C.as_slice());
         hasher.update(message);
 
         let Q: DynamicArray<u8, MAX_HASH> = hasher.finalize_reset();
-        let Q_and_checksum = lmots_parameter.get_appended_with_checksum(&Q.as_slice());
+        let Q_and_checksum = lmots_parameter.get_appended_with_checksum(Q.as_slice());
 
         let mut y: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
 
         for i in 0..lmots_parameter.get_p() {
             let a = coef(
-                &Q_and_checksum.as_slice(),
+                Q_and_checksum.as_slice(),
                 i as u64,
                 lmots_parameter.get_winternitz() as u64,
             ) as usize;

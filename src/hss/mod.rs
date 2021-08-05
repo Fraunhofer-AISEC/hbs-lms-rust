@@ -28,7 +28,7 @@ pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]
     let signature = extract_or!(InMemoryHssSignature::<H>::new(signature), false);
     let public_key = extract_or!(InMemoryHssPublicKey::<H>::new(public_key), false);
 
-    crate::hss::verify::verify_inmemory(&signature, &public_key, &message).is_ok()
+    crate::hss::verify::verify_inmemory(&signature, &public_key, message).is_ok()
 }
 
 pub fn hss_sign<H: Hasher>(
@@ -37,7 +37,7 @@ pub fn hss_sign<H: Hasher>(
     aux_data: Option<&mut &mut [u8]>,
 ) -> Option<DynamicArray<u8, MAX_HSS_SIGNATURE_LENGTH>> {
     let mut rfc_private_key =
-        extract_or_return!(RfcPrivateKey::from_binary_representation(&private_key));
+        extract_or_return!(RfcPrivateKey::from_binary_representation(private_key));
 
     let mut parsed_private_key: HssPrivateKey<H> =
         match HssPrivateKey::from(&rfc_private_key, aux_data) {
@@ -47,7 +47,7 @@ pub fn hss_sign<H: Hasher>(
 
     // let parsed_aux_data = hss_expand_aux_data::<H>(aux_data, Some(&rfc_private_key.seed));
 
-    let signature = match HssSignature::sign(&mut parsed_private_key, &message) {
+    let signature = match HssSignature::sign(&mut parsed_private_key, message) {
         Err(_) => return None,
         Ok(x) => x,
     };

@@ -57,7 +57,7 @@ pub fn generate_public_key_candiate_inmemory<'a, H: Hasher>(
 
     for i in 0..lmots_parameter.get_p() {
         let a = coef(
-            &Q_and_checksum.as_slice(),
+            Q_and_checksum.as_slice(),
             i as u64,
             lmots_parameter.get_winternitz() as u64,
         ) as usize;

@@ -134,7 +134,7 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
         }
 
         let mut key = [0u8; MAX_HASH];
-        compute_seed_derive::<H>(&mut key, &seed);
+        compute_seed_derive::<H>(&mut key, seed);
 
         let mut expected_mac = [0u8; MAX_HASH];
         let orig_aux_data = unsafe { core::slice::from_raw_parts(orig_aux_data, index) };

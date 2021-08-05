@@ -53,7 +53,7 @@ fn generate_public_key_candiate_inemory<'a, H: Hasher>(
 
     let mut node_num = leafs + signature.q;
 
-    hasher.update(&public_key.I);
+    hasher.update(public_key.I);
     hasher.update(&u32str(node_num));
     hasher.update(&D_LEAF);
     hasher.update(ots_public_key_canditate.as_slice());
@@ -62,16 +62,16 @@ fn generate_public_key_candiate_inemory<'a, H: Hasher>(
     let mut i = 0;
 
     while node_num > 1 {
-        hasher.update(&public_key.I);
+        hasher.update(public_key.I);
         hasher.update(&u32str(node_num / 2));
         hasher.update(&D_INTR);
 
         if is_odd(node_num as usize) {
-            hasher.update(&signature.get_path(i));
-            hasher.update(&temp.as_slice());
+            hasher.update(signature.get_path(i));
+            hasher.update(temp.as_slice());
         } else {
-            hasher.update(&temp.as_slice());
-            hasher.update(&signature.get_path(i));
+            hasher.update(temp.as_slice());
+            hasher.update(signature.get_path(i));
         }
         temp = hasher.finalize_reset();
         node_num /= 2;

@@ -107,7 +107,7 @@ impl<H: Hasher> LmsPublicKey<H> {
         result.append(&u32str(self.lmots_parameter.get_type()));
 
         result.append(&self.I);
-        result.append(&self.key.as_slice());
+        result.append(self.key.as_slice());
 
         result
     }

@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 
 mod constants;
-mod hasher;
+pub mod hasher;
 mod hss;
 mod lm_ots;
 mod lms;

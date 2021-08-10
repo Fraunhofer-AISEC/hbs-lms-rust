@@ -8,7 +8,7 @@ mod lm_ots;
 mod lms;
 mod util;
 
-use hasher::Hasher;
+pub use hasher::Hasher;
 use hss::definitions::HssPrivateKey;
 use hss::rfc_private_key::RfcPrivateKey;
 

@@ -84,9 +84,8 @@ impl<H: Hasher> LmotsSignature<H> {
                 lmots_parameter.get_winternitz() as u64,
             ) as usize;
             let initial = private_key.key[i as usize].clone();
-
-            let result =
-                hasher.do_hash_chain(&private_key.I, &private_key.q, i, initial.as_slice(), 0, a);
+            let mut hash_chain_data = H::prepare_hash_chain_data(&private_key.I, &private_key.q);
+            let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial.as_slice(), 0, a);
 
             y.push(result);
         }

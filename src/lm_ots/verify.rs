@@ -61,12 +61,12 @@ pub fn generate_public_key_candiate_inmemory<'a, H: Hasher>(
             i as u64,
             lmots_parameter.get_winternitz() as u64,
         ) as usize;
-        let mut tmp: DynamicArray<u8, MAX_HASH> = DynamicArray::new();
-        tmp.append(signature.get_y(i as usize));
 
-        hasher.do_hash_chain(I, &q[..], i, a, max_w, tmp.as_mut_slice());
+        let initial = signature.get_y(i as usize);
 
-        z.push(tmp);
+        let result = hasher.do_hash_chain(I, &q[..], i, &initial, a, max_w);
+
+        z.push(result);
     }
 
     hasher.update(I);

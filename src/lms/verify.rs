@@ -35,23 +35,22 @@ fn generate_public_key_candiate_inemory<'a, H: Hasher>(
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],
 ) -> Result<DynamicArray<u8, MAX_HASH>, ()> {
-    
     let leafs = signature.lms_parameter.number_of_lm_ots_keys() as u32;
-    
+
     let curr = signature.q;
     if curr >= leafs {
         return Err(());
     }
-    
+
     let ots_public_key_canditate = crate::lm_ots::verify::generate_public_key_candiate_inmemory(
         &signature.lmots_signature,
         public_key.I,
         signature.q,
         message,
     );
-    
+
     let mut node_num = leafs + signature.q;
-    
+
     let mut hasher = <H>::get_hasher();
     hasher.update(public_key.I);
     hasher.update(&u32str(node_num));

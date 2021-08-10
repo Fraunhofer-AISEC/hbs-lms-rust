@@ -60,3 +60,19 @@ pub const MIN_SUBTREE: usize = 2; /* All subtrees (other than the root subtree) 
 pub const DAUX_D: usize = 20;
 pub const DAUX_PREFIX_LEN: usize = 22; /* Not counting the seed value */
 pub const D_DAUX: u16 = 0xfdfd;
+
+pub mod WinternitzChain {
+    use super::MAX_HASH;
+
+    pub const ITER_I: usize = 0;
+    pub const ITER_Q: usize = 16;
+    pub const ITER_K: usize = 20;
+    pub const ITER_J: usize = 22;
+    pub const ITER_PREV: usize = 23;
+
+    pub const fn ITER_LEN(hash_len: usize) -> usize {
+        ITER_PREV + hash_len
+    }
+
+    pub const ITER_MAX_LEN: usize = ITER_LEN(MAX_HASH);
+}

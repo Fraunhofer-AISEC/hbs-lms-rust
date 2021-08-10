@@ -7,7 +7,7 @@ all:
 	cargo build --examples
 
 test:
-	cargo test
+	cargo test --features std
 
 clean:
 	cargo clean

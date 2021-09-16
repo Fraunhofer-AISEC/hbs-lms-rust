@@ -24,3 +24,6 @@ The examples folder includes a demo application, to see how the library can be u
 | C          | signature_randomizer | 32-byte random value added to every signature             |
 | Q          | message_hash         | Output of hashed message together with I, q, D_MESG and C |
 | y          | signature_data       | The actual data of the signature                          |
+
+# Licensing
+This LMS implementation is licensed under terms of the Apache-2.0 license (see [LICENSE file](LICENSE)).

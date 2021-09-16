@@ -1,0 +1,20 @@
+stages:
+  - build
+
+rust-latest:
+  stage: build
+  image: rust:latest
+  before_script:
+    - rustup component add rustfmt
+  script:
+    - cargo build --verbose
+    - cargo test --verbose
+    - cargo fmt --all -- --check
+
+rust-nightly:
+  stage: build
+  image: rustlang/rust:nightly
+  script:
+    - cargo build --verbose
+    - cargo test --verbose
+  allow_failure: true

@@ -267,23 +267,19 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
             .expect("Winternitz parameter not correct specified");
 
         let lm_ots = match winternitz_parameter {
-            1 => LmotsAlgorithm::LmotsW1
-                .construct_parameter::<Sha256Hasher>()
-                .unwrap(),
-            2 => LmotsAlgorithm::LmotsW2.construct_parameter().unwrap(),
-            4 => LmotsAlgorithm::LmotsW4.construct_parameter().unwrap(),
-            8 => LmotsAlgorithm::LmotsW8.construct_parameter().unwrap(),
+            1 => LmotsAlgorithm::LmotsW1,
+            2 => LmotsAlgorithm::LmotsW2,
+            4 => LmotsAlgorithm::LmotsW4,
+            8 => LmotsAlgorithm::LmotsW8,
             _ => panic!("Wrong winternitz parameter"),
         };
 
         let lms = match height {
-            5 => LmsAlgorithm::LmsH5
-                .construct_parameter::<Sha256Hasher>()
-                .unwrap(),
-            10 => LmsAlgorithm::LmsH10.construct_parameter().unwrap(),
-            15 => LmsAlgorithm::LmsH15.construct_parameter().unwrap(),
-            20 => LmsAlgorithm::LmsH20.construct_parameter().unwrap(),
-            25 => LmsAlgorithm::LmsH25.construct_parameter().unwrap(),
+            5 => LmsAlgorithm::LmsH5,
+            10 => LmsAlgorithm::LmsH10,
+            15 => LmsAlgorithm::LmsH15,
+            20 => LmsAlgorithm::LmsH20,
+            25 => LmsAlgorithm::LmsH25,
             _ => panic!("Height not supported"),
         };
 

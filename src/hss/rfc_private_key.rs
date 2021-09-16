@@ -198,9 +198,6 @@ impl CompressedParameterSet {
             let lms = LmsAlgorithm::from(lms_type as u32);
             let lmots = LmotsAlgorithm::from(lmots_type as u32);
 
-            let lms = lms.construct_parameter().unwrap();
-            let lmots = lmots.construct_parameter().unwrap();
-
             result.append(&[HssParameter::new(lmots, lms)]);
         }
 
@@ -218,17 +215,11 @@ mod tests {
 
     #[test]
     fn test_binary_representation_compressed_parameter() {
-        let lmots_first = LmotsAlgorithm::LmotsW4
-            .construct_parameter::<Hasher>()
-            .unwrap();
-        let lmots_second = LmotsAlgorithm::LmotsW8
-            .construct_parameter::<Hasher>()
-            .unwrap();
+        let lmots_first = LmotsAlgorithm::LmotsW4;
+        let lmots_second = LmotsAlgorithm::LmotsW8;
 
-        let lms_first = LmsAlgorithm::LmsH5.construct_parameter::<Hasher>().unwrap();
-        let lms_second = LmsAlgorithm::LmsH10
-            .construct_parameter::<Hasher>()
-            .unwrap();
+        let lms_first = LmsAlgorithm::LmsH5;
+        let lms_second = LmsAlgorithm::LmsH10;
 
         let parameter = [
             HssParameter::new(lmots_first, lms_first),

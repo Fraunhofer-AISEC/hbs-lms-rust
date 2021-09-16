@@ -112,8 +112,8 @@ fn should_produce_same_private_key() {
     reference_genkey_seed(&tempdir, &TEST_SEED);
 
     let parameters = HssParameter::<Sha256Hasher>::new(
-        LmotsAlgorithm::LmotsW1.construct_parameter().unwrap(),
-        LmsAlgorithm::LmsH5.construct_parameter().unwrap(),
+        LmotsAlgorithm::LmotsW1,
+        LmsAlgorithm::LmsH5,
     );
 
     let key = hss_keygen(
@@ -138,8 +138,8 @@ fn should_produce_same_aux_data() {
     reference_genkey_seed(&tempdir, &TEST_SEED);
 
     let parameters = HssParameter::<Sha256Hasher>::new(
-        LmotsAlgorithm::LmotsW1.construct_parameter().unwrap(),
-        LmsAlgorithm::LmsH5.construct_parameter().unwrap(),
+        LmotsAlgorithm::LmotsW1,
+        LmsAlgorithm::LmsH5,
     );
 
     let mut aux_data = vec![0u8; 2000];

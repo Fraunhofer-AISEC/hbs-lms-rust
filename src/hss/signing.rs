@@ -15,6 +15,7 @@ use crate::{
         helper::read_and_advance,
         ustr::{str32u, u32str},
     },
+    LmotsAlgorithm, LmsAlgorithm,
 };
 
 use super::{definitions::HssPrivateKey, parameter::HssParameter};
@@ -65,7 +66,10 @@ impl<H: Hasher> HssSignature<H> {
         let lmots_parameter = private_key.private_key[0].lmots_parameter;
         let lms_parameter = private_key.private_key[0].lms_parameter;
 
-        let parameter = HssParameter::new(lmots_parameter, lms_parameter);
+        let parameter = HssParameter::new(
+            LmotsAlgorithm::from(lmots_parameter.get_type()),
+            LmsAlgorithm::from(lms_parameter.get_type()),
+        );
 
         let prv = &mut private_key.private_key;
         let public = &mut private_key.public_key;

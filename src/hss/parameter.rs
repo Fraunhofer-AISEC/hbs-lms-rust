@@ -9,7 +9,13 @@ pub struct HssParameter<H: Hasher> {
 }
 
 impl<H: Hasher> HssParameter<H> {
-    pub fn new(lmots_parameter: LmotsParameter<H>, lms_parameter: LmsParameter<H>) -> Self {
+    pub fn new(lmots_parameter: LmotsAlgorithm, lms_parameter: LmsAlgorithm) -> Self {
+        let lmots_parameter = lmots_parameter
+            .construct_parameter()
+            .expect("Use available Lmots parameter.");
+        let lms_parameter = lms_parameter
+            .construct_parameter()
+            .expect("Use available LMS parameter.");
         HssParameter {
             lmots_parameter,
             lms_parameter,
@@ -27,8 +33,8 @@ impl<H: Hasher> HssParameter<H> {
 
 impl HssParameter<Sha256Hasher> {
     pub fn construct_default_parameters() -> Self {
-        let lmots_parameter = LmotsAlgorithm::construct_default_parameter();
-        let lms_parameter = LmsAlgorithm::construct_default_parameter();
+        let lmots_parameter = LmotsAlgorithm::LmotsW1;
+        let lms_parameter = LmsAlgorithm::LmsH5;
 
         HssParameter::new(lmots_parameter, lms_parameter)
     }
@@ -36,8 +42,8 @@ impl HssParameter<Sha256Hasher> {
 
 impl<H: Hasher> Default for HssParameter<H> {
     fn default() -> Self {
-        let lmots_parameter = LmotsParameter::default();
-        let lms_parameter = LmsParameter::default();
+        let lmots_parameter = LmotsAlgorithm::LmotsW1;
+        let lms_parameter = LmsAlgorithm::LmsH5;
 
         HssParameter::new(lmots_parameter, lms_parameter)
     }

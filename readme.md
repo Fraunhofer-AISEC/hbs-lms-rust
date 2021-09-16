@@ -9,12 +9,12 @@ The reference implementation always generates HSS signatures, even when only one
 # Demo
 The examples folder includes a demo application, to see how the library can be used.
 
-* `cargo run --release --example demo -- genkey mykey 10/2`
+* `cargo run --release --example lms-demo -- genkey mykey 10/2`
     * Key generation
     * Generates `mykey.priv`, `mykey.pub` with merkle tree height 10 and winternitz parameter 2
-* `cargo run --release --example demo -- sign mykey message.txt`
+* `cargo run --release --example lms-demo -- sign mykey message.txt`
     * Signing
     * Generates `message.txt.sig`
-* `cargo run --release --example demo -- verify mykey message.txt`
+* `cargo run --release --example lms-demo -- verify mykey message.txt`
     * Verification
     * Verifies `message.txt` with `message.txt.sig` against `mykey.pub`

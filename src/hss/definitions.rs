@@ -144,6 +144,8 @@ pub struct HssPublicKey<H: Hasher> {
     pub level: usize,
 }
 
+/// To reduce memory footprint on verification we handle the public key in-memory using ```InMemoryHssPublicKey```.
+/// In order to reduce complexity we use ```HssPublicKey``` for key generation and signature generation.
 pub struct InMemoryHssPublicKey<'a, H: Hasher> {
     pub public_key: InMemoryLmsPublicKey<'a, H>,
     pub level: usize,

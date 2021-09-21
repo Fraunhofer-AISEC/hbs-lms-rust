@@ -27,6 +27,8 @@ pub struct HssSignature<H: Hasher> {
     pub signature: LmsSignature<H>,
 }
 
+/// To reduce memory footprint on verification we handle the signature in-memory using ```InMemoryHssSignature```.
+/// In order to reduce complexity we use ```HssSignature``` for key generation and signature generation.
 pub struct InMemoryHssSignature<'a, H: Hasher> {
     pub level: usize,
     pub signed_public_keys: DynamicArray<Option<InMemoryHssSignedPublicKey<'a, H>>, MAX_HSS_LEVELS>,

@@ -9,7 +9,7 @@ use crate::{
 };
 
 pub fn generate_private_key<H: Hasher>(
-    i: IType,
+    i: LmsTreeIdentifier,
     q: QType,
     seed: Seed,
     lmots_parameter: LmotsParameter<H>,

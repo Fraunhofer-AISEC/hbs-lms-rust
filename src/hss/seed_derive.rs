@@ -1,6 +1,6 @@
 use crate::{
     constants::{
-        IType, Seed, ILEN, PRG_FF, PRG_I, PRG_J, PRG_LEN, PRG_MAX_LEN, PRG_Q, PRG_SEED, SEED_LEN,
+        LmsTreeIdentifier, Seed, ILEN, PRG_FF, PRG_I, PRG_J, PRG_LEN, PRG_MAX_LEN, PRG_Q, PRG_SEED, SEED_LEN,
     },
     hasher::Hasher,
     util::ustr::{u16str, u32str},
@@ -9,13 +9,13 @@ use crate::{
 
 pub struct SeedDerive<'a> {
     master_seed: &'a Seed,
-    i: &'a IType,
+    i: &'a LmsTreeIdentifier,
     q: u32,
     j: u16,
 }
 
 impl<'a> SeedDerive<'a> {
-    pub fn new(seed: &'a Seed, i: &'a IType) -> Self {
+    pub fn new(seed: &'a Seed, i: &'a LmsTreeIdentifier) -> Self {
         SeedDerive {
             master_seed: seed,
             i,

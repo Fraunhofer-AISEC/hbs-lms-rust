@@ -15,7 +15,7 @@ use super::parameters::LmsParameter;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct LmsPrivateKey<H: Hasher> {
-    pub I: IType,
+    pub I: LmsTreeIdentifier,
     pub q: u32,
     pub seed: Seed,
     pub lmots_parameter: LmotsParameter<H>,
@@ -25,7 +25,7 @@ pub struct LmsPrivateKey<H: Hasher> {
 impl<H: Hasher> LmsPrivateKey<H> {
     pub fn new(
         seed: Seed,
-        I: IType,
+        I: LmsTreeIdentifier,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
     ) -> Self {
@@ -61,7 +61,7 @@ impl<H: Hasher> LmsPrivateKey<H> {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct LmsPublicKey<H: Hasher> {
     pub key: DynamicArray<u8, MAX_HASH>,
-    pub I: IType,
+    pub I: LmsTreeIdentifier,
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
 }
@@ -88,7 +88,7 @@ impl<'a, H: Hasher> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H> {
 impl<H: Hasher> LmsPublicKey<H> {
     pub fn new(
         public_key: DynamicArray<u8, MAX_HASH>,
-        I: IType,
+        I: LmsTreeIdentifier,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
     ) -> Self {

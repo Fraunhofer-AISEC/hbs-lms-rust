@@ -3,7 +3,7 @@ use core::mem::size_of;
 pub const ILEN: usize = 16;
 pub const SEED_LEN: usize = 32;
 
-pub type IType = [u8; ILEN];
+pub type LmsTreeIdentifier = [u8; ILEN];
 pub type Seed = [u8; SEED_LEN];
 pub type QType = [u8; 4];
 

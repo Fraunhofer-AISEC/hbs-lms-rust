@@ -9,7 +9,7 @@ use crate::lms::definitions::LmsPublicKey;
 
 pub fn generate_private_key_with_seed<H: Hasher>(
     seed: Seed,
-    i: IType,
+    i: LmsTreeIdentifier,
     lmots_parameter: LmotsParameter<H>,
     lms_parameter: LmsParameter<H>,
 ) -> LmsPrivateKey<H> {
@@ -20,7 +20,7 @@ pub fn generate_private_key<H: Hasher>(
     lmots_parameter: LmotsParameter<H>,
     lms_parameter: LmsParameter<H>,
 ) -> LmsPrivateKey<H> {
-    let mut i: IType = [0u8; 16];
+    let mut i: LmsTreeIdentifier = [0u8; 16];
     crate::util::random::get_random(&mut i);
 
     let mut seed: Seed = [0u8; 32];

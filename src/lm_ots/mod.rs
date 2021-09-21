@@ -13,7 +13,7 @@ pub mod verify;
 
 pub fn generate_private_key<H: Hasher>(
     q: QType,
-    i: IType,
+    i: LmsTreeIdentifier,
     seed: Seed,
     lmots_parameter: LmotsParameter<H>,
 ) -> LmotsPrivateKey<H> {

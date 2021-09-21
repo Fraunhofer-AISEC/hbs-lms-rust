@@ -2,7 +2,7 @@ use core::{marker::PhantomData, mem::size_of};
 
 use crate::{
     constants::{
-        IType, Seed, D_TOPSEED, MAX_HASH, MAX_HSS_LEVELS, RFC_PRIVATE_KEY_SIZE, SEED_CHILD_SEED,
+        LmsTreeIdentifier, Seed, D_TOPSEED, MAX_HASH, MAX_HSS_LEVELS, RFC_PRIVATE_KEY_SIZE, SEED_CHILD_SEED,
         TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
     },
     extract_or_return,
@@ -31,13 +31,13 @@ pub struct RfcPrivateKey<H: Hasher> {
 
 pub struct SeedAndI {
     pub seed: Seed,
-    pub i: IType,
+    pub i: LmsTreeIdentifier,
 }
 
 impl SeedAndI {
     pub fn new(seed: &[u8], i: &[u8]) -> Self {
         let mut local_seed: Seed = Default::default();
-        let mut local_i: IType = Default::default();
+        let mut local_i: LmsTreeIdentifier = Default::default();
 
         local_seed.copy_from_slice(seed);
         local_i.copy_from_slice(&i[..16]);

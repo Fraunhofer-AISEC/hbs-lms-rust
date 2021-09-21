@@ -96,7 +96,7 @@ mod tests {
         ($name:ident, $type:expr) => {
             #[test]
             fn $name() {
-                let i: IType = [2u8; 16];
+                let i: LmsTreeIdentifier = [2u8; 16];
                 let q: QType = [0u8; 4];
                 let seed: Seed = [
                     74, 222, 147, 88, 142, 55, 215, 148, 59, 52, 12, 170, 167, 93, 94, 237, 90,

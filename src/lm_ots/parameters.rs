@@ -117,10 +117,7 @@ impl<H: Hasher> LmotsParameter<H> {
         sum << self.get_ls()
     }
 
-    pub fn get_appended_with_checksum(
-        &self,
-        byte_string: &[u8],
-    ) -> DynamicArray<u8, { MAX_HASH + 2 }> {
+    pub fn append_checksum_to(&self, byte_string: &[u8]) -> DynamicArray<u8, { MAX_HASH + 2 }> {
         let mut result = DynamicArray::new();
 
         let checksum = self.checksum(byte_string);

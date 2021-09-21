@@ -24,7 +24,7 @@ use crate::{
 use super::rfc_private_key::RfcPrivateKey;
 use super::{
     aux::{hss_is_aux_data_used, MutableExpandedAuxData},
-    rfc_private_key::generate_child_seed_I_value,
+    rfc_private_key::generate_child_seed_and_lms_tree_identifier,
 };
 
 #[derive(Default, PartialEq)]
@@ -63,7 +63,7 @@ impl<H: Hasher> HssPrivateKey<H> {
 
         let mut hss_private_key: HssPrivateKey<H> = Default::default();
 
-        let mut current_seed = private_key.generate_root_seed_I_value();
+        let mut current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
 
         let lms_keypair = generate_key_pair_with_seed_and_aux(
             &current_seed,
@@ -77,7 +77,7 @@ impl<H: Hasher> HssPrivateKey<H> {
         for i in 1..levels {
             let parameter = &parameters[i];
 
-            current_seed = generate_child_seed_I_value(&current_seed, i as u32);
+            current_seed = generate_child_seed_and_lms_tree_identifier(&current_seed, i as u32);
 
             let lms_keypair =
                 generate_key_pair_with_seed_and_aux(&current_seed, parameter, &mut None);

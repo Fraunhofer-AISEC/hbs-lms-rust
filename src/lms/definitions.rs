@@ -15,8 +15,8 @@ use super::parameters::LmsParameter;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct LmsPrivateKey<H: Hasher> {
-    pub I: LmsTreeIdentifier,
-    pub q: u32,
+    pub lms_tree_identifier: LmsTreeIdentifier,
+    pub used_leafs_index: u32,
     pub seed: Seed,
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
@@ -25,14 +25,14 @@ pub struct LmsPrivateKey<H: Hasher> {
 impl<H: Hasher> LmsPrivateKey<H> {
     pub fn new(
         seed: Seed,
-        I: LmsTreeIdentifier,
+        lms_tree_identifier: LmsTreeIdentifier,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
     ) -> Self {
         LmsPrivateKey {
             seed,
-            I,
-            q: 0,
+            lms_tree_identifier,
+            used_leafs_index: 0,
             lmots_parameter,
             lms_parameter,
         }
@@ -41,15 +41,15 @@ impl<H: Hasher> LmsPrivateKey<H> {
     pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey<H>, ()> {
         let number_of_lm_ots_keys = self.lms_parameter.number_of_lm_ots_keys();
 
-        if self.q as usize >= number_of_lm_ots_keys {
+        if self.used_leafs_index as usize >= number_of_lm_ots_keys {
             return Err(());
         }
 
-        self.q += 1;
+        self.used_leafs_index += 1;
 
         let key = lm_ots::generate_private_key(
-            u32str(self.q - 1),
-            self.I,
+            u32str(self.used_leafs_index - 1),
+            self.lms_tree_identifier,
             self.seed,
             self.lmots_parameter,
         );
@@ -61,7 +61,7 @@ impl<H: Hasher> LmsPrivateKey<H> {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct LmsPublicKey<H: Hasher> {
     pub key: DynamicArray<u8, MAX_HASH>,
-    pub I: LmsTreeIdentifier,
+    pub lms_tree_identifier: LmsTreeIdentifier,
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
 }
@@ -69,7 +69,7 @@ pub struct LmsPublicKey<H: Hasher> {
 #[derive(Clone)]
 pub struct InMemoryLmsPublicKey<'a, H: Hasher> {
     pub key: &'a [u8],
-    pub I: &'a [u8],
+    pub lms_tree_identifier: &'a [u8],
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
     complete_data: &'a [u8],
@@ -78,7 +78,7 @@ pub struct InMemoryLmsPublicKey<'a, H: Hasher> {
 impl<'a, H: Hasher> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H> {
     fn eq(&self, other: &LmsPublicKey<H>) -> bool {
         self.key == other.key.as_slice()
-            && self.I == &other.I[..]
+            && self.lms_tree_identifier == &other.lms_tree_identifier[..]
             && self.lmots_parameter == other.lmots_parameter
             && self.lms_parameter == other.lms_parameter
             && self.complete_data == other.to_binary_representation().as_slice()
@@ -88,13 +88,13 @@ impl<'a, H: Hasher> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H> {
 impl<H: Hasher> LmsPublicKey<H> {
     pub fn new(
         public_key: DynamicArray<u8, MAX_HASH>,
-        I: LmsTreeIdentifier,
+        lms_tree_identifier: LmsTreeIdentifier,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
     ) -> Self {
         LmsPublicKey {
             key: public_key,
-            I,
+            lms_tree_identifier,
             lmots_parameter,
             lms_parameter,
         }
@@ -106,7 +106,7 @@ impl<H: Hasher> LmsPublicKey<H> {
         result.append(&u32str(self.lms_parameter.get_type()));
         result.append(&u32str(self.lmots_parameter.get_type()));
 
-        result.append(&self.I);
+        result.append(&self.lms_tree_identifier);
         result.append(self.key.as_slice());
 
         result
@@ -142,7 +142,7 @@ impl<'a, H: Hasher> InMemoryLmsPublicKey<'a, H> {
         let public_key = Self {
             lmots_parameter,
             lms_parameter,
-            I: i,
+            lms_tree_identifier: i,
             key,
             complete_data: &data[..data_index + lms_parameter.get_m() as usize],
         };

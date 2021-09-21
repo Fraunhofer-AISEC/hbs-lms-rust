@@ -12,7 +12,7 @@ pub mod signing;
 pub mod verify;
 
 pub fn generate_private_key<H: Hasher>(
-    q: QType,
+    q: LmsLeafIdentifier,
     i: LmsTreeIdentifier,
     seed: Seed,
     lmots_parameter: LmotsParameter<H>,

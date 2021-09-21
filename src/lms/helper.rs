@@ -23,7 +23,7 @@ pub fn get_tree_element<H: Hasher>(
 
     let mut hasher = <H>::get_hasher();
 
-    hasher.update(&private_key.I);
+    hasher.update(&private_key.lms_tree_identifier);
     hasher.update(&u32str(index as u32));
 
     let max_private_keys = private_key.lms_parameter.number_of_lm_ots_keys();
@@ -32,7 +32,7 @@ pub fn get_tree_element<H: Hasher>(
         hasher.update(&D_LEAF);
         let lms_ots_private_key = crate::lm_ots::generate_private_key(
             u32str((index - max_private_keys) as u32),
-            private_key.I,
+            private_key.lms_tree_identifier,
             private_key.seed,
             private_key.lmots_parameter,
         );

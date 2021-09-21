@@ -10,7 +10,7 @@ use crate::{
 
 pub fn generate_private_key<H: Hasher>(
     i: LmsTreeIdentifier,
-    q: QType,
+    q: LmsLeafIdentifier,
     seed: Seed,
     lmots_parameter: LmotsParameter<H>,
 ) -> LmotsPrivateKey<H> {
@@ -44,8 +44,8 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
         let mut tmp = key[i].clone();
 
         for j in 0..max_word_index {
-            hasher.update(&private_key.I);
-            hasher.update(&private_key.q);
+            hasher.update(&private_key.lms_tree_identifier);
+            hasher.update(&private_key.lms_leaf_identifier);
             hasher.update(&u16str(i as u16));
             hasher.update(&u8str(j as u8));
             hasher.update(tmp.as_slice());
@@ -58,8 +58,8 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
         y.push(tmp);
     }
 
-    hasher.update(&private_key.I);
-    hasher.update(&private_key.q);
+    hasher.update(&private_key.lms_tree_identifier);
+    hasher.update(&private_key.lms_leaf_identifier);
     hasher.update(&D_PBLC);
 
     for item in y.into_iter() {
@@ -71,5 +71,10 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
         public_key.push(value);
     }
 
-    LmotsPublicKey::new(private_key.I, private_key.q, public_key, *lmots_parameter)
+    LmotsPublicKey::new(
+        private_key.lms_tree_identifier,
+        private_key.lms_leaf_identifier,
+        public_key,
+        *lmots_parameter,
+    )
 }

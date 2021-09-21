@@ -17,22 +17,22 @@ use super::parameters::LmotsParameter;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct LmotsSignature<H: Hasher> {
-    pub C: DynamicArray<u8, MAX_HASH>,
+    pub signature_randomizer: DynamicArray<u8, MAX_HASH>,
     pub y: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P>,
     pub lmots_parameter: LmotsParameter<H>,
 }
 
 #[derive(Clone)]
 pub struct InMemoryLmotsSignature<'a, H: Hasher> {
-    pub C: &'a [u8],
+    pub signature_randomizer: &'a [u8],
     pub y: &'a [u8],
     pub lmots_parameter: LmotsParameter<H>,
 }
 
 impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, H> {
     fn eq(&self, other: &LmotsSignature<H>) -> bool {
-        let first_cond =
-            self.C == other.C.as_slice() && self.lmots_parameter == other.lmots_parameter;
+        let first_cond = self.signature_randomizer == other.signature_randomizer.as_slice()
+            && self.lmots_parameter == other.lmots_parameter;
 
         if !first_cond {
             return false;
@@ -54,42 +54,46 @@ impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, 
 
 impl<H: Hasher> LmotsSignature<H> {
     pub fn sign(private_key: &LmotsPrivateKey<H>, message: &[u8]) -> Self {
-        let mut C = DynamicArray::new();
+        let mut signature_randomizer = DynamicArray::new();
 
         let lmots_parameter = private_key.lmots_parameter;
 
         let mut hasher = lmots_parameter.get_hasher();
 
-        C.set_size(lmots_parameter.get_n() as usize);
+        signature_randomizer.set_size(lmots_parameter.get_n() as usize);
 
-        get_random(C.as_mut_slice());
+        get_random(signature_randomizer.as_mut_slice());
 
-        hasher.update(&private_key.I);
-        hasher.update(&private_key.q);
+        hasher.update(&private_key.lms_tree_identifier);
+        hasher.update(&private_key.lms_leaf_identifier);
         hasher.update(&D_MESG);
-        hasher.update(C.as_slice());
+        hasher.update(signature_randomizer.as_slice());
         hasher.update(message);
 
-        let Q: DynamicArray<u8, MAX_HASH> = hasher.finalize_reset();
-        let Q_and_checksum = lmots_parameter.get_appended_with_checksum(Q.as_slice());
+        let message_hash: DynamicArray<u8, MAX_HASH> = hasher.finalize_reset();
+        let message_hash_with_checksum =
+            lmots_parameter.append_checksum_to(message_hash.as_slice());
 
         let mut y: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
 
         for i in 0..lmots_parameter.get_p() {
             let a = coef(
-                Q_and_checksum.as_slice(),
+                message_hash_with_checksum.as_slice(),
                 i as u64,
                 lmots_parameter.get_winternitz() as u64,
             ) as usize;
             let initial = private_key.key[i as usize].clone();
-            let mut hash_chain_data = H::prepare_hash_chain_data(&private_key.I, &private_key.q);
+            let mut hash_chain_data = H::prepare_hash_chain_data(
+                &private_key.lms_tree_identifier,
+                &private_key.lms_leaf_identifier,
+            );
             let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial.as_slice(), 0, a);
 
             y.push(result);
         }
 
         LmotsSignature {
-            C,
+            signature_randomizer,
             y,
             lmots_parameter,
         }
@@ -101,7 +105,7 @@ impl<H: Hasher> LmotsSignature<H> {
         let mut result = DynamicArray::new();
 
         result.append(&u32str(self.lmots_parameter.get_type()));
-        result.append(self.C.as_slice());
+        result.append(self.signature_randomizer.as_slice());
 
         for x in self.y.iter() {
             for y in x.iter() {
@@ -133,13 +137,13 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
             return None;
         }
 
-        let C: &'a [u8] = &consumed_data[..n as usize];
+        let signature_randomizer: &'a [u8] = &consumed_data[..n as usize];
         consumed_data = &consumed_data[n as usize..];
 
         let y: &'a [u8] = &consumed_data[..p as usize * n];
 
         let signature = Self {
-            C,
+            signature_randomizer,
             y,
             lmots_parameter,
         };
@@ -184,7 +188,7 @@ mod tests {
         }
 
         let signature = LmotsSignature {
-            C: c,
+            signature_randomizer: c,
             y,
             lmots_parameter,
         };

@@ -80,11 +80,13 @@ impl<H: Hasher> HssSignature<H> {
         // Regenerate the keys if neccessary
         // Algorithm is heavily borrowed from RFC (https://datatracker.ietf.org/doc/html/rfc8554#section-6.2)
 
-        // Start from lowest level tree and check if it is exhausted. 
+        // Start from lowest level tree and check if it is exhausted.
         // Stop if either a tree is not exhausted or we have reached the top level tree.
         let mut current_level = max_level;
 
-        while prv[current_level - 1].q == 2u32.pow(prv[current_level - 1].lms_parameter.get_height() as u32) {
+        while prv[current_level - 1].used_leafs_index
+            == 2u32.pow(prv[current_level - 1].lms_parameter.get_height() as u32)
+        {
             current_level -= 1;
             if current_level == 0 {
                 return Err(());

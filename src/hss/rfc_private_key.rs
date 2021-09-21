@@ -2,8 +2,8 @@ use core::{marker::PhantomData, mem::size_of};
 
 use crate::{
     constants::{
-        LmsTreeIdentifier, Seed, D_TOPSEED, MAX_HASH, MAX_HSS_LEVELS, RFC_PRIVATE_KEY_SIZE, SEED_CHILD_SEED,
-        TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
+        LmsTreeIdentifier, Seed, D_TOPSEED, MAX_HASH, MAX_HSS_LEVELS, RFC_PRIVATE_KEY_SIZE,
+        SEED_CHILD_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
     },
     extract_or_return,
     hasher::Hasher,
@@ -29,12 +29,12 @@ pub struct RfcPrivateKey<H: Hasher> {
     phantom: PhantomData<H>,
 }
 
-pub struct SeedAndI {
+pub struct SeedAndLmsTreeIdentifier {
     pub seed: Seed,
     pub i: LmsTreeIdentifier,
 }
 
-impl SeedAndI {
+impl SeedAndLmsTreeIdentifier {
     pub fn new(seed: &[u8], i: &[u8]) -> Self {
         let mut local_seed: Seed = Default::default();
         let mut local_i: LmsTreeIdentifier = Default::default();
@@ -105,7 +105,7 @@ impl<H: Hasher> RfcPrivateKey<H> {
         Some(result)
     }
 
-    pub fn generate_root_seed_I_value(&self) -> SeedAndI {
+    pub fn generate_root_seed_and_lms_tree_identifier(&self) -> SeedAndLmsTreeIdentifier {
         let mut hash_preimage = [0u8; TOPSEED_LEN];
         let mut hash_postimage = [0u8; MAX_HASH];
 
@@ -133,11 +133,14 @@ impl<H: Hasher> RfcPrivateKey<H> {
 
         let i = hasher.finalize_reset();
 
-        SeedAndI::new(seed.as_slice(), i.as_slice())
+        SeedAndLmsTreeIdentifier::new(seed.as_slice(), i.as_slice())
     }
 }
 
-pub fn generate_child_seed_I_value(parent_seed: &SeedAndI, index: u32) -> SeedAndI {
+pub fn generate_child_seed_and_lms_tree_identifier(
+    parent_seed: &SeedAndLmsTreeIdentifier,
+    index: u32,
+) -> SeedAndLmsTreeIdentifier {
     let mut derive = SeedDerive::new(&parent_seed.seed, &parent_seed.i);
 
     derive.set_q(index);
@@ -146,7 +149,7 @@ pub fn generate_child_seed_I_value(parent_seed: &SeedAndI, index: u32) -> SeedAn
     let seed = derive.seed_derive(true);
     let i = derive.seed_derive(false);
 
-    SeedAndI::new(&seed, &i[..16])
+    SeedAndLmsTreeIdentifier::new(&seed, &i[..16])
 }
 
 const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set

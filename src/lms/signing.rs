@@ -1,4 +1,4 @@
-use crate::constants::QType;
+use crate::constants::LmsLeafIdentifier;
 use crate::constants::MAX_H;
 use crate::constants::MAX_HASH;
 use crate::constants::MAX_LMS_SIGNATURE_LENGTH;
@@ -19,7 +19,7 @@ use super::parameters::LmsParameter;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct LmsSignature<H: Hasher> {
-    pub q: QType,
+    pub q: LmsLeafIdentifier,
     pub lmots_signature: LmotsSignature<H>,
     pub path: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_H>,
     pub lms_parameter: LmsParameter<H>,
@@ -69,7 +69,7 @@ impl<H: Hasher> LmsSignature<H> {
 
         let h = lms_private_key.lms_parameter.get_height();
         let mut i = 0usize;
-        let r = 2usize.pow(h as u32) + str32u(&lm_ots_private_key.q) as usize;
+        let r = 2usize.pow(h as u32) + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
 
         let mut path: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_H> = DynamicArray::new();
 
@@ -80,7 +80,7 @@ impl<H: Hasher> LmsSignature<H> {
         }
 
         let signature = LmsSignature {
-            q: lm_ots_private_key.q,
+            q: lm_ots_private_key.lms_leaf_identifier,
             lmots_signature: ots_signature,
             path,
             lms_parameter: lms_private_key.lms_parameter,

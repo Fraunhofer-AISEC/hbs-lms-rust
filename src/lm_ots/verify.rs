@@ -24,8 +24,8 @@ pub fn verify_signature_inmemory<'a, H: Hasher>(
 
     let public_key_candidate = generate_public_key_candiate(
         signature,
-        &public_key.I,
-        str32u(&public_key.q[..]),
+        &public_key.lms_tree_identifier,
+        str32u(&public_key.lms_leaf_identifier[..]),
         message,
     );
 
@@ -34,42 +34,42 @@ pub fn verify_signature_inmemory<'a, H: Hasher>(
 
 pub fn generate_public_key_candiate<'a, H: Hasher>(
     signature: &InMemoryLmotsSignature<'a, H>,
-    I: &[u8],
-    q: u32,
+    lms_tree_identifier: &[u8],
+    lms_leaf_identifier: u32,
     message: &[u8],
 ) -> DynamicArray<u8, MAX_HASH> {
     let lmots_parameter = signature.lmots_parameter;
     let mut hasher = lmots_parameter.get_hasher();
 
-    let q = u32str(q);
+    let q = u32str(lms_leaf_identifier);
 
-    hasher.update(I);
+    hasher.update(lms_tree_identifier);
     hasher.update(&q);
     hasher.update(&D_MESG);
-    hasher.update(signature.C);
+    hasher.update(signature.signature_randomizer);
     hasher.update(message);
 
-    let Q = hasher.finalize_reset();
-    let Q_and_checksum = lmots_parameter.get_appended_with_checksum(Q.as_slice());
+    let message_hash = hasher.finalize_reset();
+    let message_hash_with_checksum = lmots_parameter.append_checksum_to(message_hash.as_slice());
 
     let mut z: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
     let max_w = 2usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
 
     for i in 0..lmots_parameter.get_p() {
         let a = coef(
-            Q_and_checksum.as_slice(),
+            message_hash_with_checksum.as_slice(),
             i as u64,
             lmots_parameter.get_winternitz() as u64,
         ) as usize;
 
         let initial = signature.get_y(i as usize);
-        let mut hash_chain_data = H::prepare_hash_chain_data(I, &q);
+        let mut hash_chain_data = H::prepare_hash_chain_data(lms_tree_identifier, &q);
         let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial, a, max_w);
 
         z.push(result);
     }
 
-    hasher.update(I);
+    hasher.update(lms_tree_identifier);
     hasher.update(&q);
     hasher.update(&D_PBLC);
 
@@ -96,15 +96,16 @@ mod tests {
         ($name:ident, $type:expr) => {
             #[test]
             fn $name() {
-                let i: LmsTreeIdentifier = [2u8; 16];
-                let q: QType = [0u8; 4];
+                let lms_tree_identifier: LmsTreeIdentifier = [2u8; 16];
+                let lms_leaf_identifier: LmsLeafIdentifier = [0u8; 4];
                 let seed: Seed = [
                     74, 222, 147, 88, 142, 55, 215, 148, 59, 52, 12, 170, 167, 93, 94, 237, 90,
                     176, 213, 104, 226, 71, 9, 74, 130, 187, 214, 75, 151, 184, 216, 175,
                 ];
 
                 let parameter = $type.construct_parameter::<Sha256Hasher>().unwrap();
-                let private_key = generate_private_key(i, q, seed, parameter);
+                let private_key =
+                    generate_private_key(lms_tree_identifier, lms_leaf_identifier, seed, parameter);
                 let public_key: LmotsPublicKey<Sha256Hasher> = generate_public_key(&private_key);
 
                 let mut message = [1, 3, 5, 9, 0];

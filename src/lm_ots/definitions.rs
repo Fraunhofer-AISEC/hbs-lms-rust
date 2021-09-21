@@ -1,5 +1,5 @@
 use crate::{
-    constants::{LmsTreeIdentifier, QType, MAX_HASH, MAX_P},
+    constants::{LmsLeafIdentifier, LmsTreeIdentifier, MAX_HASH, MAX_P},
     hasher::Hasher,
     util::dynamic_array::DynamicArray,
 };
@@ -8,22 +8,22 @@ use super::parameters::LmotsParameter;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LmotsPrivateKey<H: Hasher> {
-    pub I: LmsTreeIdentifier,
-    pub q: QType,
+    pub lms_tree_identifier: LmsTreeIdentifier,
+    pub lms_leaf_identifier: LmsLeafIdentifier,
     pub key: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P>, // [[0u8; n]; p];
     pub lmots_parameter: LmotsParameter<H>,
 }
 
 impl<H: Hasher> LmotsPrivateKey<H> {
     pub fn new(
-        I: LmsTreeIdentifier,
-        q: QType,
+        lms_tree_identifier: LmsTreeIdentifier,
+        lms_leaf_identifier: LmsLeafIdentifier,
         key: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P>,
         lmots_parameter: LmotsParameter<H>,
     ) -> Self {
         LmotsPrivateKey {
-            I,
-            q,
+            lms_tree_identifier,
+            lms_leaf_identifier,
             key,
             lmots_parameter,
         }
@@ -31,22 +31,22 @@ impl<H: Hasher> LmotsPrivateKey<H> {
 }
 
 pub struct LmotsPublicKey<H: Hasher> {
-    pub I: LmsTreeIdentifier,
-    pub q: QType,
+    pub lms_tree_identifier: LmsTreeIdentifier,
+    pub lms_leaf_identifier: LmsLeafIdentifier,
     pub key: DynamicArray<u8, MAX_HASH>,
     pub lmots_parameter: LmotsParameter<H>,
 }
 
 impl<H: Hasher> LmotsPublicKey<H> {
     pub fn new(
-        I: LmsTreeIdentifier,
-        q: QType,
+        lms_tree_identifier: LmsTreeIdentifier,
+        lms_leaf_identifier: LmsLeafIdentifier,
         key: DynamicArray<u8, MAX_HASH>,
         lmots_parameter: LmotsParameter<H>,
     ) -> Self {
         LmotsPublicKey {
-            I,
-            q,
+            lms_tree_identifier,
+            lms_leaf_identifier,
             key,
             lmots_parameter,
         }

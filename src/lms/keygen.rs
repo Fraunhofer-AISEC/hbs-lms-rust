@@ -37,7 +37,7 @@ pub fn generate_public_key<H: Hasher>(
 
     LmsPublicKey::new(
         public_key,
-        private_key.I,
+        private_key.lms_tree_identifier,
         private_key.lmots_parameter,
         private_key.lms_parameter,
     )

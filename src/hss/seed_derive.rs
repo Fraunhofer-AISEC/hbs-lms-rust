@@ -1,6 +1,7 @@
 use crate::{
     constants::{
-        LmsTreeIdentifier, Seed, ILEN, PRG_FF, PRG_I, PRG_J, PRG_LEN, PRG_MAX_LEN, PRG_Q, PRG_SEED, SEED_LEN,
+        prg_len, LmsTreeIdentifier, Seed, ILEN, PRG_FF, PRG_I, PRG_J, PRG_MAX_LEN, PRG_Q, PRG_SEED,
+        SEED_LEN,
     },
     hasher::Hasher,
     util::ustr::{u16str, u32str},
@@ -49,7 +50,7 @@ impl<'a> SeedDerive<'a> {
 
         let mut hasher = Sha256Hasher::new(); // We always use SHA256 to derive seeds
 
-        hasher.update(&buffer[..PRG_LEN(SEED_LEN)]);
+        hasher.update(&buffer[..prg_len(SEED_LEN)]);
 
         if increment_j {
             self.j += 1;

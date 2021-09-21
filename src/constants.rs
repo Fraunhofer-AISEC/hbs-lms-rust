@@ -5,7 +5,7 @@ pub const SEED_LEN: usize = 32;
 
 pub type LmsTreeIdentifier = [u8; ILEN];
 pub type Seed = [u8; SEED_LEN];
-pub type QType = [u8; 4];
+pub type LmsLeafIdentifier = [u8; 4];
 
 pub const D_PBLC: [u8; 2] = [0x80, 0x80];
 pub const D_MESG: [u8; 2] = [0x81, 0x81];
@@ -26,13 +26,13 @@ pub const PRG_SEED: usize = 23;
 
 pub const SEED_CHILD_SEED: u16 = !1;
 
-pub const fn PRG_LEN(seed_len: usize) -> usize {
+pub const fn prg_len(seed_len: usize) -> usize {
     23 + seed_len
 }
 
 pub const MAX_HASH: usize = 32;
 
-pub const PRG_MAX_LEN: usize = PRG_LEN(MAX_HASH);
+pub const PRG_MAX_LEN: usize = prg_len(MAX_HASH);
 
 pub const MAX_P: usize = 265;
 pub const MAX_H: usize = 25;
@@ -61,7 +61,7 @@ pub const DAUX_D: usize = 20;
 pub const DAUX_PREFIX_LEN: usize = 22; /* Not counting the seed value */
 pub const D_DAUX: u16 = 0xfdfd;
 
-pub mod WinternitzChain {
+pub mod winternitz_chain {
     use super::MAX_HASH;
 
     pub const ITER_I: usize = 0;
@@ -70,9 +70,9 @@ pub mod WinternitzChain {
     pub const ITER_J: usize = 22;
     pub const ITER_PREV: usize = 23;
 
-    pub const fn ITER_LEN(hash_len: usize) -> usize {
+    pub const fn iter_len(hash_len: usize) -> usize {
         ITER_PREV + hash_len
     }
 
-    pub const ITER_MAX_LEN: usize = ITER_LEN(MAX_HASH);
+    pub const ITER_MAX_LEN: usize = iter_len(MAX_HASH);
 }

@@ -15,3 +15,11 @@ The examples folder includes a demo application, to see how the library can be u
 * `cargo run --release --example lms-demo -- verify mykey message.txt`
     * Verification
     * Verifies `message.txt` with `message.txt.sig` against `mykey.pub`
+
+# Naming conventions
+| RFC Naming | Library Naming       | Meaning                                                   |
+|------------|----------------------|-----------------------------------------------------------|
+| I          | lms_tree_identifier  | 16-byte random value to identify a single LMS tree        |
+| q          | lms_leaf_identifier  | 4-byte value to identify all leafs in a single LMS tree   |
+| C          | signature_randomizer | 32-byte random value added to every signature             |
+| Q          | message_hash         | Output of hashed message together with I, q, D_MESG and C |

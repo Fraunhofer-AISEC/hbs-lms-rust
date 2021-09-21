@@ -20,8 +20,7 @@ pub fn verify<'a, H: Hasher>(
         return Err(());
     }
 
-    let public_key_canditate =
-        generate_public_key_candiate(signature, public_key, message)?;
+    let public_key_canditate = generate_public_key_candiate(signature, public_key, message)?;
 
     if public_key_canditate.as_slice() == public_key.key {
         Ok(())
@@ -44,7 +43,7 @@ fn generate_public_key_candiate<'a, H: Hasher>(
 
     let ots_public_key_canditate = crate::lm_ots::verify::generate_public_key_candiate(
         &signature.lmots_signature,
-        public_key.I,
+        public_key.lms_tree_identifier,
         signature.q,
         message,
     );
@@ -52,7 +51,7 @@ fn generate_public_key_candiate<'a, H: Hasher>(
     let mut node_num = leafs + signature.q;
 
     let mut hasher = <H>::get_hasher();
-    hasher.update(public_key.I);
+    hasher.update(public_key.lms_tree_identifier);
     hasher.update(&u32str(node_num));
     hasher.update(&D_LEAF);
     hasher.update(ots_public_key_canditate.as_slice());
@@ -61,7 +60,7 @@ fn generate_public_key_candiate<'a, H: Hasher>(
     let mut i = 0;
 
     while node_num > 1 {
-        hasher.update(public_key.I);
+        hasher.update(public_key.lms_tree_identifier);
         hasher.update(&u32str(node_num / 2));
         hasher.update(&D_INTR);
 

@@ -31,7 +31,7 @@ use super::{
 pub struct HssPrivateKey<H: Hasher> {
     pub private_key: DynamicArray<LmsPrivateKey<H>, MAX_HSS_LEVELS>,
     pub public_key: DynamicArray<LmsPublicKey<H>, MAX_HSS_LEVELS>,
-    pub signatures: DynamicArray<LmsSignature<H>, MAX_HSS_LEVELS>, // Only L - 1 signatures needed
+    pub signatures: DynamicArray<LmsSignature<H>, { MAX_HSS_LEVELS - 1 }>, // Only L - 1 signatures needed
 }
 
 impl<H: Hasher> HssPrivateKey<H> {
@@ -94,16 +94,6 @@ impl<H: Hasher> HssPrivateKey<H> {
 
             hss_private_key.signatures.push(signature);
         }
-
-        // TODO: Remove
-        // Add dummy signature to first key generation such that the private key size stays always the same.
-        // This prevents for passing in a too short slice when the private key gets updated
-        let mut dummy_private_key = lms::keygen::generate_private_key(
-            *parameters[0].get_lmots_parameter(),
-            *parameters[0].get_lms_parameter(),
-        );
-        let dummy_signature = lms::signing::LmsSignature::sign(&mut dummy_private_key, &[0])?;
-        hss_private_key.signatures.push(dummy_signature);
 
         if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
             if !is_aux_data_used {

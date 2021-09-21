@@ -21,7 +21,7 @@ pub fn verify_inmemory<'a, H: Hasher>(
     }
 
     let public_key_canditate =
-        generate_public_key_candiate_inemory(signature, public_key, message)?;
+        generate_public_key_candiate_inmemory(signature, public_key, message)?;
 
     if public_key_canditate.as_slice() == public_key.key {
         Ok(())
@@ -30,7 +30,7 @@ pub fn verify_inmemory<'a, H: Hasher>(
     }
 }
 
-fn generate_public_key_candiate_inemory<'a, H: Hasher>(
+fn generate_public_key_candiate_inmemory<'a, H: Hasher>(
     signature: &InMemoryLmsSignature<'a, H>,
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],

@@ -22,7 +22,7 @@ pub fn verify_signature_inmemory<'a, H: Hasher>(
         return false;
     }
 
-    let public_key_candidate = generate_public_key_candiate_inmemory(
+    let public_key_candidate = generate_public_key_candiate(
         signature,
         &public_key.I,
         str32u(&public_key.q[..]),
@@ -32,7 +32,7 @@ pub fn verify_signature_inmemory<'a, H: Hasher>(
     public_key_candidate == public_key.key
 }
 
-pub fn generate_public_key_candiate_inmemory<'a, H: Hasher>(
+pub fn generate_public_key_candiate<'a, H: Hasher>(
     signature: &InMemoryLmotsSignature<'a, H>,
     I: &[u8],
     q: u32,

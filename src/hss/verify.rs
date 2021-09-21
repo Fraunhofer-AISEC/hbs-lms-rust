@@ -5,7 +5,7 @@ use crate::{
 
 use super::{definitions::InMemoryHssPublicKey, signing::InMemoryHssSignature};
 
-pub fn verify_inmemory<'a, H: Hasher>(
+pub fn verify<'a, H: Hasher>(
     signature: &InMemoryHssSignature<'a, H>,
     public_key: &InMemoryHssPublicKey<'a, H>,
     message: &[u8],
@@ -19,13 +19,13 @@ pub fn verify_inmemory<'a, H: Hasher>(
         let sig = &signature.signed_public_keys[i].as_ref().unwrap().sig;
         let msg = &signature.signed_public_keys[i].as_ref().unwrap().public_key;
 
-        if lms::verify::verify_inmemory(sig, key, msg.as_slice()).is_err() {
+        if lms::verify::verify(sig, key, msg.as_slice()).is_err() {
             return Err(());
         }
         key = msg;
     }
 
-    lms::verify::verify_inmemory(&signature.signature, key, message)
+    lms::verify::verify(&signature.signature, key, message)
 }
 
 #[cfg(test)]
@@ -38,7 +38,7 @@ mod tests {
     use crate::hss::rfc_private_key::RfcPrivateKey;
     use crate::hss::signing::HssSignature;
     use crate::hss::signing::InMemoryHssSignature;
-    use crate::hss::verify::verify_inmemory;
+    use crate::hss::verify::verify;
     use crate::HssParameter;
 
     #[test]
@@ -72,10 +72,10 @@ mod tests {
         let mem_pub = public_key.to_binary_representation();
         let mem_pub = InMemoryHssPublicKey::new(mem_pub.as_slice()).unwrap();
 
-        assert!(verify_inmemory(&mem_sig, &mem_pub, &message).is_ok());
+        assert!(verify(&mem_sig, &mem_pub, &message).is_ok());
 
         message[0] = !message[0];
 
-        assert!(verify_inmemory(&mem_sig, &mem_pub, &message).is_err());
+        assert!(verify(&mem_sig, &mem_pub, &message).is_err());
     }
 }

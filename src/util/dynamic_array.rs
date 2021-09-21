@@ -22,6 +22,10 @@ impl<T: Clone + Default, const ELEMENTS: usize> DynamicArray<T, ELEMENTS> {
         self.data.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn from_slice(data: &[T]) -> Self {
         let data = ArrayVec::try_from(data).expect("Array must have enough capacity.");
         Self { data }
@@ -35,14 +39,17 @@ impl<T: Clone + Default, const ELEMENTS: usize> DynamicArray<T, ELEMENTS> {
         self.data.as_mut_slice()
     }
 
-    pub unsafe fn set_size(&mut self, size: usize) {
+    pub fn set_size(&mut self, size: usize) {
         if size > ELEMENTS {
             panic!(
                 "Size is larger than array. Size {}, ELEMENTS {}",
                 size, ELEMENTS
             )
         }
-        self.data.set_len(size);
+
+        unsafe {
+            self.data.set_len(size);
+        }
     }
 
     pub fn append(&mut self, data: &[T]) {
@@ -55,16 +62,20 @@ impl<T: Clone + Default, const ELEMENTS: usize> DynamicArray<T, ELEMENTS> {
         self.data.iter()
     }
 
-    pub fn into_iter(self) -> impl Iterator<Item = T> {
-        self.data.into_iter()
-    }
-
     pub fn push(&mut self, element: T) {
         self.data.push(element)
     }
 
     pub fn clear(&mut self) {
         self.data.clear()
+    }
+}
+
+impl<'a, T: Clone + Default, const ELEMENTS: usize> IntoIterator for DynamicArray<T, ELEMENTS> {
+    type Item = T;
+    type IntoIter = arrayvec::IntoIter<T, ELEMENTS>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.into_iter()
     }
 }
 

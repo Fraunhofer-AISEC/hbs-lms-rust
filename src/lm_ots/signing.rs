@@ -60,9 +60,7 @@ impl<H: Hasher> LmotsSignature<H> {
 
         let mut hasher = lmots_parameter.get_hasher();
 
-        unsafe {
-            C.set_size(lmots_parameter.get_n() as usize);
-        }
+        C.set_size(lmots_parameter.get_n() as usize);
 
         get_random(C.as_mut_slice());
 

@@ -9,7 +9,7 @@ use crate::util::ustr::u32str;
 use super::definitions::InMemoryLmsPublicKey;
 use super::signing::InMemoryLmsSignature;
 
-pub fn verify_inmemory<'a, H: Hasher>(
+pub fn verify<'a, H: Hasher>(
     signature: &InMemoryLmsSignature<'a, H>,
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],
@@ -21,7 +21,7 @@ pub fn verify_inmemory<'a, H: Hasher>(
     }
 
     let public_key_canditate =
-        generate_public_key_candiate_inmemory(signature, public_key, message)?;
+        generate_public_key_candiate(signature, public_key, message)?;
 
     if public_key_canditate.as_slice() == public_key.key {
         Ok(())
@@ -30,7 +30,7 @@ pub fn verify_inmemory<'a, H: Hasher>(
     }
 }
 
-fn generate_public_key_candiate_inmemory<'a, H: Hasher>(
+fn generate_public_key_candiate<'a, H: Hasher>(
     signature: &InMemoryLmsSignature<'a, H>,
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],
@@ -42,7 +42,7 @@ fn generate_public_key_candiate_inmemory<'a, H: Hasher>(
         return Err(());
     }
 
-    let ots_public_key_canditate = crate::lm_ots::verify::generate_public_key_candiate_inmemory(
+    let ots_public_key_canditate = crate::lm_ots::verify::generate_public_key_candiate(
         &signature.lmots_signature,
         public_key.I,
         signature.q,
@@ -119,12 +119,12 @@ mod tests {
         let first_signature = InMemoryLmsSignature::new(first_signature.as_slice()).unwrap();
         let second_signature = InMemoryLmsSignature::new(second_signature.as_slice()).unwrap();
 
-        assert!(super::verify_inmemory(&first_signature, &public_key, &first_message).is_ok());
+        assert!(super::verify(&first_signature, &public_key, &first_message).is_ok());
         first_message[5] = 13;
-        assert!(super::verify_inmemory(&first_signature, &public_key, &first_message).is_err());
+        assert!(super::verify(&first_signature, &public_key, &first_message).is_err());
 
-        assert!(super::verify_inmemory(&second_signature, &public_key, &second_message).is_ok());
+        assert!(super::verify(&second_signature, &public_key, &second_message).is_ok());
         second_message[4] = 13;
-        assert!(super::verify_inmemory(&second_signature, &public_key, &second_message).is_err());
+        assert!(super::verify(&second_signature, &public_key, &second_message).is_err());
     }
 }

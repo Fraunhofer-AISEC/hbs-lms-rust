@@ -75,11 +75,7 @@ impl<H: Hasher> HssPrivateKey<H> {
         hss_private_key.public_key.push(lms_keypair.public_key);
 
         for i in 1..levels {
-            let parameter = if parameters.len() == 1 {
-                &parameters[0]
-            } else {
-                &parameters[i]
-            };
+            let parameter = &parameters[i];
 
             current_seed = generate_child_seed_I_value(&current_seed, i as u32);
 

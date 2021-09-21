@@ -18,14 +18,14 @@ use super::parameters::LmotsParameter;
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct LmotsSignature<H: Hasher> {
     pub signature_randomizer: DynamicArray<u8, MAX_HASH>,
-    pub y: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P>,
+    pub signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P>,
     pub lmots_parameter: LmotsParameter<H>,
 }
 
 #[derive(Clone)]
 pub struct InMemoryLmotsSignature<'a, H: Hasher> {
     pub signature_randomizer: &'a [u8],
-    pub y: &'a [u8],
+    pub signature_data: &'a [u8],
     pub lmots_parameter: LmotsParameter<H>,
 }
 
@@ -38,8 +38,8 @@ impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, 
             return false;
         }
 
-        let mut curr = self.y;
-        for x in other.y.iter() {
+        let mut curr = self.signature_data;
+        for x in other.signature_data.iter() {
             for y in x.iter() {
                 if curr[0] != *y {
                     return false;
@@ -74,7 +74,7 @@ impl<H: Hasher> LmotsSignature<H> {
         let message_hash_with_checksum =
             lmots_parameter.append_checksum_to(message_hash.as_slice());
 
-        let mut y: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
+        let mut signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
 
         for i in 0..lmots_parameter.get_p() {
             let a = coef(
@@ -89,12 +89,12 @@ impl<H: Hasher> LmotsSignature<H> {
             );
             let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial.as_slice(), 0, a);
 
-            y.push(result);
+            signature_data.push(result);
         }
 
         LmotsSignature {
             signature_randomizer,
-            y,
+            signature_data,
             lmots_parameter,
         }
     }
@@ -107,7 +107,7 @@ impl<H: Hasher> LmotsSignature<H> {
         result.append(&u32str(self.lmots_parameter.get_type()));
         result.append(self.signature_randomizer.as_slice());
 
-        for x in self.y.iter() {
+        for x in self.signature_data.iter() {
             for y in x.iter() {
                 result.append(&[*y]);
             }
@@ -140,11 +140,11 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
         let signature_randomizer: &'a [u8] = &consumed_data[..n as usize];
         consumed_data = &consumed_data[n as usize..];
 
-        let y: &'a [u8] = &consumed_data[..p as usize * n];
+        let signature_data: &'a [u8] = &consumed_data[..p as usize * n];
 
         let signature = Self {
             signature_randomizer,
-            y,
+            signature_data,
             lmots_parameter,
         };
 
@@ -155,7 +155,7 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
         let step = self.lmots_parameter.get_n();
         let start = step * index;
         let end = start + step;
-        &self.y[start..end]
+        &self.signature_data[start..end]
     }
 }
 
@@ -173,23 +173,23 @@ mod tests {
     fn test_binary_representation() {
         let lmots_parameter = LmotsAlgorithm::construct_default_parameter();
 
-        let mut c = DynamicArray::new();
-        let mut y: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
+        let mut signature_randomizer = DynamicArray::new();
+        let mut signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
 
         for i in 0..lmots_parameter.get_n() as usize {
-            c.push(i as u8);
+            signature_randomizer.push(i as u8);
         }
 
         for i in 0..lmots_parameter.get_p() as usize {
-            y.push(DynamicArray::new());
+            signature_data.push(DynamicArray::new());
             for j in 0..lmots_parameter.get_n() as usize {
-                y[i].push(j as u8);
+                signature_data[i].push(j as u8);
             }
         }
 
         let signature = LmotsSignature {
-            signature_randomizer: c,
-            y,
+            signature_randomizer,
+            signature_data,
             lmots_parameter,
         };
 

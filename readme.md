@@ -23,3 +23,4 @@ The examples folder includes a demo application, to see how the library can be u
 | q          | lms_leaf_identifier  | 4-byte value to identify all leafs in a single LMS tree   |
 | C          | signature_randomizer | 32-byte random value added to every signature             |
 | Q          | message_hash         | Output of hashed message together with I, q, D_MESG and C |
+| y          | signature_data       | The actual data of the signature                          |

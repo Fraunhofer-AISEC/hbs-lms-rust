@@ -41,10 +41,10 @@ pub fn generate_public_key_candiate<'a, H: Hasher>(
     let lmots_parameter = signature.lmots_parameter;
     let mut hasher = lmots_parameter.get_hasher();
 
-    let q = u32str(lms_leaf_identifier);
+    let lms_leaf_identifier = u32str(lms_leaf_identifier);
 
     hasher.update(lms_tree_identifier);
-    hasher.update(&q);
+    hasher.update(&lms_leaf_identifier);
     hasher.update(&D_MESG);
     hasher.update(signature.signature_randomizer);
     hasher.update(message);
@@ -63,14 +63,14 @@ pub fn generate_public_key_candiate<'a, H: Hasher>(
         ) as usize;
 
         let initial = signature.get_y(i as usize);
-        let mut hash_chain_data = H::prepare_hash_chain_data(lms_tree_identifier, &q);
+        let mut hash_chain_data = H::prepare_hash_chain_data(lms_tree_identifier, &lms_leaf_identifier);
         let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial, a, max_w);
 
         z.push(result);
     }
 
     hasher.update(lms_tree_identifier);
-    hasher.update(&q);
+    hasher.update(&lms_leaf_identifier);
     hasher.update(&D_PBLC);
 
     for item in z.into_iter() {

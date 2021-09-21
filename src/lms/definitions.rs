@@ -134,7 +134,7 @@ impl<'a, H: Hasher> InMemoryLmsPublicKey<'a, H> {
             return None;
         }
 
-        let i: &'a [u8] = &data[data_index..data_index + 16];
+        let lms_tree_identifier: &'a [u8] = &data[data_index..data_index + 16];
         data_index += 16;
 
         let key: &'a [u8] = &data[data_index..data_index + lms_parameter.get_m() as usize];
@@ -142,7 +142,7 @@ impl<'a, H: Hasher> InMemoryLmsPublicKey<'a, H> {
         let public_key = Self {
             lmots_parameter,
             lms_parameter,
-            lms_tree_identifier: i,
+            lms_tree_identifier,
             key,
             complete_data: &data[..data_index + lms_parameter.get_m() as usize],
         };

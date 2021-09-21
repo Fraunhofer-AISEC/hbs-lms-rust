@@ -38,8 +38,8 @@ impl<'a> SeedDerive<'a> {
 
         buffer[PRG_I..PRG_I + ILEN].copy_from_slice(self.i);
 
-        let q = u32str(self.q);
-        buffer[PRG_Q..PRG_Q + 4].copy_from_slice(&q);
+        let lms_leaf_identifier = u32str(self.q);
+        buffer[PRG_Q..PRG_Q + 4].copy_from_slice(&lms_leaf_identifier);
 
         let j = u16str(self.j);
         buffer[PRG_J..PRG_J + 2].copy_from_slice(&j);

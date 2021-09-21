@@ -67,13 +67,13 @@ impl<H: Hasher> LmsSignature<H> {
 
         let ots_signature = LmotsSignature::sign(&lm_ots_private_key, message);
 
-        let h = lms_private_key.lms_parameter.get_height();
+        let height = lms_private_key.lms_parameter.get_height();
         let mut i = 0usize;
-        let r = 2usize.pow(h as u32) + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
+        let r = 2usize.pow(height as u32) + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
 
         let mut path: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_H> = DynamicArray::new();
 
-        while i < h.into() {
+        while i < height.into() {
             let tree_index = (r / (2usize.pow(i as u32))) ^ 0x1;
             path.push(get_tree_element(tree_index, lms_private_key, &mut None));
             i += 1;
@@ -118,7 +118,7 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
 
         let mut consumed_data = data;
 
-        let q = str32u(&consumed_data[..4]);
+        let lms_leaf_identifier = str32u(&consumed_data[..4]);
         consumed_data = &consumed_data[4..];
 
         let lm_ots_type = str32u(&consumed_data[..4]);
@@ -149,7 +149,7 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
 
         let tree_height = lms_parameter.get_height();
 
-        if q >= 2u32.pow(tree_height as u32) {
+        if lms_leaf_identifier >= 2u32.pow(tree_height as u32) {
             return None;
         }
 
@@ -169,7 +169,7 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
 
         let signature = Self {
             lms_parameter,
-            q,
+            q: lms_leaf_identifier,
             lmots_signature,
             path: trees,
         };

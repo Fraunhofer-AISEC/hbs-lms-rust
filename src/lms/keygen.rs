@@ -20,13 +20,13 @@ pub fn generate_private_key<H: Hasher>(
     lmots_parameter: LmotsParameter<H>,
     lms_parameter: LmsParameter<H>,
 ) -> LmsPrivateKey<H> {
-    let mut i: LmsTreeIdentifier = [0u8; 16];
-    crate::util::random::get_random(&mut i);
+    let mut lms_tree_identifier: LmsTreeIdentifier = [0u8; 16];
+    crate::util::random::get_random(&mut lms_tree_identifier);
 
     let mut seed: Seed = [0u8; 32];
     crate::util::random::get_random(&mut seed);
 
-    LmsPrivateKey::new(seed, i, lmots_parameter, lms_parameter)
+    LmsPrivateKey::new(seed, lms_tree_identifier, lmots_parameter, lms_parameter)
 }
 
 pub fn generate_public_key<H: Hasher>(

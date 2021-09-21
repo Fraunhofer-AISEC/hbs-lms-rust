@@ -180,7 +180,7 @@ pub fn hss_save_aux_data<H: Hasher>(
 ) {
     // We need to calculate the level of the tree and the offset from the beginning
     let level = core::mem::size_of::<usize>() * 8 - index.leading_zeros() as usize - 1;
-    let q: u32 = index as u32 - 2u32.pow(level as u32);
+    let lms_leaf_identifier: u32 = index as u32 - 2u32.pow(level as u32);
 
     if data.data[level as usize].is_none() {
         return;
@@ -189,7 +189,7 @@ pub fn hss_save_aux_data<H: Hasher>(
     let size_hash = H::OUTPUT_SIZE;
 
     let dest = data.data[level as usize].as_mut().unwrap();
-    let start_index = size_hash * q as usize;
+    let start_index = size_hash * lms_leaf_identifier as usize;
     let end_index = start_index + size_hash;
     dest[start_index..end_index].copy_from_slice(cur_val);
 }
@@ -235,7 +235,7 @@ pub fn hss_extract_aux_data<H: Hasher>(
 ) -> Option<DynamicArray<u8, MAX_HASH>> {
     // We need to calculate the level of the tree and the offset from the beginning
     let level = core::mem::size_of::<usize>() * 8 - index.leading_zeros() as usize - 1;
-    let q: u32 = index as u32 - 2u32.pow(level as u32);
+    let lms_leaf_identifier: u32 = index as u32 - 2u32.pow(level as u32);
 
     aux.data[level as usize].as_ref()?;
 
@@ -243,7 +243,7 @@ pub fn hss_extract_aux_data<H: Hasher>(
 
     let hash_size = H::OUTPUT_SIZE;
 
-    let start_index = q as usize * hash_size;
+    let start_index = lms_leaf_identifier as usize * hash_size;
     let end_index = start_index + hash_size;
 
     if src[start_index..end_index] == [0u8; MAX_HASH] {

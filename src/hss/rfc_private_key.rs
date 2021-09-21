@@ -91,8 +91,8 @@ impl<H: Hasher> RfcPrivateKey<H> {
         let mut result = Self::default();
         let mut index = 0;
 
-        let q = read_and_advance(data, 8, &mut index);
-        result.q = str64u(q);
+        let lms_leaf_identifier = read_and_advance(data, 8, &mut index);
+        result.q = str64u(lms_leaf_identifier);
 
         let compressed_parameter = read_and_advance(data, MAX_HSS_LEVELS, &mut index);
         result.compressed_parameter =
@@ -131,9 +131,9 @@ impl<H: Hasher> RfcPrivateKey<H> {
         hash_preimage[TOPSEED_WHICH] = 0x02;
         hasher.update(&hash_preimage);
 
-        let i = hasher.finalize_reset();
+        let lms_tree_identifier = hasher.finalize_reset();
 
-        SeedAndLmsTreeIdentifier::new(seed.as_slice(), i.as_slice())
+        SeedAndLmsTreeIdentifier::new(seed.as_slice(), lms_tree_identifier.as_slice())
     }
 }
 
@@ -147,9 +147,9 @@ pub fn generate_child_seed_and_lms_tree_identifier(
     derive.set_j(SEED_CHILD_SEED);
 
     let seed = derive.seed_derive(true);
-    let i = derive.seed_derive(false);
+    let lms_tree_identifier = derive.seed_derive(false);
 
-    SeedAndLmsTreeIdentifier::new(&seed, &i[..16])
+    SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier[..16])
 }
 
 const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set

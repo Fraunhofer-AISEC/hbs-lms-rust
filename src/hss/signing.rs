@@ -61,7 +61,7 @@ impl<'a, H: Hasher> PartialEq<HssSignature<H>> for InMemoryHssSignature<'a, H> {
 
 impl<H: Hasher> HssSignature<H> {
     pub fn sign(private_key: &mut HssPrivateKey<H>, message: &[u8]) -> Result<HssSignature<H>, ()> {
-        let l = private_key.get_length();
+        let max_level = private_key.get_length();
 
         let lmots_parameter = private_key.private_key[0].lmots_parameter;
         let lms_parameter = private_key.private_key[0].lms_parameter;
@@ -76,35 +76,40 @@ impl<H: Hasher> HssSignature<H> {
         let sig = &mut private_key.signatures;
 
         // Regenerate the keys if neccessary
-        let mut d = l;
+        // Algorithm is heavily borrowed from RFC (https://datatracker.ietf.org/doc/html/rfc8554#section-6.2)
 
-        while prv[d - 1].q == 2u32.pow(prv[d - 1].lms_parameter.get_height() as u32) {
-            d -= 1;
-            if d == 0 {
+        // Start from lowest level tree and check if it is exhausted. 
+        // Stop if either a tree is not exhausted or we have reached the top level tree.
+        let mut current_level = max_level;
+
+        while prv[current_level - 1].q == 2u32.pow(prv[current_level - 1].lms_parameter.get_height() as u32) {
+            current_level -= 1;
+            if current_level == 0 {
                 return Err(());
             }
         }
 
-        while d < l {
+        // Then rebuild all the exhausted trees
+        while current_level < max_level {
             let lms_key_pair = lms::generate_key_pair(&parameter);
-            public[d] = lms_key_pair.public_key;
-            prv[d] = lms_key_pair.private_key;
+            public[current_level] = lms_key_pair.public_key;
+            prv[current_level] = lms_key_pair.private_key;
 
             let signature = lms::signing::LmsSignature::sign(
-                &mut prv[d - 1],
-                public[d].to_binary_representation().as_slice(),
+                &mut prv[current_level - 1],
+                public[current_level].to_binary_representation().as_slice(),
             )?;
-            sig[d - 1] = signature;
-            d += 1;
+            sig[current_level - 1] = signature;
+            current_level += 1;
         }
 
         // Sign the message
-        sig[l - 1] = lms::signing::LmsSignature::sign(&mut prv[l - 1], message)?;
+        sig[max_level - 1] = lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message)?;
 
         let mut signed_public_keys = DynamicArray::new();
 
         // Create list of signed keys
-        for i in 0..l - 1 {
+        for i in 0..max_level - 1 {
             signed_public_keys.push(HssSignedPublicKey::new(
                 sig[i].clone(),
                 public[i + 1].clone(),
@@ -112,9 +117,9 @@ impl<H: Hasher> HssSignature<H> {
         }
 
         let signature = HssSignature {
-            level: l - 1,
+            level: max_level - 1,
             signed_public_keys,
-            signature: sig[l - 1].clone(),
+            signature: sig[max_level - 1].clone(),
         };
 
         Ok(signature)

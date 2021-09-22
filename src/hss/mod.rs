@@ -52,8 +52,7 @@ pub fn hss_sign<H: Hasher>(
         Ok(x) => x,
     };
 
-    // Overwrite advanced private key
-    // TODO: HssPrivateKey should not be existent
+    // Advance private key
     rfc_private_key.q += 1;
     private_key.copy_from_slice(rfc_private_key.to_binary_representation().as_slice());
 

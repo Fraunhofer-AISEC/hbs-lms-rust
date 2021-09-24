@@ -74,7 +74,8 @@ impl<H: Hasher> LmotsSignature<H> {
         let message_hash_with_checksum =
             lmots_parameter.append_checksum_to(message_hash.as_slice());
 
-        let mut signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
+        let mut signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> =
+            DynamicArray::new();
 
         for i in 0..lmots_parameter.get_p() {
             let a = coef(
@@ -174,7 +175,8 @@ mod tests {
         let lmots_parameter = LmotsAlgorithm::construct_default_parameter();
 
         let mut signature_randomizer = DynamicArray::new();
-        let mut signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
+        let mut signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> =
+            DynamicArray::new();
 
         for i in 0..lmots_parameter.get_n() as usize {
             signature_randomizer.push(i as u8);

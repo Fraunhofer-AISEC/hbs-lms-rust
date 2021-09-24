@@ -35,7 +35,7 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
     let lmots_parameter = &private_key.lmots_parameter;
     let mut hasher = lmots_parameter.get_hasher();
 
-    let max_word_index: usize = (1 << lmots_parameter.get_winternitz()) - 1;
+    let hash_chain_iterations: usize = 2_usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
     let key = &private_key.key;
 
     let mut signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
@@ -43,7 +43,7 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
     for i in 0..lmots_parameter.get_p() as usize {
         let mut tmp = key[i].clone();
 
-        for j in 0..max_word_index {
+        for j in 0..hash_chain_iterations {
             hasher.update(&private_key.lms_tree_identifier);
             hasher.update(&private_key.lms_leaf_identifier);
             hasher.update(&u16str(i as u16));

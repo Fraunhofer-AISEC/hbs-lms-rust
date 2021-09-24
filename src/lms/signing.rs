@@ -69,7 +69,8 @@ impl<H: Hasher> LmsSignature<H> {
 
         let height = lms_private_key.lms_parameter.get_height();
         let mut i = 0usize;
-        let r = 2usize.pow(height as u32) + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
+        let r =
+            2usize.pow(height as u32) + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
 
         let mut path: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_H> = DynamicArray::new();
 

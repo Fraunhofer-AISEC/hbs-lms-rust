@@ -38,20 +38,20 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
     let hash_chain_iterations: usize = 2_usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
     let key = &private_key.key;
 
-    let mut signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
+    let mut public_key_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
 
     for i in 0..lmots_parameter.get_p() as usize {
         let mut hash_chain_data = H::prepare_hash_chain_data(&private_key.lms_tree_identifier, &private_key.lms_leaf_identifier);
         let result = hasher.do_hash_chain(&mut hash_chain_data, i as u16, key[i].as_slice(), 0, hash_chain_iterations);
 
-        signature_data.push(result);
+        public_key_data.push(result);
     }
 
     hasher.update(&private_key.lms_tree_identifier);
     hasher.update(&private_key.lms_leaf_identifier);
     hasher.update(&D_PBLC);
 
-    for item in signature_data.into_iter() {
+    for item in public_key_data.into_iter() {
         hasher.update(item.as_slice());
     }
 

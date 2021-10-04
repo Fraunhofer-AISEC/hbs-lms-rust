@@ -20,9 +20,9 @@ pub use crate::lms::parameters::*;
 pub use crate::util::dynamic_array::DynamicArray;
 
 pub use crate::hss::definitions::HssPublicKey;
-pub use crate::hss::HssBinaryData;
 pub use crate::hss::definitions::InMemoryHssPublicKey;
 pub use crate::hss::signing::InMemoryHssSignature;
+pub use crate::hss::HssBinaryData;
 
 pub use crate::hss::hss_keygen;
 pub use crate::hss::hss_sign;

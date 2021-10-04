@@ -41,8 +41,17 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
     let mut public_key_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
 
     for i in 0..lmots_parameter.get_p() as usize {
-        let mut hash_chain_data = H::prepare_hash_chain_data(&private_key.lms_tree_identifier, &private_key.lms_leaf_identifier);
-        let result = hasher.do_hash_chain(&mut hash_chain_data, i as u16, key[i].as_slice(), 0, hash_chain_iterations);
+        let mut hash_chain_data = H::prepare_hash_chain_data(
+            &private_key.lms_tree_identifier,
+            &private_key.lms_leaf_identifier,
+        );
+        let result = hasher.do_hash_chain(
+            &mut hash_chain_data,
+            i as u16,
+            key[i].as_slice(),
+            0,
+            hash_chain_iterations,
+        );
 
         public_key_data.push(result);
     }

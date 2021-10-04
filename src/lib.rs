@@ -11,15 +11,11 @@ pub use hasher::Hasher;
 
 pub use crate::constants::Seed;
 pub use crate::hasher::sha256::Sha256Hasher;
+
 pub use crate::hss::parameter::HssParameter;
 pub use crate::lm_ots::parameters::*;
 pub use crate::lms::parameters::*;
 
-pub use crate::util::dynamic_array::DynamicArray;
-
-pub use crate::hss::definitions::HssPublicKey;
-pub use crate::hss::definitions::InMemoryHssPublicKey;
-pub use crate::hss::signing::InMemoryHssSignature;
 pub use crate::hss::HssKeyPair;
 
 pub use crate::hss::hss_keygen as keygen;

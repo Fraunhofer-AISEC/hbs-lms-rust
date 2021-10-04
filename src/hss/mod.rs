@@ -24,6 +24,26 @@ pub struct HssKeyPair {
     pub private_key: DynamicArray<u8, RFC_PRIVATE_KEY_SIZE>,
 }
 
+impl HssKeyPair {
+    fn new(
+        public_key: DynamicArray<u8, { 4 + 4 + 4 + 16 + MAX_HASH }>,
+        private_key: DynamicArray<u8, RFC_PRIVATE_KEY_SIZE>,
+    ) -> Self {
+        Self {
+            public_key,
+            private_key,
+        }
+    }
+
+    pub fn get_public_key(&self) -> &[u8] {
+        self.public_key.as_slice()
+    }
+
+    pub fn get_private_key(&self) -> &[u8] {
+        self.private_key.as_slice()
+    }
+}
+
 pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
     let signature = extract_or!(InMemoryHssSignature::<H>::new(signature), false);
     let public_key = extract_or!(InMemoryHssPublicKey::<H>::new(public_key), false);
@@ -33,7 +53,8 @@ pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]
 
 pub fn hss_sign<H: Hasher>(
     message: &[u8],
-    private_key: &mut [u8],
+    private_key: &[u8],
+    private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
     aux_data: Option<&mut &mut [u8]>,
 ) -> Option<DynamicArray<u8, MAX_HSS_SIGNATURE_LENGTH>> {
     let mut rfc_private_key =
@@ -45,8 +66,6 @@ pub fn hss_sign<H: Hasher>(
             Err(_) => return None,
         };
 
-    // let parsed_aux_data = hss_expand_aux_data::<H>(aux_data, Some(&rfc_private_key.seed));
-
     let signature = match HssSignature::sign(&mut parsed_private_key, message) {
         Err(_) => return None,
         Ok(x) => x,
@@ -54,9 +73,14 @@ pub fn hss_sign<H: Hasher>(
 
     // Advance private key
     rfc_private_key.q += 1;
-    private_key.copy_from_slice(rfc_private_key.to_binary_representation().as_slice());
+    let updated_key = rfc_private_key.to_binary_representation();
+    let update_successful = private_key_update_function(updated_key.as_slice());
 
-    Some(signature.to_binary_representation())
+    if update_successful {
+        Some(signature.to_binary_representation())
+    } else {
+        None
+    }
 }
 
 pub fn hss_keygen<H: Hasher>(
@@ -75,10 +99,10 @@ pub fn hss_keygen<H: Hasher>(
             Err(_) => return None,
             Ok(x) => x,
         };
-        Some(HssKeyPair {
-            private_key: private_key.to_binary_representation(),
-            public_key: hss_key.get_public_key().to_binary_representation(),
-        })
+        Some(HssKeyPair::new(
+            hss_key.get_public_key().to_binary_representation(),
+            private_key.to_binary_representation(),
+        ))
     } else {
         None
     }
@@ -95,7 +119,7 @@ mod tests {
     fn test_signing() {
         type H = Sha256Hasher;
 
-        let mut keys = hss_keygen::<H>(
+        let mut keypair = hss_keygen::<H>(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
@@ -110,19 +134,26 @@ mod tests {
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
 
-        let signature = hss_sign::<H>(&message, keys.private_key.as_mut_slice(), None)
+        let private_key = keypair.private_key.clone();
+
+        let mut update_private_key = |new_key: &[u8]| {
+            keypair.private_key.as_mut_slice().copy_from_slice(new_key);
+            true
+        };
+
+        let signature = hss_sign::<H>(&message, private_key.as_slice(), &mut update_private_key, None)
             .expect("Signing should complete without error.");
 
         assert!(hss_verify::<H>(
             &message,
             signature.as_slice(),
-            keys.public_key.as_slice()
+            keypair.public_key.as_slice()
         ));
 
         message[0] = 33;
 
         assert!(
-            hss_verify::<H>(&message, signature.as_slice(), keys.public_key.as_slice()) == false
+            hss_verify::<H>(&message, signature.as_slice(), keypair.public_key.as_slice()) == false
         );
     }
 }

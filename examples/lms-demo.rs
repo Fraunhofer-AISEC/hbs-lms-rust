@@ -113,11 +113,23 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let aux_data_name = get_aux_name(&keyname);
     let mut aux_data = read(aux_data_name).ok();
 
+    let mut private_key_update_function = |new_key: &[u8]| write(&private_key_name, new_key).is_ok();
+
     let result = if let Some(aux_data) = aux_data.as_mut() {
         let aux_slice = &mut &mut aux_data[..];
-        lms::sign::<Sha256Hasher>(&message_data, &mut private_key_data, Some(aux_slice))
+        lms::sign::<Sha256Hasher>(
+            &message_data,
+            &mut private_key_data,
+            &mut private_key_update_function,
+            Some(aux_slice),
+        )
     } else {
-        lms::sign::<Sha256Hasher>(&message_data, &mut private_key_data, None)
+        lms::sign::<Sha256Hasher>(
+            &message_data,
+            &mut private_key_data,
+            &mut private_key_update_function,
+            None,
+        )
     };
 
     let result = match result {
@@ -128,7 +140,6 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
         Some(x) => x,
     };
 
-    write(&private_key_name, &private_key_data)?;
     write(&signature_name, result.as_slice())?;
 
     Ok(())

@@ -19,6 +19,9 @@ use self::{
     signing::HssSignature,
 };
 
+/**
+ * Describes a public and private key pair.
+ * */
 pub struct HssKeyPair {
     pub public_key: DynamicArray<u8, { 4 + 4 + 4 + 16 + MAX_HASH }>,
     pub private_key: DynamicArray<u8, RFC_PRIVATE_KEY_SIZE>,
@@ -44,6 +47,15 @@ impl HssKeyPair {
     }
 }
 
+/**
+ * This function is used to verify a signatured.
+ *
+ * # Arguments
+ * * `Hasher` - The hasher implementation that should be used. ```Sha256Hasher``` is a standard software implementation.
+ * * `message` - The message that should be verified.
+ * * `signature` - The signature that should be used for verification.
+ * * `public_key` - The public key that should be used for verification.
+ */
 pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
     let signature = extract_or!(InMemoryHssSignature::<H>::new(signature), false);
     let public_key = extract_or!(InMemoryHssPublicKey::<H>::new(public_key), false);
@@ -51,6 +63,16 @@ pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]
     crate::hss::verify::verify(&signature, &public_key, message).is_ok()
 }
 
+/**
+ * This function is used to generate a signature.
+ *
+ * # Arguments
+ * * `Hasher` - The hasher implementation that should be used. ```Sha256Hasher``` is a standard software implementation.
+ * * `message` - The message that should be signed.
+ * * `private_key` - The private key that should be used.
+ * * `private_key_update_function` - The update function that is called with the new private key. This function should save the new private key.
+ * * `aux_data` - Auxiliary data to speedup signature generation if available
+ */
 pub fn hss_sign<H: Hasher>(
     message: &[u8],
     private_key: &[u8],
@@ -83,6 +105,26 @@ pub fn hss_sign<H: Hasher>(
     }
 }
 
+/**
+ * This function is used to generate a public-private key pair.
+ * # Arguments
+ *
+ * * `Hasher` - The hasher implementation that should be used. ```Sha256Hasher``` is a standard software implementation.
+ * * `parameters` - An array which specify the Winternitz parameter and tree height of each individual HSS level. The first element describes Level 1, the second element Level 2 and so on.
+ * * `seed` - An optional seed which will be used to generate the private key. It must be only used for testing purposes and not for production used key pairs.
+ * * `aux_data` - The reference to a slice to auxiliary data. This can be used to speedup signature generation.
+ *
+ * # Example
+ * ```
+ * use lms::*;
+ *
+ * let parameters = [HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5), HssParameter::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5)];
+ * let mut aux_data = vec![0u8; 10_000];
+ * let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+ *
+ * let key_pair = keygen::<Sha256Hasher>(&parameters, None, Some(aux_slice));
+ * ```
+ */
 pub fn hss_keygen<H: Hasher>(
     parameters: &[HssParameter<H>],
     seed: Option<&[u8]>,
@@ -141,8 +183,13 @@ mod tests {
             true
         };
 
-        let signature = hss_sign::<H>(&message, private_key.as_slice(), &mut update_private_key, None)
-            .expect("Signing should complete without error.");
+        let signature = hss_sign::<H>(
+            &message,
+            private_key.as_slice(),
+            &mut update_private_key,
+            None,
+        )
+        .expect("Signing should complete without error.");
 
         assert!(hss_verify::<H>(
             &message,
@@ -153,7 +200,11 @@ mod tests {
         message[0] = 33;
 
         assert!(
-            hss_verify::<H>(&message, signature.as_slice(), keypair.public_key.as_slice()) == false
+            hss_verify::<H>(
+                &message,
+                signature.as_slice(),
+                keypair.public_key.as_slice()
+            ) == false
         );
     }
 }

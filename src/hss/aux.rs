@@ -1,12 +1,12 @@
 use crate::{
     constants::{DAUX_D, DAUX_PREFIX_LEN, D_DAUX, MAX_H, MAX_HASH, MIN_SUBTREE},
     hasher::Hasher,
+    lms::parameters::LmsParameter,
     util::{
         dynamic_array::DynamicArray,
         helper::split_at_mut,
         ustr::{str32u, u32str},
     },
-    LmsParameter,
 };
 
 /**

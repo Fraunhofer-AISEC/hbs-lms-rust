@@ -1,7 +1,12 @@
 use crate::{
-    hasher::Hasher, LmotsAlgorithm, LmotsParameter, LmsAlgorithm, LmsParameter, Sha256Hasher,
+    hasher::Hasher, lm_ots::parameters::LmotsParameter, lms::parameters::LmsParameter,
+    LmotsAlgorithm, LmsAlgorithm, Sha256Hasher,
 };
 
+/**
+ * Specify Winternitz parameter and Tree height for one HSS Level.
+ * An array is passed to the `keygen` function describing each HSS level respectively.
+ * */
 #[derive(Clone, Copy, PartialEq)]
 pub struct HssParameter<H: Hasher> {
     lmots_parameter: LmotsParameter<H>,

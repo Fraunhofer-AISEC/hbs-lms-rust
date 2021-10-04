@@ -4,13 +4,15 @@ use crate::{
     hss::aux::{
         hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
     },
-    lms::{definitions::InMemoryLmsPublicKey, generate_key_pair_with_seed_and_aux},
+    lms::{
+        definitions::InMemoryLmsPublicKey, generate_key_pair_with_seed_and_aux,
+        parameters::LmsParameter,
+    },
     util::{
         dynamic_array::DynamicArray,
         helper::read_and_advance,
         ustr::{str32u, u32str},
     },
-    LmsParameter,
 };
 use crate::{
     hss::aux::hss_get_aux_data_len,

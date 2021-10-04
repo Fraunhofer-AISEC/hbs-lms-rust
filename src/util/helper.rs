@@ -25,6 +25,7 @@ pub fn split_at_mut<T>(data: &mut [T], mid: usize) -> (&mut [T], &mut [T]) {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! extract_or_return {
     ($x:expr) => {
         match $x {
@@ -35,6 +36,7 @@ macro_rules! extract_or_return {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! extract_or {
     ($x:expr, $or:expr) => {
         match $x {

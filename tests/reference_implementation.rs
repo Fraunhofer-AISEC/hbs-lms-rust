@@ -195,12 +195,17 @@ fn own_signing(
     let private_key_before = private_key.to_vec();
 
     let mut update_private_key = |new_key: &[u8]| {
-        private_key.copy_from_slice(new_key);  
+        private_key.copy_from_slice(new_key);
         true
     };
 
-    let result = lms::sign::<Sha256Hasher>(&message_data, &private_key_before, &mut update_private_key, Some(aux_slice))
-        .expect("Signing should succed.");
+    let result = lms::sign::<Sha256Hasher>(
+        &message_data,
+        &private_key_before,
+        &mut update_private_key,
+        Some(aux_slice),
+    )
+    .expect("Signing should succed.");
     save_file(
         temp_path.path().join(SIGNATURE_FILE_NAME).to_str().unwrap(),
         result.as_slice(),

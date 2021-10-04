@@ -8,6 +8,9 @@ use crate::{constants::MAX_HASH, util::dynamic_array::DynamicArray};
 
 use super::Hasher;
 
+/**
+ * Standard software implementation for Sha256. Can be passed into the library, because it implements the `Hasher` trait.
+ * */
 #[derive(Default, Clone)]
 pub struct Sha256Hasher {
     hasher: Sha256,

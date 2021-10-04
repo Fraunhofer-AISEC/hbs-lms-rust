@@ -2,6 +2,7 @@ use core::marker::PhantomData;
 
 use crate::hasher::{sha256::Sha256Hasher, Hasher};
 
+/// Specifies the used Tree height.
 #[derive(Clone, Copy)]
 pub enum LmsAlgorithm {
     LmsReserved = 0,

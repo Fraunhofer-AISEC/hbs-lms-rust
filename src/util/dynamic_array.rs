@@ -6,6 +6,10 @@ use core::{
 
 use arrayvec::ArrayVec;
 
+/**
+ * This struct is used to "simulate" different sized vectors in a `#![no_std]` environment.
+ * It must be initialized by a maximum size via generic parameters and can be then used as a `Vec`.
+ * */
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DynamicArray<T: Clone + Default, const ELEMENTS: usize> {
     data: ArrayVec<T, ELEMENTS>,

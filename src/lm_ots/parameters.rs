@@ -6,6 +6,7 @@ use crate::{
     util::{coef::coef, dynamic_array::DynamicArray},
 };
 
+/// Specifies the used Winternitz parameter.
 #[derive(Clone, Copy)]
 pub enum LmotsAlgorithm {
     LmotsReserved = 0,

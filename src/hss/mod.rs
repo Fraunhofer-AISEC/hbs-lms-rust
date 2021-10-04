@@ -19,7 +19,7 @@ use self::{
     signing::HssSignature,
 };
 
-pub struct HssBinaryData {
+pub struct HssKeyPair {
     pub public_key: DynamicArray<u8, { 4 + 4 + 4 + 16 + MAX_HASH }>,
     pub private_key: DynamicArray<u8, RFC_PRIVATE_KEY_SIZE>,
 }
@@ -63,7 +63,7 @@ pub fn hss_keygen<H: Hasher>(
     parameters: &[HssParameter<H>],
     seed: Option<&[u8]>,
     aux_data: Option<&mut &mut [u8]>,
-) -> Option<HssBinaryData> {
+) -> Option<HssKeyPair> {
     let private_key = if let Some(seed) = seed {
         RfcPrivateKey::generate_with_seed(parameters, seed)
     } else {
@@ -75,7 +75,7 @@ pub fn hss_keygen<H: Hasher>(
             Err(_) => return None,
             Ok(x) => x,
         };
-        Some(HssBinaryData {
+        Some(HssKeyPair {
             private_key: private_key.to_binary_representation(),
             public_key: hss_key.get_public_key().to_binary_representation(),
         })

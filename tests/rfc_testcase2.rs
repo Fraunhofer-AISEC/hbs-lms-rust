@@ -2,9 +2,7 @@ use lms::Sha256Hasher;
 
 #[test]
 fn test() {
-    assert!(lms::hss_verify::<Sha256Hasher>(
-        MESSAGE, SIGNATURE, PUBLIC_KEY
-    ));
+    assert!(lms::verify::<Sha256Hasher>(MESSAGE, SIGNATURE, PUBLIC_KEY));
 }
 
 static PUBLIC_KEY: &'static [u8] = &[

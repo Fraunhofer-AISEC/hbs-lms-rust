@@ -18,6 +18,8 @@ pub use crate::lms::parameters::*;
 
 pub use crate::hss::HssKeyPair;
 
+pub use crate::util::dynamic_array::DynamicArray;
+
 pub use crate::hss::hss_keygen as keygen;
 pub use crate::hss::hss_sign as sign;
 pub use crate::hss::hss_verify as verify;

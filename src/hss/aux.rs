@@ -4,7 +4,6 @@ use crate::{
     lms::parameters::LmsParameter,
     util::{
         dynamic_array::DynamicArray,
-        helper::split_at_mut,
         ustr::{str32u, u32str},
     },
 };
@@ -84,52 +83,37 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     aux_data: Option<&'a mut [u8]>,
     seed: Option<&'a [u8]>,
 ) -> Option<MutableExpandedAuxData<'a>> {
+    let size_hash = H::OUTPUT_SIZE;
+
     aux_data.as_ref()?;
-
     let mut aux_data = aux_data.unwrap();
-
-    let orig_aux_data = aux_data.as_ptr();
 
     if aux_data[AUX_DATA_MARKER] == NO_AUX_DATA {
         return None;
     }
 
-    let aux_data_len = aux_data.len();
-
-    let mut aux_level = str32u(&aux_data[0..4]) as u64;
-    aux_data = &mut aux_data[4..];
-
     let mut index = 4;
-
+    let mut aux_level = str32u(&aux_data[0..index]) as u64;
     aux_level &= 0x7ffffffff;
-
-    let mut expanded_aux_data: MutableExpandedAuxData = Default::default();
-
-    let size_hash = H::OUTPUT_SIZE;
 
     let mut h = 0;
     while h <= MAX_H {
-        if aux_level & 1 != 0 {
-            let len = size_hash << h;
-            index += len;
-            let (left, rest) = split_at_mut(&mut *aux_data, len);
-            aux_data = rest;
-            expanded_aux_data.data[h] = Some(left);
+        if (aux_level >> h) & 1 != 0 {
+            index += size_hash << h;
         }
 
         h += 1;
-        aux_level >>= 1;
     }
 
     // Check if data is valid
     if let Some(seed) = seed {
         let expected_len = index + size_hash;
 
-        if expected_len > aux_data_len {
+        if expected_len > aux_data.len() {
             return None;
         }
 
-        if aux_data_len < 4 + size_hash {
+        if aux_data.len() < 4 + size_hash {
             return None;
         }
 
@@ -137,14 +121,30 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
         compute_seed_derive::<H>(&mut key, seed);
 
         let mut expected_mac = [0u8; MAX_HASH];
-        let orig_aux_data = unsafe { core::slice::from_raw_parts(orig_aux_data, index) };
-        compute_hmac::<H>(&mut expected_mac, &mut key, orig_aux_data);
+        compute_hmac::<H>(&mut expected_mac, &mut key, aux_data);
 
-        let hash_size = H::OUTPUT_SIZE;
-
-        if expected_mac[..hash_size] != aux_data[0..hash_size] {
+        if expected_mac[..size_hash] != aux_data[index..(index + size_hash)] {
             return None;
         }
+    }
+
+    index = 4;
+    aux_data = &mut aux_data[index..];
+
+    let mut expanded_aux_data: MutableExpandedAuxData = Default::default();
+
+    let mut h = 0;
+    while h <= MAX_H {
+        if aux_level & 1 != 0 {
+            let len = size_hash << h;
+            index += len;
+            let (left, rest) = aux_data.split_at_mut(len);
+            aux_data = rest;
+            expanded_aux_data.data[h] = Some(left);
+        }
+
+        h += 1;
+        aux_level >>= 1;
     }
 
     Some(expanded_aux_data)

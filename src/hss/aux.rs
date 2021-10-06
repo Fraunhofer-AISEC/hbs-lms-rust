@@ -209,10 +209,7 @@ pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed:
             total_length += size_hash << i;
             if aux.is_none() {
                 let value = x.as_mut_ptr();
-                // SAFETY Implementation is heavily based on reference implementation (https://github.com/cisco/hash-sigs)
-                unsafe {
-                    aux = Some(value.sub(4));
-                }
+                aux = Some(value.wrapping_sub(4));
             }
         }
     }

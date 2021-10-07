@@ -87,6 +87,8 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
 ) -> Option<MutableExpandedAuxData<'a>> {
     let size_hash = H::OUTPUT_SIZE;
 
+    let mut expanded_aux_data: MutableExpandedAuxData = Default::default();
+
     aux_data.as_ref()?;
     let mut aux_data = aux_data.unwrap();
 
@@ -95,7 +97,8 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     }
 
     let mut index = 4;
-    let mut aux_level = str32u(&aux_data[0..index]) as u64;
+    let mut aux_level = str32u(&aux_data[0..index]) as u64; //TODO wieso u64 und nicht u32? (findet sich an mehreren Stellen)
+    expanded_aux_data.level = aux_level as u32;
     aux_level &= 0x7ffffffff;
 
     let mut h = 0;
@@ -133,8 +136,6 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     index = 4;
     aux_data = &mut aux_data[index..];
 
-    let mut expanded_aux_data: MutableExpandedAuxData = Default::default();
-
     let mut h = 0;
     while h <= MAX_H {
         if aux_level & 1 != 0 {
@@ -148,6 +149,7 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
         h += 1;
         aux_level >>= 1;
     }
+    expanded_aux_data.hmac = aux_data;
 
     Some(expanded_aux_data)
 }

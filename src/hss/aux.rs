@@ -25,6 +25,8 @@ const OPAD: u8 = 0x5c;
 #[derive(Default)]
 pub struct MutableExpandedAuxData<'a> {
     pub data: [Option<&'a mut [u8]>; MAX_H + 1],
+    pub level: u32,
+    pub hmac: &'a mut [u8],
 }
 
 pub fn hss_optimal_aux_level<H: Hasher>(

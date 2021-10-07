@@ -54,14 +54,14 @@ impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, 
 
 impl<H: Hasher> LmotsSignature<H> {
     pub fn sign(private_key: &LmotsPrivateKey<H>, message: &[u8]) -> Self {
-        let mut signature_randomizer = DynamicArray::new();
-
         let lmots_parameter = private_key.lmots_parameter;
 
         let mut hasher = lmots_parameter.get_hasher();
 
-        signature_randomizer.set_size(lmots_parameter.get_n() as usize);
-
+        let mut signature_randomizer = DynamicArray::new();
+        for _ in 0..lmots_parameter.get_n() {
+            signature_randomizer.push(0u8);
+        }
         get_random(signature_randomizer.as_mut_slice());
 
         hasher.update(&private_key.lms_tree_identifier);

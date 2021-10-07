@@ -43,7 +43,7 @@ impl<T: Clone + Default, const ELEMENTS: usize> DynamicArray<T, ELEMENTS> {
         self.data.as_mut_slice()
     }
 
-    pub fn set_size(&mut self, size: usize) {
+    pub fn set_size(&mut self, size: usize) { // TODO Das können wir dann eigentlich löschen, oder?
         if size > ELEMENTS {
             panic!(
                 "Size is larger than array. Size {}, ELEMENTS {}",

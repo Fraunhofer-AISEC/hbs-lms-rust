@@ -273,11 +273,11 @@ fn xor_key(key: &mut [u8], xor_val: u8) {
     }
 }
 
-fn compute_hmac<H: Hasher>(dest: &mut [u8], key: &mut [u8], data: &[u8]) {
-    let mut hasher = H::get_hasher();
-
+fn compute_hmac_ipad<H: Hasher>(key: &mut [u8]) -> H {
     let size_hash = H::OUTPUT_SIZE;
     let block_size = H::BLOCK_SIZE;
+
+    let mut hasher = H::get_hasher();
 
     xor_key(key, IPAD);
     hasher.update(key);
@@ -285,7 +285,13 @@ fn compute_hmac<H: Hasher>(dest: &mut [u8], key: &mut [u8], data: &[u8]) {
     for _ in size_hash..block_size {
         hasher.update(&[IPAD]);
     }
-    hasher.update(data);
+
+    hasher
+}
+
+fn compute_hmac_opad<H: Hasher>(hasher: &mut H, dest: &mut [u8], key: &mut [u8]) {
+    let size_hash = H::OUTPUT_SIZE;
+    let block_size = H::BLOCK_SIZE;
 
     dest.copy_from_slice(hasher.finalize_reset().as_slice());
 
@@ -298,7 +304,15 @@ fn compute_hmac<H: Hasher>(dest: &mut [u8], key: &mut [u8], data: &[u8]) {
 
     hasher.update(dest);
 
-    dest.copy_from_slice(hasher.finalize().as_slice());
+    dest.copy_from_slice(hasher.finalize_reset().as_slice());
 
     xor_key(key, OPAD);
+}
+
+fn compute_hmac<H: Hasher>(dest: &mut [u8], key: &mut [u8], data: &[u8]) {
+    let mut hasher = compute_hmac_ipad::<H>(key);
+
+    hasher.update(data);
+
+    compute_hmac_opad::<H>(&mut hasher, dest, key);
 }

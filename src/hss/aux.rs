@@ -199,18 +199,21 @@ pub fn hss_save_aux_data<H: Hasher>(
 }
 
 pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed: &[u8]) {
-    let size_hash = H::OUTPUT_SIZE;
-
     let mut aux_seed = [0u8; MAX_HASH];
 
     compute_seed_derive::<H>(&mut aux_seed, seed);
 
     let mut aux: Option<*mut u8> = None;
-    let mut total_length = 4;
+
+    let mut hasher = compute_hmac_ipad::<H>(&mut aux_seed);
+    hasher.update(&data.level.to_be_bytes());
 
     for i in 0..MAX_H {
         if let Some(x) = data.data[i].as_mut() {
-            total_length += size_hash << i;
+
+            hasher.update(x);
+
+            // TODO: Das kann meiner Meinung nach auch weg
             if aux.is_none() {
                 let value = x.as_mut_ptr();
                 aux = Some(value.wrapping_sub(4));
@@ -218,14 +221,8 @@ pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed:
         }
     }
 
-    if let Some(aux) = aux {
-        unsafe {
-            let dest = aux.add(total_length);
-            let dest = core::slice::from_raw_parts_mut(dest, H::OUTPUT_SIZE);
-
-            let aux = core::slice::from_raw_parts_mut(aux, total_length);
-            compute_hmac::<H>(dest, &mut aux_seed, aux);
-        }
+    if let Some(_aux) = aux { // TODO: Wird aux hier noch als Check gebraucht?
+        compute_hmac_opad::<H>(&mut hasher, data.hmac, &mut aux_seed);
     }
 }
 

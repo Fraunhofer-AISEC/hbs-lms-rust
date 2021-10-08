@@ -21,7 +21,3 @@ pub fn str64u(x: &[u8]) -> u64 {
 pub fn u16str(x: u16) -> [u8; 2] {
     x.to_be_bytes()
 }
-
-pub fn u8str(x: u8) -> [u8; 1] { // TODO wird das noch benötigt?
-    x.to_be_bytes()
-}

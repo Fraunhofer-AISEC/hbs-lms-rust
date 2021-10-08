@@ -7,8 +7,15 @@ pub mod sha256;
 
 pub struct HashChainData([u8; ITER_MAX_LEN]);
 
-/// Implement PartialEq, although it makes no sense to compare two hasher.
-/// But with that we can derive PartialEq automatically for our tests.
+/**
+ *
+ * This trait is used inside the library to generate hashes. A standard software implemention exists as `Sha256Hasher`.
+ * It can be used to outsorce calculations to hardware accelerators.
+ *
+ *
+ * Implements PartialEq, although it makes no sense to compare two hasher.
+ * But with that we can derive PartialEq automatically for our tests.
+ * */
 pub trait Hasher: Default + Clone + PartialEq {
     const OUTPUT_SIZE: usize;
     const BLOCK_SIZE: usize;

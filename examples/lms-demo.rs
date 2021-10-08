@@ -113,11 +113,24 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let aux_data_name = get_aux_name(&keyname);
     let mut aux_data = read(aux_data_name).ok();
 
+    let mut private_key_update_function =
+        |new_key: &[u8]| write(&private_key_name, new_key).is_ok();
+
     let result = if let Some(aux_data) = aux_data.as_mut() {
         let aux_slice = &mut &mut aux_data[..];
-        hss_sign::<Sha256Hasher>(&message_data, &mut private_key_data, Some(aux_slice))
+        lms::sign::<Sha256Hasher>(
+            &message_data,
+            &mut private_key_data,
+            &mut private_key_update_function,
+            Some(aux_slice),
+        )
     } else {
-        hss_sign::<Sha256Hasher>(&message_data, &mut private_key_data, None)
+        lms::sign::<Sha256Hasher>(
+            &message_data,
+            &mut private_key_data,
+            &mut private_key_update_function,
+            None,
+        )
     };
 
     let result = match result {
@@ -128,7 +141,6 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
         Some(x) => x,
     };
 
-    write(&private_key_name, &private_key_data)?;
     write(&signature_name, result.as_slice())?;
 
     Ok(())
@@ -145,7 +157,7 @@ fn verify(args: &ArgMatches) -> bool {
     let message_data = read_file(&message_name);
     let public_key_data = read_file(&public_key_name);
 
-    hss_verify::<Sha256Hasher>(&message_data, &signature_data, &public_key_data)
+    lms::verify::<Sha256Hasher>(&message_data, &signature_data, &public_key_data)
 }
 
 fn get_public_key_name(keyname: &String) -> String {
@@ -202,7 +214,7 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let mut aux_data = vec![0u8; genkey_parameter.aux_data];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    let keys = hss_keygen(&parameter, seed_slice, Some(aux_slice));
+    let keys = keygen(&parameter, seed_slice, Some(aux_slice));
 
     let keys = keys.unwrap();
 

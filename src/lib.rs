@@ -1,35 +1,54 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+//! This library implements the Leighton-Micali-Signature system <https://datatracker.ietf.org/doc/html/rfc8554>
+//!
+//! # Example
+//! ```
+//! use lms::*;
+//! 
+//! let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32]; // Some message that needs to be signed
+//!
+//! // Generate keys for a 2-level HSS system (first Level W8/H5, second level W4/H15) using the standard software hashing implementation
+//! let key_pair = lms::keygen::<Sha256Hasher>(&[HssParameter::new(LmotsAlgorithm::LmotsW8, LmsAlgorithm::LmsH5), HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5)], None, None).unwrap();
+//!
+//! let private_key = key_pair.get_private_key();
+//! let public_key = key_pair.get_public_key();
+//!
+//! let mut private_key_update_function = |new_privtae_key: &[u8]| {
+//!     // Update private key and save it to disk
+//!     true // Report successful result
+//! };
+//!
+//! let sig = lms::sign::<Sha256Hasher>(&message, private_key, &mut private_key_update_function, None).unwrap();
+//! let sig_slice = sig.as_slice();
+//!
+//! let verify_result = lms::verify::<Sha256Hasher>(&message, sig_slice, public_key);
+//!
+//! assert!(verify_result == true);
+//! ```
+
 mod constants;
-pub mod hasher;
+mod hasher;
 mod hss;
 mod lm_ots;
 mod lms;
 mod util;
 
 pub use hasher::Hasher;
-use hss::definitions::HssPrivateKey;
-use hss::rfc_private_key::RfcPrivateKey;
 
+#[doc(hidden)]
 pub use crate::constants::Seed;
+
 pub use crate::hasher::sha256::Sha256Hasher;
+
 pub use crate::hss::parameter::HssParameter;
-pub use crate::lm_ots::parameters::*;
-pub use crate::lms::parameters::*;
+pub use crate::lm_ots::parameters::LmotsAlgorithm;
+pub use crate::lms::parameters::LmsAlgorithm;
+
+pub use crate::hss::HssKeyPair;
 
 pub use crate::util::dynamic_array::DynamicArray;
 
-pub use crate::hss::definitions::HssPublicKey;
-pub use crate::hss::definitions::InMemoryHssPublicKey;
-pub use crate::hss::signing::InMemoryHssSignature;
-pub use crate::hss::HssBinaryData;
-
-pub use crate::hss::hss_keygen;
-pub use crate::hss::hss_sign;
-pub use crate::hss::hss_verify;
-
-pub fn get_public_key<H: Hasher>(private_key: &[u8]) -> Option<HssPublicKey<H>> {
-    let rfc_private_key = RfcPrivateKey::<H>::from_binary_representation(private_key)?;
-    let hss_private_key = HssPrivateKey::from(&rfc_private_key, None).ok()?;
-    Some(hss_private_key.get_public_key())
-}
+pub use crate::hss::hss_keygen as keygen;
+pub use crate::hss::hss_sign as sign;
+pub use crate::hss::hss_verify as verify;

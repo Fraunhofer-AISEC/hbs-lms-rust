@@ -103,7 +103,6 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
 
     // Check if data is valid
     if let Some(seed) = seed {
-
         for h in 0..(MAX_H + 1) {
             if (aux_level >> h) & 1 != 0 {
                 index += size_hash << h;
@@ -197,27 +196,16 @@ pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed:
 
     compute_seed_derive::<H>(&mut aux_seed, seed);
 
-    let mut aux: Option<*mut u8> = None;
-
     let mut hasher = compute_hmac_ipad::<H>(&mut aux_seed);
     hasher.update(&data.level.to_be_bytes());
 
     for i in 0..MAX_H {
         if let Some(x) = data.data[i].as_mut() {
-
             hasher.update(x);
-
-            // TODO: Das kann meiner Meinung nach auch weg
-            if aux.is_none() {
-                let value = x.as_mut_ptr();
-                aux = Some(value.wrapping_sub(4));
-            }
         }
     }
 
-    if let Some(_aux) = aux { // TODO: Wird aux hier noch als Check gebraucht?
-        compute_hmac_opad::<H>(&mut hasher, data.hmac, &mut aux_seed);
-    }
+    compute_hmac_opad::<H>(&mut hasher, data.hmac, &mut aux_seed);
 }
 
 pub fn hss_extract_aux_data<H: Hasher>(

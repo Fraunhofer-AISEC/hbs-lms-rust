@@ -97,9 +97,12 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     }
 
     let mut index = 4;
-    let mut aux_level = str32u(&aux_data[0..index]) as u64; // u64 is used otherwise we could not AND it with 0x7ffffffff
-    expanded_aux_data.level = aux_level as u32;
-    aux_level &= 0x7ffffffff;
+
+    // REMARK: Reference implementation treats that as u64 and ANDs it with 0x7ffffffffL after its stored in expanded_aux_data
+    // However in our opinion that should make no difference, because we only read 4 bytes.
+    let aux_level = str32u(&aux_data[0..index]);
+
+    expanded_aux_data.level = aux_level;
 
     // Check if data is valid
     if let Some(seed) = seed {

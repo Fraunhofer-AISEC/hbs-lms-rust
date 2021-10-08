@@ -12,6 +12,21 @@ fmt:
   tags:
     - asprunner
 
+check-for-todos:
+  stage: lint
+  image: rust:latest
+  script:
+    - make check-for-todos
+  artifacts:
+    when: always
+    reports:
+    paths:
+      - ./check_for_todos_results.txt
+    expire_in: 2 week
+  allow_failure: true
+  tags:
+    - asprunner
+
 rust-latest:
   stage: build
   image: rust:latest

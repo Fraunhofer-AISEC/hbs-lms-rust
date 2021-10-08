@@ -1,7 +1,6 @@
 use crate::extract_or_return;
 use crate::hasher::Hasher;
 use crate::lm_ots::parameters::LmotsAlgorithm;
-use crate::util::dynamic_array::DynamicArray;
 use crate::{
     constants::{D_MESG, MAX_HASH, MAX_P},
     util::{
@@ -10,6 +9,7 @@ use crate::{
         ustr::{str32u, u32str},
     },
 };
+use arrayvec::ArrayVec;
 use core::usize;
 
 use super::definitions::LmotsPrivateKey;
@@ -17,8 +17,8 @@ use super::parameters::LmotsParameter;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct LmotsSignature<H: Hasher> {
-    pub signature_randomizer: DynamicArray<u8, MAX_HASH>,
-    pub signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P>,
+    pub signature_randomizer: ArrayVec<u8, MAX_HASH>,
+    pub signature_data: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P>,
     pub lmots_parameter: LmotsParameter<H>,
 }
 
@@ -54,14 +54,16 @@ impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, 
 
 impl<H: Hasher> LmotsSignature<H> {
     pub fn sign(private_key: &LmotsPrivateKey<H>, message: &[u8]) -> Self {
+        let mut signature_randomizer = ArrayVec::new();
+
         let lmots_parameter = private_key.lmots_parameter;
 
         let mut hasher = lmots_parameter.get_hasher();
 
-        let mut signature_randomizer = DynamicArray::new();
         for _ in 0..lmots_parameter.get_n() {
             signature_randomizer.push(0u8);
         }
+
         get_random(signature_randomizer.as_mut_slice());
 
         hasher.update(&private_key.lms_tree_identifier);
@@ -70,12 +72,11 @@ impl<H: Hasher> LmotsSignature<H> {
         hasher.update(signature_randomizer.as_slice());
         hasher.update(message);
 
-        let message_hash: DynamicArray<u8, MAX_HASH> = hasher.finalize_reset();
+        let message_hash: ArrayVec<u8, MAX_HASH> = hasher.finalize_reset();
         let message_hash_with_checksum =
             lmots_parameter.append_checksum_to(message_hash.as_slice());
 
-        let mut signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> =
-            DynamicArray::new();
+        let mut signature_data: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P> = ArrayVec::new();
 
         for i in 0..lmots_parameter.get_p() {
             let a = coef(
@@ -100,17 +101,19 @@ impl<H: Hasher> LmotsSignature<H> {
         }
     }
 
-    pub fn to_binary_representation(
-        &self,
-    ) -> DynamicArray<u8, { 4 + MAX_HASH + (MAX_HASH * MAX_P) }> {
-        let mut result = DynamicArray::new();
+    pub fn to_binary_representation(&self) -> ArrayVec<u8, { 4 + MAX_HASH + (MAX_HASH * MAX_P) }> {
+        let mut result = ArrayVec::new();
 
-        result.append(&u32str(self.lmots_parameter.get_type()));
-        result.append(self.signature_randomizer.as_slice());
+        result
+            .try_extend_from_slice(&u32str(self.lmots_parameter.get_type()))
+            .unwrap();
+        result
+            .try_extend_from_slice(self.signature_randomizer.as_slice())
+            .unwrap();
 
         for x in self.signature_data.iter() {
             for y in x.iter() {
-                result.append(&[*y]);
+                result.try_extend_from_slice(&[*y]).unwrap();
             }
         }
 
@@ -162,10 +165,11 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
 
 #[cfg(test)]
 mod tests {
+    use arrayvec::ArrayVec;
+
     use crate::{
         constants::{MAX_HASH, MAX_P},
         lm_ots::{parameters::LmotsAlgorithm, signing::InMemoryLmotsSignature},
-        util::dynamic_array::DynamicArray,
     };
 
     use super::LmotsSignature;
@@ -174,16 +178,15 @@ mod tests {
     fn test_binary_representation() {
         let lmots_parameter = LmotsAlgorithm::construct_default_parameter();
 
-        let mut signature_randomizer = DynamicArray::new();
-        let mut signature_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> =
-            DynamicArray::new();
+        let mut signature_randomizer = ArrayVec::new();
+        let mut signature_data: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P> = ArrayVec::new();
 
         for i in 0..lmots_parameter.get_n() as usize {
             signature_randomizer.push(i as u8);
         }
 
         for i in 0..lmots_parameter.get_p() as usize {
-            signature_data.push(DynamicArray::new());
+            signature_data.push(ArrayVec::new());
             for j in 0..lmots_parameter.get_n() as usize {
                 signature_data[i].push(j as u8);
             }

@@ -6,12 +6,13 @@ mod seed_derive;
 pub mod signing;
 pub mod verify;
 
+use arrayvec::ArrayVec;
+
 use crate::{
     constants::{MAX_HASH, MAX_HSS_SIGNATURE_LENGTH, RFC_PRIVATE_KEY_SIZE},
     extract_or, extract_or_return,
     hasher::Hasher,
     hss::{definitions::InMemoryHssPublicKey, signing::InMemoryHssSignature},
-    util::dynamic_array::DynamicArray,
 };
 
 use self::{
@@ -23,14 +24,14 @@ use self::{
  * Describes a public and private key pair.
  * */
 pub struct HssKeyPair {
-    pub public_key: DynamicArray<u8, { 4 + 4 + 4 + 16 + MAX_HASH }>,
-    pub private_key: DynamicArray<u8, RFC_PRIVATE_KEY_SIZE>,
+    pub public_key: ArrayVec<u8, { 4 + 4 + 4 + 16 + MAX_HASH }>,
+    pub private_key: ArrayVec<u8, RFC_PRIVATE_KEY_SIZE>,
 }
 
 impl HssKeyPair {
     fn new(
-        public_key: DynamicArray<u8, { 4 + 4 + 4 + 16 + MAX_HASH }>,
-        private_key: DynamicArray<u8, RFC_PRIVATE_KEY_SIZE>,
+        public_key: ArrayVec<u8, { 4 + 4 + 4 + 16 + MAX_HASH }>,
+        private_key: ArrayVec<u8, RFC_PRIVATE_KEY_SIZE>,
     ) -> Self {
         Self {
             public_key,
@@ -78,7 +79,7 @@ pub fn hss_sign<H: Hasher>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
     aux_data: Option<&mut &mut [u8]>,
-) -> Option<DynamicArray<u8, MAX_HSS_SIGNATURE_LENGTH>> {
+) -> Option<ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>> {
     let mut rfc_private_key =
         extract_or_return!(RfcPrivateKey::from_binary_representation(private_key));
 

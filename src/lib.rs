@@ -5,7 +5,7 @@
 //! # Example
 //! ```
 //! use lms::*;
-//! 
+//!
 //! let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32]; // Some message that needs to be signed
 //!
 //! // Generate keys for a 2-level HSS system (first Level W8/H5, second level W4/H15) using the standard software hashing implementation
@@ -46,8 +46,6 @@ pub use crate::lm_ots::parameters::LmotsAlgorithm;
 pub use crate::lms::parameters::LmsAlgorithm;
 
 pub use crate::hss::HssKeyPair;
-
-pub use crate::util::dynamic_array::DynamicArray;
 
 pub use crate::hss::hss_keygen as keygen;
 pub use crate::hss::hss_sign as sign;

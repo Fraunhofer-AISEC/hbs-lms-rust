@@ -2,9 +2,9 @@ use crate::constants::D_INTR;
 use crate::constants::D_LEAF;
 use crate::constants::MAX_HASH;
 use crate::hasher::Hasher;
-use crate::util::dynamic_array::DynamicArray;
 use crate::util::helper::is_odd;
 use crate::util::ustr::u32str;
+use arrayvec::ArrayVec;
 
 use super::definitions::InMemoryLmsPublicKey;
 use super::signing::InMemoryLmsSignature;
@@ -33,7 +33,7 @@ fn generate_public_key_candiate<'a, H: Hasher>(
     signature: &InMemoryLmsSignature<'a, H>,
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],
-) -> Result<DynamicArray<u8, MAX_HASH>, ()> {
+) -> Result<ArrayVec<u8, MAX_HASH>, ()> {
     let leafs = signature.lms_parameter.number_of_lm_ots_keys() as u32;
 
     let curr = signature.q;

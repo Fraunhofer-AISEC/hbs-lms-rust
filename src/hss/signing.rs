@@ -109,7 +109,14 @@ impl<H: Hasher> HssSignature<H> {
         }
 
         // Sign the message
-        sig[max_level - 1] = lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message)?;
+        let new_signature = lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message)?;
+
+        // Check if array already contains a signature at Index max_level - 1. If so replace it, otherwise push the new signature.
+        if let Some(x) = sig.get_mut(max_level - 1) {
+            *x = new_signature;
+        } else {
+            sig.push(new_signature);
+        }
 
         let mut signed_public_keys = ArrayVec::new();
 

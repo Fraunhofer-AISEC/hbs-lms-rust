@@ -5,19 +5,28 @@ This implementation is binary compatible with the reference implementation found
 This crate does not require the standard library (i.e. no_std capable) and can be easily used for bare-metal programming.
 
 ## Demo
-The examples folder includes a demo application, to see how the library can be used.
+A demo application is located in the `examples` folder to demonstrate the use of the library.
+This demo application can be used in the console as follows:
 
-* `cargo run --release --example lms-demo -- genkey mykey 10/2`
-    * Key generation
-    * Generates `mykey.priv`, `mykey.pub` with merkle tree height 10 and winternitz parameter 2
-* `cargo run --release --example lms-demo -- sign mykey message.txt`
-    * Signing
-    * Generates `message.txt.sig`
-* `cargo run --release --example lms-demo -- verify mykey message.txt`
-    * Verification
-    * Verifies `message.txt` with `message.txt.sig` against `mykey.pub`
+```
+# Key generation
+# Generates `mykey.priv`, `mykey.pub` with merkle tree height 10 and winternitz parameter 2
+cargo run --release --example lms-demo -- genkey mykey 10/2
+
+# Signing
+# Generates `message.txt.sig`
+cargo run --release --example lms-demo -- sign mykey message.txt
+
+# Verification
+# Verifies `message.txt` with `message.txt.sig` against `mykey.pub`
+cargo run --release --example lms-demo -- verify mykey message.txt
+```
 
 ## Naming conventions wrt to the IETF RFC
+The naming in the RFC is done by using a single character.
+To allow for a better understanding of the implementation, we have decided to use more descriptive designations.
+The following table shows the mapping between the RFC and the library naming including a short description.
+
 | RFC Naming | Library Naming       | Meaning                                                   |
 |------------|----------------------|-----------------------------------------------------------|
 | I          | lms_tree_identifier  | 16-byte random value to identify a single LMS tree        |
@@ -27,7 +36,7 @@ The examples folder includes a demo application, to see how the library can be u
 | y          | signature_data       | The actual data of the signature                          |
 
 ## Minimum Supported Rust Version
-All crates in this repository support Rust **1.53** or higher.
+The crate in this repository supports Rust **1.53** or higher.
 
 Minimum supported Rust version can be changed in the future, but it will be done with a minor version bump.
 

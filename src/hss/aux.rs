@@ -4,9 +4,7 @@ use crate::{
     constants::{DAUX_D, DAUX_PREFIX_LEN, D_DAUX, MAX_H, MAX_HASH, MIN_SUBTREE},
     hasher::Hasher,
     lms::parameters::LmsParameter,
-    util::{
-        ustr::{str32u, u32str},
-    },
+    util::ustr::{str32u, u32str},
 };
 
 /**

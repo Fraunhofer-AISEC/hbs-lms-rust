@@ -1,5 +1,7 @@
 use core::{marker::PhantomData, mem::size_of};
 
+use arrayvec::ArrayVec;
+
 use crate::{
     constants::{
         LmsTreeIdentifier, Seed, D_TOPSEED, MAX_HASH, MAX_HSS_LEVELS, RFC_PRIVATE_KEY_SIZE,
@@ -9,7 +11,6 @@ use crate::{
     hasher::Hasher,
     hss::seed_derive::SeedDerive,
     util::{
-        dynamic_array::DynamicArray,
         helper::read_and_advance,
         random::get_random,
         ustr::{str64u, u64str},
@@ -73,12 +74,14 @@ impl<H: Hasher> RfcPrivateKey<H> {
         RfcPrivateKey::generate_with_seed(parameters, &seed)
     }
 
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, RFC_PRIVATE_KEY_SIZE> {
-        let mut result = DynamicArray::new();
+    pub fn to_binary_representation(&self) -> ArrayVec<u8, RFC_PRIVATE_KEY_SIZE> {
+        let mut result = ArrayVec::new();
 
-        result.append(&u64str(self.q));
-        result.append(&self.compressed_parameter.0);
-        result.append(&self.seed);
+        result.try_extend_from_slice(&u64str(self.q)).unwrap();
+        result
+            .try_extend_from_slice(&self.compressed_parameter.0)
+            .unwrap();
+        result.try_extend_from_slice(&self.seed).unwrap();
 
         result
     }
@@ -185,8 +188,8 @@ impl CompressedParameterSet {
         Some(Self(result))
     }
 
-    pub fn to<H: Hasher>(&self) -> DynamicArray<HssParameter<H>, MAX_HSS_LEVELS> {
-        let mut result = DynamicArray::new();
+    pub fn to<H: Hasher>(&self) -> ArrayVec<HssParameter<H>, MAX_HSS_LEVELS> {
+        let mut result = ArrayVec::new();
 
         for level in 0..MAX_HSS_LEVELS {
             let parameter = self.0[level];
@@ -201,7 +204,9 @@ impl CompressedParameterSet {
             let lms = LmsAlgorithm::from(lms_type as u32);
             let lmots = LmotsAlgorithm::from(lmots_type as u32);
 
-            result.append(&[HssParameter::new(lmots, lms)]);
+            result
+                .try_extend_from_slice(&[HssParameter::new(lmots, lms)])
+                .unwrap();
         }
 
         result

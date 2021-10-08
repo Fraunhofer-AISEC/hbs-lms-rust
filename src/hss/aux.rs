@@ -1,9 +1,10 @@
+use arrayvec::ArrayVec;
+
 use crate::{
     constants::{DAUX_D, DAUX_PREFIX_LEN, D_DAUX, MAX_H, MAX_HASH, MIN_SUBTREE},
     hasher::Hasher,
     lms::parameters::LmsParameter,
     util::{
-        dynamic_array::DynamicArray,
         helper::split_at_mut,
         ustr::{str32u, u32str},
     },
@@ -231,7 +232,7 @@ pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed:
 pub fn hss_extract_aux_data<H: Hasher>(
     aux: &MutableExpandedAuxData,
     index: usize,
-) -> Option<DynamicArray<u8, MAX_HASH>> {
+) -> Option<ArrayVec<u8, MAX_HASH>> {
     // We need to calculate the level of the tree and the offset from the beginning
     let level = core::mem::size_of::<usize>() * 8 - index.leading_zeros() as usize - 1;
     let lms_leaf_identifier: u32 = index as u32 - 2u32.pow(level as u32);
@@ -249,9 +250,11 @@ pub fn hss_extract_aux_data<H: Hasher>(
         return None;
     }
 
-    let mut result = DynamicArray::new();
+    let mut result = ArrayVec::new();
 
-    result.append(&src[start_index..end_index]);
+    result
+        .try_extend_from_slice(&src[start_index..end_index])
+        .unwrap();
 
     Some(result)
 }

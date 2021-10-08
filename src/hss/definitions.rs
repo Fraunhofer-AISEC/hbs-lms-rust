@@ -1,3 +1,5 @@
+use arrayvec::ArrayVec;
+
 use crate::{
     constants::{MAX_HSS_LEVELS, MAX_LMS_PUBLIC_KEY_LENGTH},
     hasher::Hasher,
@@ -9,7 +11,6 @@ use crate::{
         parameters::LmsParameter,
     },
     util::{
-        dynamic_array::DynamicArray,
         helper::read_and_advance,
         ustr::{str32u, u32str},
     },
@@ -31,9 +32,9 @@ use super::{
 
 #[derive(Default, PartialEq)]
 pub struct HssPrivateKey<H: Hasher> {
-    pub private_key: DynamicArray<LmsPrivateKey<H>, MAX_HSS_LEVELS>,
-    pub public_key: DynamicArray<LmsPublicKey<H>, MAX_HSS_LEVELS>,
-    pub signatures: DynamicArray<LmsSignature<H>, { MAX_HSS_LEVELS - 1 }>, // Only L - 1 signatures needed
+    pub private_key: ArrayVec<LmsPrivateKey<H>, MAX_HSS_LEVELS>,
+    pub public_key: ArrayVec<LmsPublicKey<H>, MAX_HSS_LEVELS>,
+    pub signatures: ArrayVec<LmsSignature<H>, { MAX_HSS_LEVELS - 1 }>, // Only L - 1 signatures needed
 }
 
 impl<H: Hasher> HssPrivateKey<H> {
@@ -160,11 +161,15 @@ impl<'a, H: Hasher> PartialEq<HssPublicKey<H>> for InMemoryHssPublicKey<'a, H> {
 }
 
 impl<H: Hasher> HssPublicKey<H> {
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, { 4 + MAX_LMS_PUBLIC_KEY_LENGTH }> {
-        let mut result = DynamicArray::new();
+    pub fn to_binary_representation(&self) -> ArrayVec<u8, { 4 + MAX_LMS_PUBLIC_KEY_LENGTH }> {
+        let mut result = ArrayVec::new();
 
-        result.append(&u32str(self.level as u32));
-        result.append(self.public_key.to_binary_representation().as_slice());
+        result
+            .try_extend_from_slice(&u32str(self.level as u32))
+            .unwrap();
+        result
+            .try_extend_from_slice(self.public_key.to_binary_representation().as_slice())
+            .unwrap();
 
         result
     }

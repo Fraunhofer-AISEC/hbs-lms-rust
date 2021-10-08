@@ -2,11 +2,11 @@ use super::definitions::*;
 use super::parameters::LmotsParameter;
 use crate::constants::*;
 use crate::hasher::Hasher;
-use crate::util::dynamic_array::DynamicArray;
 use crate::{
     constants::{D_PBLC, MAX_HASH, MAX_P},
     util::ustr::*,
 };
+use arrayvec::ArrayVec;
 
 pub fn generate_private_key<H: Hasher>(
     i: LmsTreeIdentifier,
@@ -14,7 +14,7 @@ pub fn generate_private_key<H: Hasher>(
     seed: Seed,
     lmots_parameter: LmotsParameter<H>,
 ) -> LmotsPrivateKey<H> {
-    let mut key = DynamicArray::new();
+    let mut key = ArrayVec::new();
 
     let mut hasher = lmots_parameter.get_hasher();
 
@@ -38,7 +38,7 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
     let hash_chain_iterations: usize = 2_usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
     let key = &private_key.key;
 
-    let mut public_key_data: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
+    let mut public_key_data: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P> = ArrayVec::new();
 
     for i in 0..lmots_parameter.get_p() as usize {
         let mut hash_chain_data = H::prepare_hash_chain_data(
@@ -64,7 +64,7 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
         hasher.update(item.as_slice());
     }
 
-    let mut public_key = DynamicArray::new();
+    let mut public_key = ArrayVec::new();
     for value in hasher.finalize().into_iter() {
         public_key.push(value);
     }

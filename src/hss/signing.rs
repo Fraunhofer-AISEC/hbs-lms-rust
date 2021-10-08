@@ -1,3 +1,5 @@
+use arrayvec::ArrayVec;
+
 use crate::{
     constants::{
         lms_public_key_length, lms_signature_length, MAX_HSS_LEVELS, MAX_HSS_SIGNATURE_LENGTH,
@@ -11,7 +13,6 @@ use crate::{
         signing::{InMemoryLmsSignature, LmsSignature},
     },
     util::{
-        dynamic_array::DynamicArray,
         helper::read_and_advance,
         ustr::{str32u, u32str},
     },
@@ -23,7 +24,7 @@ use super::{definitions::HssPrivateKey, parameter::HssParameter};
 #[derive(PartialEq)]
 pub struct HssSignature<H: Hasher> {
     pub level: usize,
-    pub signed_public_keys: DynamicArray<HssSignedPublicKey<H>, MAX_HSS_LEVELS>,
+    pub signed_public_keys: ArrayVec<HssSignedPublicKey<H>, MAX_HSS_LEVELS>,
     pub signature: LmsSignature<H>,
 }
 
@@ -31,7 +32,7 @@ pub struct HssSignature<H: Hasher> {
 /// In order to reduce complexity we use ```HssSignature``` for key generation and signature generation.
 pub struct InMemoryHssSignature<'a, H: Hasher> {
     pub level: usize,
-    pub signed_public_keys: DynamicArray<Option<InMemoryHssSignedPublicKey<'a, H>>, MAX_HSS_LEVELS>,
+    pub signed_public_keys: ArrayVec<Option<InMemoryHssSignedPublicKey<'a, H>>, MAX_HSS_LEVELS>,
     pub signature: InMemoryLmsSignature<'a, H>,
 }
 
@@ -108,9 +109,16 @@ impl<H: Hasher> HssSignature<H> {
         }
 
         // Sign the message
-        sig[max_level - 1] = lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message)?;
+        let new_signature = lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message)?;
 
-        let mut signed_public_keys = DynamicArray::new();
+        // Check if array already contains a signature at Index max_level - 1. If so replace it, otherwise push the new signature.
+        if let Some(x) = sig.get_mut(max_level - 1) {
+            *x = new_signature;
+        } else {
+            sig.push(new_signature);
+        }
+
+        let mut signed_public_keys = ArrayVec::new();
 
         // Create list of signed keys
         for i in 0..max_level - 1 {
@@ -129,17 +137,23 @@ impl<H: Hasher> HssSignature<H> {
         Ok(signature)
     }
 
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, { MAX_HSS_SIGNATURE_LENGTH }> {
-        let mut result = DynamicArray::new();
+    pub fn to_binary_representation(&self) -> ArrayVec<u8, { MAX_HSS_SIGNATURE_LENGTH }> {
+        let mut result = ArrayVec::new();
 
-        result.append(&u32str(self.level as u32));
+        result
+            .try_extend_from_slice(&u32str(self.level as u32))
+            .unwrap();
 
         for signed_public_key in self.signed_public_keys.iter() {
             let binary_representation = signed_public_key.to_binary_representation();
-            result.append(binary_representation.as_slice());
+            result
+                .try_extend_from_slice(binary_representation.as_slice())
+                .unwrap();
         }
 
-        result.append(self.signature.to_binary_representation().as_slice());
+        result
+            .try_extend_from_slice(self.signature.to_binary_representation().as_slice())
+            .unwrap();
 
         result
     }
@@ -151,7 +165,7 @@ impl<'a, H: Hasher> InMemoryHssSignature<'a, H> {
 
         let level = str32u(read_and_advance(data, 4, &mut index)) as usize;
 
-        let mut signed_public_keys = DynamicArray::new();
+        let mut signed_public_keys = ArrayVec::new();
 
         for _ in 0..level {
             let signed_public_key =
@@ -201,11 +215,15 @@ impl<H: Hasher> HssSignedPublicKey<H> {
 
     pub fn to_binary_representation(
         &self,
-    ) -> DynamicArray<u8, { MAX_LMS_SIGNATURE_LENGTH + MAX_LMS_PUBLIC_KEY_LENGTH }> {
-        let mut result = DynamicArray::new();
+    ) -> ArrayVec<u8, { MAX_LMS_SIGNATURE_LENGTH + MAX_LMS_PUBLIC_KEY_LENGTH }> {
+        let mut result = ArrayVec::new();
 
-        result.append(self.sig.to_binary_representation().as_slice());
-        result.append(self.public_key.to_binary_representation().as_slice());
+        result
+            .try_extend_from_slice(self.sig.to_binary_representation().as_slice())
+            .unwrap();
+        result
+            .try_extend_from_slice(self.public_key.to_binary_representation().as_slice())
+            .unwrap();
 
         result
     }

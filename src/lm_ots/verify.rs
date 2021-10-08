@@ -1,11 +1,12 @@
 use core::usize;
 
+use arrayvec::ArrayVec;
+
 use crate::{
     constants::*,
     hasher::Hasher,
     util::{
         coef::coef,
-        dynamic_array::DynamicArray,
         ustr::{str32u, u32str},
     },
 };
@@ -37,7 +38,7 @@ pub fn generate_public_key_candiate<'a, H: Hasher>(
     lms_tree_identifier: &[u8],
     lms_leaf_identifier: u32,
     message: &[u8],
-) -> DynamicArray<u8, MAX_HASH> {
+) -> ArrayVec<u8, MAX_HASH> {
     let lmots_parameter = signature.lmots_parameter;
     let mut hasher = lmots_parameter.get_hasher();
 
@@ -52,7 +53,7 @@ pub fn generate_public_key_candiate<'a, H: Hasher>(
     let message_hash = hasher.finalize_reset();
     let message_hash_with_checksum = lmots_parameter.append_checksum_to(message_hash.as_slice());
 
-    let mut z: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_P> = DynamicArray::new();
+    let mut z: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P> = ArrayVec::new();
     let max_w = 2usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
 
     for i in 0..lmots_parameter.get_p() {

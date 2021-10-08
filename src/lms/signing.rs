@@ -10,9 +10,9 @@ use crate::lm_ots::signing::InMemoryLmotsSignature;
 use crate::lm_ots::signing::LmotsSignature;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::parameters::LmsAlgorithm;
-use crate::util::dynamic_array::DynamicArray;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
+use arrayvec::ArrayVec;
 
 use super::helper::get_tree_element;
 use super::parameters::LmsParameter;
@@ -21,7 +21,7 @@ use super::parameters::LmsParameter;
 pub struct LmsSignature<H: Hasher> {
     pub q: LmsLeafIdentifier,
     pub lmots_signature: LmotsSignature<H>,
-    pub path: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_H>,
+    pub path: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_H>,
     pub lms_parameter: LmsParameter<H>,
 }
 
@@ -72,7 +72,7 @@ impl<H: Hasher> LmsSignature<H> {
         let r =
             2usize.pow(height as u32) + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
 
-        let mut path: DynamicArray<DynamicArray<u8, MAX_HASH>, MAX_H> = DynamicArray::new();
+        let mut path: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_H> = ArrayVec::new();
 
         while i < height.into() {
             let tree_index = (r / (2usize.pow(i as u32))) ^ 0x1;
@@ -90,19 +90,23 @@ impl<H: Hasher> LmsSignature<H> {
         Ok(signature)
     }
 
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_LMS_SIGNATURE_LENGTH> {
-        let mut result = DynamicArray::new();
+    pub fn to_binary_representation(&self) -> ArrayVec<u8, MAX_LMS_SIGNATURE_LENGTH> {
+        let mut result = ArrayVec::new();
 
-        result.append(&self.q);
+        result.try_extend_from_slice(&self.q).unwrap();
 
         let lmots_signature = self.lmots_signature.to_binary_representation();
 
-        result.append(lmots_signature.as_slice());
+        result
+            .try_extend_from_slice(lmots_signature.as_slice())
+            .unwrap();
 
-        result.append(&u32str(self.lms_parameter.get_type() as u32));
+        result
+            .try_extend_from_slice(&u32str(self.lms_parameter.get_type() as u32))
+            .unwrap();
 
         for element in self.path.iter() {
-            result.append(element.as_slice());
+            result.try_extend_from_slice(element.as_slice()).unwrap();
         }
 
         result

@@ -101,17 +101,15 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     expanded_aux_data.level = aux_level as u32;
     aux_level &= 0x7ffffffff;
 
-    let mut h = 0;
-    while h <= MAX_H {
-        if (aux_level >> h) & 1 != 0 {
-            index += size_hash << h;
-        }
-
-        h += 1;
-    }
-
     // Check if data is valid
     if let Some(seed) = seed {
+
+        for h in 0..(MAX_H + 1) {
+            if (aux_level >> h) & 1 != 0 {
+                index += size_hash << h;
+            }
+        }
+
         let expected_len = index + size_hash;
 
         if expected_len > aux_data.len() {
@@ -136,18 +134,14 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     index = 4;
     aux_data = &mut aux_data[index..];
 
-    let mut h = 0;
-    while h <= MAX_H {
-        if aux_level & 1 != 0 {
-            let len = size_hash << h;
-            index += len;
-            let (left, rest) = aux_data.split_at_mut(len);
-            aux_data = rest;
-            expanded_aux_data.data[h] = Some(left);
-        }
+    for h in 0..(MAX_H + 1) {
+        if (aux_level >> h) & 1 != 0 {
+            index = size_hash << h;
+            let (left, rest) = aux_data.split_at_mut(index);
 
-        h += 1;
-        aux_level >>= 1;
+            expanded_aux_data.data[h] = Some(left);
+            aux_data = rest;
+        }
     }
     expanded_aux_data.hmac = aux_data;
 

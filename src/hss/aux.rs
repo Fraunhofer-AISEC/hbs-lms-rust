@@ -84,7 +84,7 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     aux_data: Option<&'a mut [u8]>,
     seed: Option<&'a [u8]>,
 ) -> Option<MutableExpandedAuxData<'a>> {
-    let size_hash = H::OUTPUT_SIZE;
+    let size_hash = H::OUTPUT_SIZE as usize;
 
     let mut expanded_aux_data: MutableExpandedAuxData = Default::default();
 
@@ -185,7 +185,7 @@ pub fn hss_save_aux_data<H: Hasher>(
         return;
     }
 
-    let size_hash = H::OUTPUT_SIZE;
+    let size_hash = H::OUTPUT_SIZE as usize;
 
     let dest = data.data[level as usize].as_mut().unwrap();
     let start_index = size_hash * lms_leaf_identifier as usize;
@@ -222,7 +222,7 @@ pub fn hss_extract_aux_data<H: Hasher>(
 
     let src = aux.data[level as usize].as_ref().unwrap();
 
-    let hash_size = H::OUTPUT_SIZE;
+    let hash_size = H::OUTPUT_SIZE as usize;
 
     let start_index = lms_leaf_identifier as usize * hash_size;
     let end_index = start_index + hash_size;

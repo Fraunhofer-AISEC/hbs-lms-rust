@@ -82,8 +82,8 @@ impl<H: Hasher> LmotsSignature<H> {
         for i in 0..lmots_parameter.get_max_hash_iterations() {
             let a = coef(
                 message_hash_with_checksum.as_slice(),
-                i as u64,
-                lmots_parameter.get_winternitz() as u64,
+                i,
+                lmots_parameter.get_winternitz(),
             ) as usize;
             let initial = private_key.key[i as usize].clone();
             let mut hash_chain_data = H::prepare_hash_chain_data(
@@ -137,17 +137,21 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
 
         let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type(lm_ots_type));
 
-        let n = lmots_parameter.get_hash_function_output_size();
-        let p = lmots_parameter.get_max_hash_iterations();
+        let lm_ots_hash_function_output_size = lmots_parameter.get_hash_function_output_size();
+        let max_hash_iterations = lmots_parameter.get_max_hash_iterations();
 
-        if data.len() != 4 + n as usize * (p as usize + 1) {
+        if data.len()
+            != 4 + lm_ots_hash_function_output_size as usize * (max_hash_iterations as usize + 1)
+        {
             return None;
         }
 
-        let signature_randomizer: &'a [u8] = &consumed_data[..n as usize];
-        consumed_data = &consumed_data[n as usize..];
+        let signature_randomizer: &'a [u8] =
+            &consumed_data[..lm_ots_hash_function_output_size as usize];
+        consumed_data = &consumed_data[lm_ots_hash_function_output_size as usize..];
 
-        let signature_data: &'a [u8] = &consumed_data[..p as usize * n];
+        let signature_data: &'a [u8] =
+            &consumed_data[..max_hash_iterations as usize * lm_ots_hash_function_output_size];
 
         let signature = Self {
             signature_randomizer,

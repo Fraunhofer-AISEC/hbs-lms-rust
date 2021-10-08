@@ -24,8 +24,8 @@ impl Sha256Hasher {
 }
 
 impl Hasher for Sha256Hasher {
-    const OUTPUT_SIZE: usize = 32;
-    const BLOCK_SIZE: usize = 64;
+    const OUTPUT_SIZE: u16 = 32;
+    const BLOCK_SIZE: u16 = 64;
 
     fn get_hasher() -> Self {
         Self::new()

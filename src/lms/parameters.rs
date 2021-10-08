@@ -72,7 +72,7 @@ pub struct LmsParameter<H: Hasher = Sha256Hasher> {
 impl<H: Hasher> Copy for LmsParameter<H> {}
 
 impl<H: Hasher> LmsParameter<H> {
-    const HASH_FUNCTION_OUTPUT_SIZE: usize = H::OUTPUT_SIZE;
+    const HASH_FUNCTION_OUTPUT_SIZE: usize = H::OUTPUT_SIZE as usize;
 
     pub fn new(type_id: u32, tree_height: u8) -> Self {
         Self {

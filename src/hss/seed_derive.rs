@@ -33,7 +33,7 @@ impl<'a> SeedDerive<'a> {
         self.child_seed = seed;
     }
 
-    pub fn seed_derive(&mut self, increment_j: bool) -> [u8; Sha256Hasher::OUTPUT_SIZE] {
+    pub fn seed_derive(&mut self, increment_j: bool) -> [u8; Sha256Hasher::OUTPUT_SIZE as usize] {
         let mut buffer = [0u8; PRNG_MAX_LEN];
 
         buffer[PRNG_I..PRNG_I + ILEN].copy_from_slice(self.lms_tree_identifier);
@@ -56,7 +56,7 @@ impl<'a> SeedDerive<'a> {
             self.child_seed += 1;
         }
 
-        let mut result = [0u8; Sha256Hasher::OUTPUT_SIZE];
+        let mut result = [0u8; Sha256Hasher::OUTPUT_SIZE as usize];
 
         result.copy_from_slice(hasher.finalize().as_slice());
 

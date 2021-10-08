@@ -59,8 +59,8 @@ pub fn generate_public_key_candiate<'a, H: Hasher>(
     for i in 0..lmots_parameter.get_max_hash_iterations() {
         let a = coef(
             message_hash_with_checksum.as_slice(),
-            i as u64,
-            lmots_parameter.get_winternitz() as u64,
+            i,
+            lmots_parameter.get_winternitz(),
         ) as usize;
 
         let initial = signature.get_signature_data(i as usize);

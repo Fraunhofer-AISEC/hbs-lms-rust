@@ -20,8 +20,8 @@ pub struct HashChainData([u8; ITER_MAX_LEN]);
  * But with that we can derive PartialEq automatically for our tests.
  * */
 pub trait Hasher: Default + Clone + PartialEq {
-    const OUTPUT_SIZE: usize;
-    const BLOCK_SIZE: usize;
+    const OUTPUT_SIZE: u16;
+    const BLOCK_SIZE: u16;
     fn get_hasher() -> Self;
     fn update(&mut self, data: &[u8]);
     fn finalize(self) -> ArrayVec<u8, MAX_HASH_SIZE>;

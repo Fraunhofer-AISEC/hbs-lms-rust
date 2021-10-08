@@ -76,7 +76,7 @@ pub struct LmotsParameter<H: Hasher = Sha256Hasher> {
 impl<H: Hasher> Copy for LmotsParameter<H> {}
 
 impl<H: Hasher> LmotsParameter<H> {
-    const HASH_FUNCTION_OUTPUT_SIZE: usize = H::OUTPUT_SIZE;
+    const HASH_FUNCTION_OUTPUT_SIZE: usize = H::OUTPUT_SIZE as usize;
 
     pub fn new(
         type_id: u32,
@@ -115,12 +115,13 @@ impl<H: Hasher> LmotsParameter<H> {
 
     fn checksum(&self, byte_string: &[u8]) -> u16 {
         let mut sum = 0_u16;
-        let max: u64 =
-            ((Self::HASH_FUNCTION_OUTPUT_SIZE * 8) as f64 / self.get_winternitz() as f64) as u64;
+
+        let max = (Self::HASH_FUNCTION_OUTPUT_SIZE as u16 * 8) / self.get_winternitz() as u16;
+
         let max_word_size: u64 = (1 << self.get_winternitz()) - 1;
 
         for i in 0..max {
-            sum += (max_word_size - coef(byte_string, i, self.get_winternitz() as u64)) as u16;
+            sum += (max_word_size - coef(byte_string, i, self.get_winternitz())) as u16;
         }
 
         sum << self.get_checksum_left_shift()

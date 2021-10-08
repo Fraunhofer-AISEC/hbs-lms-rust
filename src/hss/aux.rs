@@ -97,7 +97,7 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     }
 
     let mut index = 4;
-    let mut aux_level = str32u(&aux_data[0..index]) as u64; //TODO wieso u64 und nicht u32? (findet sich an mehreren Stellen)
+    let mut aux_level = str32u(&aux_data[0..index]) as u64; // u64 is used otherwise we could not AND it with 0x7ffffffff
     expanded_aux_data.level = aux_level as u32;
     aux_level &= 0x7ffffffff;
 

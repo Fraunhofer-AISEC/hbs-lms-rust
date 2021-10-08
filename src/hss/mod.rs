@@ -21,7 +21,7 @@ use self::{
 };
 
 /**
- * Describes a public and private key pair.
+ * Describes a public and private key.
  * */
 pub struct HssKeyPair {
     pub public_key: ArrayVec<u8, { 4 + 4 + 4 + 16 + MAX_HASH }>,
@@ -49,7 +49,7 @@ impl HssKeyPair {
 }
 
 /**
- * This function is used to verify a signatured.
+ * This function is used to verify a signature.
  *
  * # Arguments
  * * `Hasher` - The hasher implementation that should be used. ```Sha256Hasher``` is a standard software implementation.
@@ -107,11 +107,11 @@ pub fn hss_sign<H: Hasher>(
 }
 
 /**
- * This function is used to generate a public-private key pair.
+ * This function is used to generate a public and private key.
  * # Arguments
  *
  * * `Hasher` - The hasher implementation that should be used. ```Sha256Hasher``` is a standard software implementation.
- * * `parameters` - An array which specify the Winternitz parameter and tree height of each individual HSS level. The first element describes Level 1, the second element Level 2 and so on.
+ * * `parameters` - An array which specifies the Winternitz parameter and tree height of each individual HSS level. The first element describes Level 1, the second element Level 2 and so on.
  * * `seed` - An optional seed which will be used to generate the private key. It must be only used for testing purposes and not for production used key pairs.
  * * `aux_data` - The reference to a slice to auxiliary data. This can be used to speedup signature generation.
  *

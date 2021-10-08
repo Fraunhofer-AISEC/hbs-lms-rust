@@ -12,8 +12,8 @@ pub struct HashChainData([u8; ITER_MAX_LEN]);
 
 /**
  *
- * This trait is used inside the library to generate hashes. A standard software implemention exists as `Sha256Hasher`.
- * It can be used to outsorce calculations to hardware accelerators.
+ * This trait is used inside the library to generate hashes. A standard software implementation exists as `Sha256Hasher`.
+ * It can be used to outsource calculations to hardware accelerators.
  *
  *
  * Implements PartialEq, although it makes no sense to compare two hasher.

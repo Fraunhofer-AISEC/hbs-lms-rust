@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-//! This library implements the Leighton-Micali-Signature system <https://datatracker.ietf.org/doc/html/rfc8554>
+//! This library implements the Leighton-Micali-Signature scheme <https://datatracker.ietf.org/doc/html/rfc8554>
 //!
 //! # Example
 //! ```

@@ -1,9 +1,11 @@
 use core::marker::PhantomData;
 
+use arrayvec::ArrayVec;
+
 use crate::{
     constants::MAX_HASH,
     hasher::{sha256::Sha256Hasher, Hasher},
-    util::{coef::coef, dynamic_array::DynamicArray},
+    util::coef::coef,
 };
 
 /// Specifies the used Winternitz parameter.
@@ -118,15 +120,19 @@ impl<H: Hasher> LmotsParameter<H> {
         sum << self.get_ls()
     }
 
-    pub fn append_checksum_to(&self, byte_string: &[u8]) -> DynamicArray<u8, { MAX_HASH + 2 }> {
-        let mut result = DynamicArray::new();
+    pub fn append_checksum_to(&self, byte_string: &[u8]) -> ArrayVec<u8, { MAX_HASH + 2 }> {
+        let mut result = ArrayVec::new();
 
         let checksum = self.checksum(byte_string);
 
-        result.append(byte_string);
+        result.try_extend_from_slice(byte_string).unwrap();
 
-        result.append(&[(checksum >> 8 & 0xff) as u8]);
-        result.append(&[(checksum & 0xff) as u8]);
+        result
+            .try_extend_from_slice(&[(checksum >> 8 & 0xff) as u8])
+            .unwrap();
+        result
+            .try_extend_from_slice(&[(checksum & 0xff) as u8])
+            .unwrap();
 
         result
     }

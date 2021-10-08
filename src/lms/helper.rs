@@ -1,11 +1,11 @@
 use crate::constants::MAX_HASH;
 use crate::hasher::Hasher;
 use crate::hss::aux::{hss_extract_aux_data, hss_save_aux_data, MutableExpandedAuxData};
-use crate::util::dynamic_array::DynamicArray;
 use crate::{
     constants::{D_INTR, D_LEAF},
     util::ustr::u32str,
 };
+use arrayvec::ArrayVec;
 
 use super::definitions::LmsPrivateKey;
 
@@ -13,7 +13,7 @@ pub fn get_tree_element<H: Hasher>(
     index: usize,
     private_key: &LmsPrivateKey<H>,
     aux_data: &mut Option<MutableExpandedAuxData>,
-) -> DynamicArray<u8, MAX_HASH> {
+) -> ArrayVec<u8, MAX_HASH> {
     // Check if we already have the value cached
     if let Some(aux_data) = aux_data {
         if let Some(result) = hss_extract_aux_data::<H>(aux_data, index) {

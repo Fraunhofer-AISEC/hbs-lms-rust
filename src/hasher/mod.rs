@@ -1,6 +1,9 @@
+use arrayvec::ArrayVec;
+use core::convert::TryFrom;
+
 use crate::{
     constants::{winternitz_chain::*, MAX_HASH},
-    util::{dynamic_array::DynamicArray, ustr::u16str},
+    util::ustr::u16str,
 };
 
 pub mod sha256;
@@ -21,8 +24,8 @@ pub trait Hasher: Default + Clone + PartialEq {
     const BLOCK_SIZE: usize;
     fn get_hasher() -> Self;
     fn update(&mut self, data: &[u8]);
-    fn finalize(self) -> DynamicArray<u8, MAX_HASH>;
-    fn finalize_reset(&mut self) -> DynamicArray<u8, MAX_HASH>;
+    fn finalize(self) -> ArrayVec<u8, MAX_HASH>;
+    fn finalize_reset(&mut self) -> ArrayVec<u8, MAX_HASH>;
 
     fn prepare_hash_chain_data(
         lms_tree_identifier: &[u8],
@@ -41,7 +44,7 @@ pub trait Hasher: Default + Clone + PartialEq {
         initial_value: &[u8],
         from: usize,
         to: usize,
-    ) -> DynamicArray<u8, MAX_HASH> {
+    ) -> ArrayVec<u8, MAX_HASH> {
         let temp = &mut hash_chain_data.0;
 
         temp[ITER_K..ITER_J].copy_from_slice(&u16str(hash_chain_id));
@@ -49,7 +52,7 @@ pub trait Hasher: Default + Clone + PartialEq {
 
         self.do_actual_hash_chain(temp, from, to);
 
-        DynamicArray::from_slice(&temp[ITER_PREV..])
+        ArrayVec::try_from(&temp[ITER_PREV..]).unwrap()
     }
 
     fn do_actual_hash_chain(&mut self, temp: &mut [u8], from: usize, to: usize) {

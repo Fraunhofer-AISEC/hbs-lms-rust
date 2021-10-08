@@ -6,10 +6,10 @@ use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::lm_ots::parameters::LmotsParameter;
 use crate::lms::parameters::LmsAlgorithm;
-use crate::util::dynamic_array::DynamicArray;
 use crate::util::helper::read_and_advance;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
+use arrayvec::ArrayVec;
 
 use super::parameters::LmsParameter;
 
@@ -60,7 +60,7 @@ impl<H: Hasher> LmsPrivateKey<H> {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct LmsPublicKey<H: Hasher> {
-    pub key: DynamicArray<u8, MAX_HASH>,
+    pub key: ArrayVec<u8, MAX_HASH>,
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
@@ -87,7 +87,7 @@ impl<'a, H: Hasher> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H> {
 
 impl<H: Hasher> LmsPublicKey<H> {
     pub fn new(
-        public_key: DynamicArray<u8, MAX_HASH>,
+        public_key: ArrayVec<u8, MAX_HASH>,
         lms_tree_identifier: LmsTreeIdentifier,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
@@ -100,14 +100,21 @@ impl<H: Hasher> LmsPublicKey<H> {
         }
     }
 
-    pub fn to_binary_representation(&self) -> DynamicArray<u8, MAX_LMS_PUBLIC_KEY_LENGTH> {
-        let mut result = DynamicArray::new();
+    pub fn to_binary_representation(&self) -> ArrayVec<u8, MAX_LMS_PUBLIC_KEY_LENGTH> {
+        let mut result = ArrayVec::new();
 
-        result.append(&u32str(self.lms_parameter.get_type()));
-        result.append(&u32str(self.lmots_parameter.get_type()));
+        result
+            .try_extend_from_slice(&u32str(self.lms_parameter.get_type()))
+            .unwrap();
+        result
+            .try_extend_from_slice(&u32str(self.lmots_parameter.get_type()))
+            .unwrap();
 
-        result.append(&self.lms_tree_identifier);
-        result.append(self.key.as_slice());
+        result
+            .try_extend_from_slice(&self.lms_tree_identifier)
+            .unwrap();
+
+        result.try_extend_from_slice(self.key.as_slice()).unwrap();
 
         result
     }

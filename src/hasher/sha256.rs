@@ -1,10 +1,9 @@
-// use std::print;
+use arrayvec::ArrayVec;
+use core::convert::TryFrom;
 
 use sha2::{Digest, Sha256};
 
-use crate::{constants::MAX_HASH, util::dynamic_array::DynamicArray};
-
-// use std::io::Write;
+use crate::constants::MAX_HASH;
 
 use super::Hasher;
 
@@ -36,13 +35,13 @@ impl Hasher for Sha256Hasher {
         self.hasher.update(data);
     }
 
-    fn finalize(self) -> DynamicArray<u8, MAX_HASH> {
-        let result = DynamicArray::from_slice(self.hasher.finalize().iter().as_slice());
+    fn finalize(self) -> ArrayVec<u8, MAX_HASH> {
+        let result = ArrayVec::try_from(self.hasher.finalize().iter().as_slice()).unwrap();
         result
     }
 
-    fn finalize_reset(&mut self) -> DynamicArray<u8, MAX_HASH> {
-        let result = DynamicArray::from_slice(self.hasher.finalize_reset().iter().as_slice());
+    fn finalize_reset(&mut self) -> ArrayVec<u8, MAX_HASH> {
+        let result = ArrayVec::try_from(self.hasher.finalize_reset().iter().as_slice()).unwrap();
         result
     }
 }

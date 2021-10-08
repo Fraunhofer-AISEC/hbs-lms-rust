@@ -1,15 +1,25 @@
 stages:
+  - lint
   - build
 
-rust-latest:
-  stage: build
+fmt:
+  stage: lint
   image: rust:latest
   before_script:
     - rustup component add rustfmt
   script:
+    - cargo fmt --all -- --check
+  tags:
+    - asprunner
+
+rust-latest:
+  stage: build
+  image: rust:latest
+  script:
     - cargo build --verbose
     - cargo test --verbose
-    - cargo fmt --all -- --check
+  tags:
+    - asprunner
 
 rust-nightly:
   stage: build
@@ -18,3 +28,5 @@ rust-nightly:
     - cargo build --verbose
     - cargo test --verbose
   allow_failure: true
+  tags:
+    - asprunner

@@ -18,21 +18,21 @@ pub const TOPSEED_D: usize = 20;
 pub const TOPSEED_WHICH: usize = 22;
 pub const D_TOPSEED: u16 = 0xfefe;
 
-pub const PRG_I: usize = 0;
-pub const PRG_Q: usize = 16;
-pub const PRG_J: usize = 20;
-pub const PRG_FF: usize = 22;
-pub const PRG_SEED: usize = 23;
+pub const PRNG_I: usize = 0;
+pub const PRNG_Q: usize = 16;
+pub const PRNG_J: usize = 20;
+pub const PRNG_FF: usize = 22;
+pub const PRNG_SEED: usize = 23;
 
 pub const SEED_CHILD_SEED: u16 = !1;
 
-pub const fn prg_len(seed_len: usize) -> usize {
+pub const fn prng_len(seed_len: usize) -> usize {
     23 + seed_len
 }
 
 pub const MAX_HASH: usize = 32;
 
-pub const PRG_MAX_LEN: usize = prg_len(MAX_HASH);
+pub const PRNG_MAX_LEN: usize = prng_len(MAX_HASH);
 
 pub const MAX_P: usize = 265;
 pub const MAX_H: usize = 25;

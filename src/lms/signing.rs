@@ -131,8 +131,8 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
 
         let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type::<H>(lm_ots_type));
 
-        let n = lmots_parameter.get_n();
-        let p = lmots_parameter.get_p();
+        let n = lmots_parameter.get_hash_function_output_size();
+        let p = lmots_parameter.get_max_hash_iterations();
 
         if data.len() < 12 + n as usize * (p as usize + 1) {
             return None;
@@ -166,7 +166,7 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
 
         let mut tree_slice = data;
         let tree_start =
-            12 + lmots_parameter.get_n() as usize * (lmots_parameter.get_p() as usize + 1);
+            12 + lmots_parameter.get_hash_function_output_size() as usize * (lmots_parameter.get_max_hash_iterations() as usize + 1);
 
         tree_slice = &tree_slice[tree_start..];
 

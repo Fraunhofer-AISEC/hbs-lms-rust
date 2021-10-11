@@ -64,10 +64,10 @@ impl LmotsAlgorithm {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LmotsParameter<H: Hasher = Sha256Hasher> {
-    id: u32,
+    type_id: u32,
     winternitz: u8,
-    p: u16,
-    ls: u8,
+    max_hash_iterations: u16,
+    checksum_left_shift: u8,
     phantom_data: PhantomData<H>,
 }
 
@@ -76,48 +76,48 @@ pub struct LmotsParameter<H: Hasher = Sha256Hasher> {
 impl<H: Hasher> Copy for LmotsParameter<H> {}
 
 impl<H: Hasher> LmotsParameter<H> {
-    const N: usize = H::OUTPUT_SIZE;
+    const HASH_FUNCTION_OUTPUT_SIZE: usize = H::OUTPUT_SIZE;
 
-    pub fn new(id: u32, winternitz: u8, p: u16, ls: u8) -> Self {
+    pub fn new(type_id: u32, winternitz: u8, max_hash_iterations: u16, checksum_left_shift: u8) -> Self {
         Self {
-            id,
+            type_id,
             winternitz,
-            p,
-            ls,
+            max_hash_iterations,
+            checksum_left_shift,
             phantom_data: PhantomData,
         }
     }
 
-    pub fn get_type(&self) -> u32 {
-        self.id
+    pub fn get_type_id(&self) -> u32 {
+        self.type_id
     }
 
     pub fn get_winternitz(&self) -> u8 {
         self.winternitz
     }
 
-    pub fn get_p(&self) -> u16 {
-        self.p
+    pub fn get_max_hash_iterations(&self) -> u16 {
+        self.max_hash_iterations
     }
 
-    pub fn get_ls(&self) -> u8 {
-        self.ls
+    pub fn get_checksum_left_shift(&self) -> u8 {
+        self.checksum_left_shift
     }
 
-    pub fn get_n(&self) -> usize {
-        Self::N
+    pub fn get_hash_function_output_size(&self) -> usize {
+        Self::HASH_FUNCTION_OUTPUT_SIZE
     }
 
     fn checksum(&self, byte_string: &[u8]) -> u16 {
         let mut sum = 0_u16;
-        let max: u64 = ((Self::N * 8) as f64 / self.get_winternitz() as f64) as u64;
+        let max: u64 = ((Self::HASH_FUNCTION_OUTPUT_SIZE * 8) as f64 / self.get_winternitz() as f64) as u64;
         let max_word_size: u64 = (1 << self.get_winternitz()) - 1;
 
         for i in 0..max {
             sum += (max_word_size - coef(byte_string, i, self.get_winternitz() as u64)) as u16;
         }
 
-        sum << self.get_ls()
+        sum << self.get_checksum_left_shift()
     }
 
     pub fn append_checksum_to(&self, byte_string: &[u8]) -> ArrayVec<u8, { MAX_HASH + 2 }> {

@@ -18,7 +18,7 @@ pub fn generate_private_key<H: Hasher>(
 
     let mut hasher = lmots_parameter.get_hasher();
 
-    for index in 0..lmots_parameter.get_p() {
+    for index in 0..lmots_parameter.get_max_hash_iterations() {
         hasher.update(&lms_tree_identifier);
         hasher.update(&lms_leaf_identifier);
         hasher.update(&u16str(index as u16));
@@ -40,7 +40,7 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
 
     let mut public_key_data: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P> = ArrayVec::new();
 
-    for i in 0..lmots_parameter.get_p() as usize {
+    for i in 0..lmots_parameter.get_max_hash_iterations() as usize {
         let mut hash_chain_data = H::prepare_hash_chain_data(
             &private_key.lms_tree_identifier,
             &private_key.lms_leaf_identifier,

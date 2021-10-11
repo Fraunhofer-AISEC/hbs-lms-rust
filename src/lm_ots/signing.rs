@@ -60,7 +60,7 @@ impl<H: Hasher> LmotsSignature<H> {
 
         let mut hasher = lmots_parameter.get_hasher();
 
-        for _ in 0..lmots_parameter.get_n() {
+        for _ in 0..lmots_parameter.get_hash_function_output_size() {
             signature_randomizer.push(0u8);
         }
 
@@ -78,7 +78,7 @@ impl<H: Hasher> LmotsSignature<H> {
 
         let mut signature_data: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P> = ArrayVec::new();
 
-        for i in 0..lmots_parameter.get_p() {
+        for i in 0..lmots_parameter.get_max_hash_iterations() {
             let a = coef(
                 message_hash_with_checksum.as_slice(),
                 i as u64,
@@ -105,7 +105,7 @@ impl<H: Hasher> LmotsSignature<H> {
         let mut result = ArrayVec::new();
 
         result
-            .try_extend_from_slice(&u32str(self.lmots_parameter.get_type()))
+            .try_extend_from_slice(&u32str(self.lmots_parameter.get_type_id()))
             .unwrap();
         result
             .try_extend_from_slice(self.signature_randomizer.as_slice())
@@ -134,8 +134,8 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
 
         let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type(lm_ots_type));
 
-        let n = lmots_parameter.get_n();
-        let p = lmots_parameter.get_p();
+        let n = lmots_parameter.get_hash_function_output_size();
+        let p = lmots_parameter.get_max_hash_iterations();
 
         if data.len() != 4 + n as usize * (p as usize + 1) {
             return None;
@@ -156,7 +156,7 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
     }
 
     pub fn get_y(&self, index: usize) -> &[u8] {
-        let step = self.lmots_parameter.get_n();
+        let step = self.lmots_parameter.get_hash_function_output_size();
         let start = step * index;
         let end = start + step;
         &self.signature_data[start..end]
@@ -181,13 +181,13 @@ mod tests {
         let mut signature_randomizer = ArrayVec::new();
         let mut signature_data: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P> = ArrayVec::new();
 
-        for i in 0..lmots_parameter.get_n() as usize {
+        for i in 0..lmots_parameter.get_hash_function_output_size() as usize {
             signature_randomizer.push(i as u8);
         }
 
-        for i in 0..lmots_parameter.get_p() as usize {
+        for i in 0..lmots_parameter.get_max_hash_iterations() as usize {
             signature_data.push(ArrayVec::new());
-            for j in 0..lmots_parameter.get_n() as usize {
+            for j in 0..lmots_parameter.get_hash_function_output_size() as usize {
                 signature_data[i].push(j as u8);
             }
         }

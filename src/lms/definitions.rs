@@ -107,7 +107,7 @@ impl<H: Hasher> LmsPublicKey<H> {
             .try_extend_from_slice(&u32str(self.lms_parameter.get_type()))
             .unwrap();
         result
-            .try_extend_from_slice(&u32str(self.lmots_parameter.get_type()))
+            .try_extend_from_slice(&u32str(self.lmots_parameter.get_type_id()))
             .unwrap();
 
         result

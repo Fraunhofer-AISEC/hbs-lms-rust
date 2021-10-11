@@ -70,7 +70,7 @@ impl<H: Hasher> HssSignature<H> {
         let lms_parameter = private_key.private_key[0].lms_parameter;
 
         let parameter = HssParameter::new(
-            LmotsAlgorithm::from(lmots_parameter.get_type()),
+            LmotsAlgorithm::from(lmots_parameter.get_type_id()),
             LmsAlgorithm::from(lms_parameter.get_type()),
         );
 
@@ -237,8 +237,8 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
         };
 
         let sig_size = lms_signature_length(
-            sig.lmots_signature.lmots_parameter.get_n(),
-            sig.lmots_signature.lmots_parameter.get_p() as usize,
+            sig.lmots_signature.lmots_parameter.get_hash_function_output_size(),
+            sig.lmots_signature.lmots_parameter.get_max_hash_iterations() as usize,
             sig.lms_parameter.get_m(),
             sig.lms_parameter.get_height() as usize,
         );
@@ -254,8 +254,8 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
     pub fn len(&self) -> usize {
         let sig = &self.sig;
         let sig_size = lms_signature_length(
-            sig.lmots_signature.lmots_parameter.get_n(),
-            sig.lmots_signature.lmots_parameter.get_p() as usize,
+            sig.lmots_signature.lmots_parameter.get_hash_function_output_size(),
+            sig.lmots_signature.lmots_parameter.get_max_hash_iterations() as usize,
             sig.lms_parameter.get_m(),
             sig.lms_parameter.get_height() as usize,
         );

@@ -56,7 +56,7 @@ pub fn generate_public_key_candiate<'a, H: Hasher>(
     let mut z: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P> = ArrayVec::new();
     let max_w = 2usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
 
-    for i in 0..lmots_parameter.get_p() {
+    for i in 0..lmots_parameter.get_max_hash_iterations() {
         let a = coef(
             message_hash_with_checksum.as_slice(),
             i as u64,

@@ -64,11 +64,11 @@ mod tests {
             #[test]
             fn $name() {
                 let parameter = $parameter.construct_parameter::<Sha256Hasher>().unwrap();
-                assert_eq!(parameter.get_n(), $n);
+                assert_eq!(parameter.get_hash_function_output_size(), $n);
                 assert_eq!(parameter.get_winternitz(), $w);
-                assert_eq!(parameter.get_p(), $p);
-                assert_eq!(parameter.get_ls(), $ls);
-                assert_eq!(parameter.get_type(), $type);
+                assert_eq!(parameter.get_max_hash_iterations(), $p);
+                assert_eq!(parameter.get_checksum_left_shift(), $ls);
+                assert_eq!(parameter.get_type_id(), $type);
             }
         };
     }

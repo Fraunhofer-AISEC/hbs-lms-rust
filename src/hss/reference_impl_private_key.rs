@@ -23,7 +23,7 @@ To be compatible with the reference implementation
  */
 
 #[derive(Default, PartialEq)]
-pub struct RfcPrivateKey<H: Hasher> {
+pub struct ReferenceImplPrivateKey<H: Hasher> {
     pub q: u64,
     pub compressed_parameter: CompressedParameterSet,
     pub seed: Seed,
@@ -50,9 +50,9 @@ impl SeedAndLmsTreeIdentifier {
     }
 }
 
-impl<H: Hasher> RfcPrivateKey<H> {
+impl<H: Hasher> ReferenceImplPrivateKey<H> {
     pub fn generate_with_seed(parameters: &[HssParameter<H>], seed: &[u8]) -> Option<Self> {
-        let mut private_key: RfcPrivateKey<H> = RfcPrivateKey {
+        let mut private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
             q: 0,
             compressed_parameter: extract_or_return!(CompressedParameterSet::from(parameters)),
             ..Default::default()
@@ -71,7 +71,7 @@ impl<H: Hasher> RfcPrivateKey<H> {
         let mut seed: Seed = Default::default();
         get_random(&mut seed);
 
-        RfcPrivateKey::generate_with_seed(parameters, &seed)
+        ReferenceImplPrivateKey::generate_with_seed(parameters, &seed)
     }
 
     pub fn to_binary_representation(&self) -> ArrayVec<u8, RFC_PRIVATE_KEY_SIZE> {
@@ -216,7 +216,7 @@ impl CompressedParameterSet {
 #[cfg(test)]
 mod tests {
 
-    use super::{CompressedParameterSet, RfcPrivateKey};
+    use super::{CompressedParameterSet, ReferenceImplPrivateKey};
     use crate::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
 
     type Hasher = Sha256Hasher;
@@ -251,11 +251,11 @@ mod tests {
             HssParameter::construct_default_parameters(),
         ];
 
-        let key = RfcPrivateKey::generate(&parameters).unwrap();
+        let key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
 
         let binary_representation = key.to_binary_representation();
         let deserialized =
-            RfcPrivateKey::<Hasher>::from_binary_representation(binary_representation.as_slice())
+            ReferenceImplPrivateKey::<Hasher>::from_binary_representation(binary_representation.as_slice())
                 .unwrap();
 
         assert!(key == deserialized);

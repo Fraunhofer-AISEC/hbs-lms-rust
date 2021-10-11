@@ -268,7 +268,7 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
 #[cfg(test)]
 mod tests {
     use crate::hasher::sha256::Sha256Hasher;
-    use crate::hss::rfc_private_key::RfcPrivateKey;
+    use crate::hss::reference_impl_private_key::ReferenceImplPrivateKey;
     use crate::hss::signing::InMemoryHssSignature;
     use crate::hss::signing::InMemoryHssSignedPublicKey;
     use crate::lms::signing::LmsSignature;
@@ -301,7 +301,7 @@ mod tests {
 
     #[test]
     fn test_hss_signature_binary_representation() {
-        let private_key = RfcPrivateKey::<Sha256Hasher>::generate(&[
+        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(&[
             HssParameter::construct_default_parameters(),
             HssParameter::construct_default_parameters(),
         ])

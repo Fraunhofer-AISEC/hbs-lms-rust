@@ -1,7 +1,7 @@
 pub mod aux;
 pub mod definitions;
 pub mod parameter;
-pub mod rfc_private_key;
+pub mod reference_impl_private_key;
 mod seed_derive;
 pub mod signing;
 pub mod verify;
@@ -16,7 +16,7 @@ use crate::{
 };
 
 use self::{
-    definitions::HssPrivateKey, parameter::HssParameter, rfc_private_key::RfcPrivateKey,
+    definitions::HssPrivateKey, parameter::HssParameter, reference_impl_private_key::ReferenceImplPrivateKey,
     signing::HssSignature,
 };
 
@@ -81,7 +81,7 @@ pub fn hss_sign<H: Hasher>(
     aux_data: Option<&mut &mut [u8]>,
 ) -> Option<ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>> {
     let mut rfc_private_key =
-        extract_or_return!(RfcPrivateKey::from_binary_representation(private_key));
+        extract_or_return!(ReferenceImplPrivateKey::from_binary_representation(private_key));
 
     let mut parsed_private_key: HssPrivateKey<H> =
         match HssPrivateKey::from(&rfc_private_key, aux_data) {
@@ -132,9 +132,9 @@ pub fn hss_keygen<H: Hasher>(
     aux_data: Option<&mut &mut [u8]>,
 ) -> Option<HssKeyPair> {
     let private_key = if let Some(seed) = seed {
-        RfcPrivateKey::generate_with_seed(parameters, seed)
+        ReferenceImplPrivateKey::generate_with_seed(parameters, seed)
     } else {
-        RfcPrivateKey::generate(parameters)
+        ReferenceImplPrivateKey::generate(parameters)
     };
 
     if let Some(private_key) = private_key {

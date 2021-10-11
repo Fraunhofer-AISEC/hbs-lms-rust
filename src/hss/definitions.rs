@@ -24,10 +24,10 @@ use crate::{
     },
 };
 
-use super::rfc_private_key::RfcPrivateKey;
+use super::reference_impl_private_key::ReferenceImplPrivateKey;
 use super::{
     aux::{hss_is_aux_data_used, MutableExpandedAuxData},
-    rfc_private_key::generate_child_seed_and_lms_tree_identifier,
+    reference_impl_private_key::generate_child_seed_and_lms_tree_identifier,
 };
 
 #[derive(Default, PartialEq)]
@@ -43,7 +43,7 @@ impl<H: Hasher> HssPrivateKey<H> {
     }
 
     pub fn from(
-        private_key: &RfcPrivateKey<H>,
+        private_key: &ReferenceImplPrivateKey<H>,
         aux_data: Option<&mut &mut [u8]>,
     ) -> Result<Self, ()> {
         let parameters = private_key.compressed_parameter.to::<H>();
@@ -109,7 +109,7 @@ impl<H: Hasher> HssPrivateKey<H> {
 
     fn get_expanded_aux_data<'a>(
         aux_data: Option<&'a mut &mut [u8]>,
-        private_key: &'a RfcPrivateKey<H>,
+        private_key: &'a ReferenceImplPrivateKey<H>,
         top_lms_parameter: &LmsParameter<H>,
         is_aux_data_used: bool,
     ) -> Option<MutableExpandedAuxData<'a>> {

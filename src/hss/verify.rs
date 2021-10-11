@@ -35,7 +35,7 @@ mod tests {
     use crate::hss::definitions::HssPrivateKey;
     use crate::hss::definitions::HssPublicKey;
     use crate::hss::definitions::InMemoryHssPublicKey;
-    use crate::hss::rfc_private_key::RfcPrivateKey;
+    use crate::hss::reference_impl_private_key::ReferenceImplPrivateKey;
     use crate::hss::signing::HssSignature;
     use crate::hss::signing::InMemoryHssSignature;
     use crate::hss::verify::verify;
@@ -43,7 +43,7 @@ mod tests {
 
     #[test]
     fn test_hss_verify() {
-        let private_key = RfcPrivateKey::<Sha256Hasher>::generate(&[
+        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(&[
             HssParameter::construct_default_parameters(),
             HssParameter::construct_default_parameters(),
         ])

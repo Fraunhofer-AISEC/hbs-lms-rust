@@ -71,7 +71,7 @@ impl<H: Hasher> HssSignature<H> {
 
         let parameter = HssParameter::new(
             LmotsAlgorithm::from(lmots_parameter.get_type_id()),
-            LmsAlgorithm::from(lms_parameter.get_type()),
+            LmsAlgorithm::from(lms_parameter.get_type_id()),
         );
 
         let prv = &mut private_key.private_key;
@@ -86,7 +86,7 @@ impl<H: Hasher> HssSignature<H> {
         let mut current_level = max_level;
 
         while prv[current_level - 1].used_leafs_index
-            == 2u32.pow(prv[current_level - 1].lms_parameter.get_height() as u32)
+            == 2u32.pow(prv[current_level - 1].lms_parameter.get_tree_height() as u32)
         {
             current_level -= 1;
             if current_level == 0 {
@@ -243,8 +243,8 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
             sig.lmots_signature
                 .lmots_parameter
                 .get_max_hash_iterations() as usize,
-            sig.lms_parameter.get_m(),
-            sig.lms_parameter.get_height() as usize,
+            sig.lms_parameter.get_hash_function_output_size(),
+            sig.lms_parameter.get_tree_height() as usize,
         );
 
         let public_key = match InMemoryLmsPublicKey::new(&data[sig_size..]) {
@@ -264,10 +264,11 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
             sig.lmots_signature
                 .lmots_parameter
                 .get_max_hash_iterations() as usize,
-            sig.lms_parameter.get_m(),
-            sig.lms_parameter.get_height() as usize,
+            sig.lms_parameter.get_hash_function_output_size(),
+            sig.lms_parameter.get_tree_height() as usize,
         );
-        let public_key_size = lms_public_key_length(sig.lms_parameter.get_m());
+        let public_key_size =
+            lms_public_key_length(sig.lms_parameter.get_hash_function_output_size());
 
         sig_size + public_key_size
     }

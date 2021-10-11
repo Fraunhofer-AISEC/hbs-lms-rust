@@ -36,7 +36,7 @@ fn generate_public_key_candiate<'a, H: Hasher>(
 ) -> Result<ArrayVec<u8, MAX_HASH>, ()> {
     let leafs = signature.lms_parameter.number_of_lm_ots_keys() as u32;
 
-    let curr = signature.q;
+    let curr = signature.lms_leaf_identifier;
     if curr >= leafs {
         return Err(());
     }
@@ -44,11 +44,11 @@ fn generate_public_key_candiate<'a, H: Hasher>(
     let ots_public_key_canditate = crate::lm_ots::verify::generate_public_key_candiate(
         &signature.lmots_signature,
         public_key.lms_tree_identifier,
-        signature.q,
+        signature.lms_leaf_identifier,
         message,
     );
 
-    let mut node_num = leafs + signature.q;
+    let mut node_num = leafs + signature.lms_leaf_identifier;
 
     let mut hasher = <H>::get_hasher();
     hasher.update(public_key.lms_tree_identifier);

@@ -33,8 +33,8 @@ pub fn hss_optimal_aux_level<H: Hasher>(
     lms_parameter: LmsParameter<H>,
     actual_len: Option<&mut usize>,
 ) -> AuxLevel {
-    let h0 = lms_parameter.get_height();
-    let size_hash = lms_parameter.get_m();
+    let h0 = lms_parameter.get_tree_height();
+    let size_hash = lms_parameter.get_hash_function_output_size();
 
     if max_length < AUX_DATA_HASHES + size_hash {
         if let Some(actual_len) = actual_len {

@@ -182,7 +182,7 @@ impl CompressedParameterSet {
             let lms = parameter.get_lms_parameter();
 
             let lmots_type = lmots.get_type_id() as u8;
-            let lms_type = lms.get_type() as u8;
+            let lms_type = lms.get_type_id() as u8;
 
             result[i] = (lms_type << 4) + lmots_type;
         }

@@ -104,7 +104,7 @@ impl<H: Hasher> LmsPublicKey<H> {
         let mut result = ArrayVec::new();
 
         result
-            .try_extend_from_slice(&u32str(self.lms_parameter.get_type()))
+            .try_extend_from_slice(&u32str(self.lms_parameter.get_type_id()))
             .unwrap();
         result
             .try_extend_from_slice(&u32str(self.lmots_parameter.get_type_id()))
@@ -137,21 +137,23 @@ impl<'a, H: Hasher> InMemoryLmsPublicKey<'a, H> {
 
         let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type(lm_ots_typecode));
 
-        if data.len() - data_index == 24 + lms_parameter.get_m() as usize {
+        if data.len() - data_index == 24 + lms_parameter.get_hash_function_output_size() as usize {
             return None;
         }
 
         let lms_tree_identifier: &'a [u8] = &data[data_index..data_index + 16];
         data_index += 16;
 
-        let key: &'a [u8] = &data[data_index..data_index + lms_parameter.get_m() as usize];
+        let key: &'a [u8] =
+            &data[data_index..data_index + lms_parameter.get_hash_function_output_size() as usize];
 
         let public_key = Self {
             lmots_parameter,
             lms_parameter,
             lms_tree_identifier,
             key,
-            complete_data: &data[..data_index + lms_parameter.get_m() as usize],
+            complete_data: &data
+                [..data_index + lms_parameter.get_hash_function_output_size() as usize],
         };
 
         Some(public_key)

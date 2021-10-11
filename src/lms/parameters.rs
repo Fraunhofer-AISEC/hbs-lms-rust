@@ -62,8 +62,8 @@ impl LmsAlgorithm {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LmsParameter<H: Hasher = Sha256Hasher> {
-    id: u32,
-    height: u8,
+    type_id: u32,
+    tree_height: u8,
     phantom_data: PhantomData<H>,
 }
 
@@ -72,30 +72,30 @@ pub struct LmsParameter<H: Hasher = Sha256Hasher> {
 impl<H: Hasher> Copy for LmsParameter<H> {}
 
 impl<H: Hasher> LmsParameter<H> {
-    const M: usize = H::OUTPUT_SIZE;
+    const HASH_FUNCTION_OUTPUT_SIZE: usize = H::OUTPUT_SIZE;
 
-    pub fn new(id: u32, height: u8) -> Self {
+    pub fn new(type_id: u32, tree_height: u8) -> Self {
         Self {
-            id,
-            height,
+            type_id,
+            tree_height,
             phantom_data: PhantomData,
         }
     }
 
-    pub fn get_type(&self) -> u32 {
-        self.id
+    pub fn get_type_id(&self) -> u32 {
+        self.type_id
     }
 
-    pub fn get_m(&self) -> usize {
-        Self::M
+    pub fn get_hash_function_output_size(&self) -> usize {
+        Self::HASH_FUNCTION_OUTPUT_SIZE
     }
 
-    pub fn get_height(&self) -> u8 {
-        self.height
+    pub fn get_tree_height(&self) -> u8 {
+        self.tree_height
     }
 
     pub fn number_of_lm_ots_keys(&self) -> usize {
-        2usize.pow(self.height as u32)
+        2usize.pow(self.tree_height as u32)
     }
 
     pub fn get_hasher(&self) -> H {

@@ -60,7 +60,7 @@ impl<H: Hasher> LmsPrivateKey<H> {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct LmsPublicKey<H: Hasher> {
-    pub key: ArrayVec<u8, MAX_HASH>,
+    pub key: ArrayVec<u8, MAX_HASH_SIZE>,
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
@@ -87,7 +87,7 @@ impl<'a, H: Hasher> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H> {
 
 impl<H: Hasher> LmsPublicKey<H> {
     pub fn new(
-        public_key: ArrayVec<u8, MAX_HASH>,
+        public_key: ArrayVec<u8, MAX_HASH_SIZE>,
         lms_tree_identifier: LmsTreeIdentifier,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,

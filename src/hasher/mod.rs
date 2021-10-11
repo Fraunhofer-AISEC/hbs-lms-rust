@@ -2,7 +2,7 @@ use arrayvec::ArrayVec;
 use core::convert::TryFrom;
 
 use crate::{
-    constants::{winternitz_chain::*, MAX_HASH},
+    constants::{winternitz_chain::*, MAX_HASH_SIZE},
     util::ustr::u16str,
 };
 
@@ -24,8 +24,8 @@ pub trait Hasher: Default + Clone + PartialEq {
     const BLOCK_SIZE: usize;
     fn get_hasher() -> Self;
     fn update(&mut self, data: &[u8]);
-    fn finalize(self) -> ArrayVec<u8, MAX_HASH>;
-    fn finalize_reset(&mut self) -> ArrayVec<u8, MAX_HASH>;
+    fn finalize(self) -> ArrayVec<u8, MAX_HASH_SIZE>;
+    fn finalize_reset(&mut self) -> ArrayVec<u8, MAX_HASH_SIZE>;
 
     fn prepare_hash_chain_data(
         lms_tree_identifier: &[u8],
@@ -44,7 +44,7 @@ pub trait Hasher: Default + Clone + PartialEq {
         initial_value: &[u8],
         from: usize,
         to: usize,
-    ) -> ArrayVec<u8, MAX_HASH> {
+    ) -> ArrayVec<u8, MAX_HASH_SIZE> {
         let temp = &mut hash_chain_data.0;
 
         temp[ITER_K..ITER_J].copy_from_slice(&u16str(hash_chain_id));

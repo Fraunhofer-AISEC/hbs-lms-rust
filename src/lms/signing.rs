@@ -1,6 +1,5 @@
 use crate::constants::LmsLeafIdentifier;
-use crate::constants::MAX_H;
-use crate::constants::MAX_HASH;
+use crate::constants::MAX_HASH_SIZE;
 use crate::constants::MAX_LMS_SIGNATURE_LENGTH;
 use crate::extract_or_return;
 use crate::hasher::Hasher;
@@ -21,7 +20,7 @@ use super::parameters::LmsParameter;
 pub struct LmsSignature<H: Hasher> {
     pub lms_leaf_identifier: LmsLeafIdentifier,
     pub lmots_signature: LmotsSignature<H>,
-    pub authentication_path: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_H>,
+    pub authentication_path: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_SIZE>,
     pub lms_parameter: LmsParameter<H>,
 }
 
@@ -68,10 +67,11 @@ impl<H: Hasher> LmsSignature<H> {
         let ots_signature = LmotsSignature::sign(&lm_ots_private_key, message);
 
         let tree_height = lms_private_key.lms_parameter.get_tree_height();
-        let signature_leaf_index =
-        2usize.pow(tree_height as u32) + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
+        let signature_leaf_index = 2usize.pow(tree_height as u32)
+            + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
 
-        let mut authentication_path: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_H> = ArrayVec::new();
+        let mut authentication_path: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_SIZE> =
+            ArrayVec::new();
 
         for i in 0..tree_height.into() {
             let tree_index = (signature_leaf_index / (2usize.pow(i as u32))) ^ 0x1;
@@ -91,7 +91,9 @@ impl<H: Hasher> LmsSignature<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<u8, MAX_LMS_SIGNATURE_LENGTH> {
         let mut result = ArrayVec::new();
 
-        result.try_extend_from_slice(&self.lms_leaf_identifier).unwrap();
+        result
+            .try_extend_from_slice(&self.lms_leaf_identifier)
+            .unwrap();
 
         let lmots_signature = self.lmots_signature.to_binary_representation();
 
@@ -143,8 +145,10 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
             Some(x) => x,
         };
 
-        let lms_type_start = 8 + lmots_hash_output_size as usize * (max_hash_iterations as usize + 1);
-        let lms_type_end = 11 + lmots_hash_output_size as usize * (max_hash_iterations as usize + 1);
+        let lms_type_start =
+            8 + lmots_hash_output_size as usize * (max_hash_iterations as usize + 1);
+        let lms_type_end =
+            11 + lmots_hash_output_size as usize * (max_hash_iterations as usize + 1);
 
         let lms_type = str32u(&data[lms_type_start..=lms_type_end]);
 
@@ -158,7 +162,10 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
 
         let lms_hash_output_size = lms_parameter.get_hash_function_output_size();
 
-        if data.len() < 12 + lmots_hash_output_size as usize * (max_hash_iterations as usize + 1) + lms_hash_output_size as usize * tree_height as usize {
+        if data.len()
+            < 12 + lmots_hash_output_size as usize * (max_hash_iterations as usize + 1)
+                + lms_hash_output_size as usize * tree_height as usize
+        {
             return None;
         }
 

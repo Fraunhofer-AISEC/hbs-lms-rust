@@ -25,12 +25,12 @@ impl<'a> SeedDerive<'a> {
         }
     }
 
-    pub fn set_lms_leaf_identifier(&mut self, q: u32) {
-        self.lms_leaf_identifier = q;
+    pub fn set_lms_leaf_identifier(&mut self, identifier: u32) {
+        self.lms_leaf_identifier = identifier;
     }
 
-    pub fn set_child_seed(&mut self, j: u16) {
-        self.child_seed = j;
+    pub fn set_child_seed(&mut self, seed: u16) {
+        self.child_seed = seed;
     }
 
     pub fn seed_derive(&mut self, increment_j: bool) -> [u8; Sha256Hasher::OUTPUT_SIZE] {

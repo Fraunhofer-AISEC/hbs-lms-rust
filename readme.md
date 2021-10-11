@@ -36,8 +36,8 @@ The following table shows the mapping between the RFC and the library naming inc
 | y          | signature_data       | The actual data of the signature                          |
 | p          | max_hash_iterations  | The maximum value of hash iterations                      |
 | ls         | checksum_left_shift  | How many bits the checksum is shifted into the coef-value |
-| n          | hash_function_output_size | Number of bytes that the hash functions generates         |
-| m          | hash_function_output_size | Number of bytes that the hash functions generates         |
+| n          | hash_function_output_size | Number of bytes that the lm_ots hash functions generates         |
+| m          | hash_function_output_size | Number of bytes that the lms hash functions generates         |
 
 ## Minimum Supported Rust Version
 The crate in this repository supports Rust **1.53** or higher.

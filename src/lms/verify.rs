@@ -1,6 +1,6 @@
 use crate::constants::D_INTR;
 use crate::constants::D_LEAF;
-use crate::constants::MAX_HASH;
+use crate::constants::MAX_HASH_SIZE;
 use crate::hasher::Hasher;
 use crate::util::helper::is_odd;
 use crate::util::ustr::u32str;
@@ -33,7 +33,7 @@ fn generate_public_key_candiate<'a, H: Hasher>(
     signature: &InMemoryLmsSignature<'a, H>,
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],
-) -> Result<ArrayVec<u8, MAX_HASH>, ()> {
+) -> Result<ArrayVec<u8, MAX_HASH_SIZE>, ()> {
     let leafs = signature.lms_parameter.number_of_lm_ots_keys() as u32;
 
     let curr = signature.lms_leaf_identifier;

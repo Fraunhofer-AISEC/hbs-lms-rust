@@ -2,7 +2,7 @@ use crate::extract_or_return;
 use crate::hasher::Hasher;
 use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::{
-    constants::{D_MESG, MAX_HASH, MAX_P},
+    constants::{D_MESG, MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_SIZE},
     util::{
         coef::coef,
         random::get_random,
@@ -17,8 +17,8 @@ use super::parameters::LmotsParameter;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct LmotsSignature<H: Hasher> {
-    pub signature_randomizer: ArrayVec<u8, MAX_HASH>,
-    pub signature_data: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P>,
+    pub signature_randomizer: ArrayVec<u8, MAX_HASH_SIZE>,
+    pub signature_data: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_ITERATIONS>,
     pub lmots_parameter: LmotsParameter<H>,
 }
 
@@ -72,11 +72,12 @@ impl<H: Hasher> LmotsSignature<H> {
         hasher.update(signature_randomizer.as_slice());
         hasher.update(message);
 
-        let message_hash: ArrayVec<u8, MAX_HASH> = hasher.finalize_reset();
+        let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher.finalize_reset();
         let message_hash_with_checksum =
             lmots_parameter.append_checksum_to(message_hash.as_slice());
 
-        let mut signature_data: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P> = ArrayVec::new();
+        let mut signature_data: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_ITERATIONS> =
+            ArrayVec::new();
 
         for i in 0..lmots_parameter.get_max_hash_iterations() {
             let a = coef(
@@ -101,7 +102,9 @@ impl<H: Hasher> LmotsSignature<H> {
         }
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<u8, { 4 + MAX_HASH + (MAX_HASH * MAX_P) }> {
+    pub fn to_binary_representation(
+        &self,
+    ) -> ArrayVec<u8, { 4 + MAX_HASH_SIZE + (MAX_HASH_SIZE * MAX_HASH_CHAIN_ITERATIONS) }> {
         let mut result = ArrayVec::new();
 
         result
@@ -168,7 +171,7 @@ mod tests {
     use arrayvec::ArrayVec;
 
     use crate::{
-        constants::{MAX_HASH, MAX_P},
+        constants::{MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_SIZE},
         lm_ots::{parameters::LmotsAlgorithm, signing::InMemoryLmotsSignature},
     };
 
@@ -179,7 +182,8 @@ mod tests {
         let lmots_parameter = LmotsAlgorithm::construct_default_parameter();
 
         let mut signature_randomizer = ArrayVec::new();
-        let mut signature_data: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P> = ArrayVec::new();
+        let mut signature_data: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_ITERATIONS> =
+            ArrayVec::new();
 
         for i in 0..lmots_parameter.get_hash_function_output_size() as usize {
             signature_randomizer.push(i as u8);

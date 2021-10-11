@@ -4,8 +4,9 @@ use arrayvec::ArrayVec;
 
 use crate::{
     constants::{
-        LmsTreeIdentifier, Seed, D_TOPSEED, MAX_HASH, MAX_HSS_LEVELS, RFC_PRIVATE_KEY_SIZE,
-        SEED_CHILD_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
+        LmsTreeIdentifier, Seed, D_TOPSEED, MAX_ALLOWED_HSS_LEVELS, MAX_HASH_SIZE,
+        REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_CHILD_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED,
+        TOPSEED_WHICH,
     },
     extract_or_return,
     hasher::Hasher,
@@ -74,7 +75,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         ReferenceImplPrivateKey::generate_with_seed(parameters, &seed)
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<u8, RFC_PRIVATE_KEY_SIZE> {
+    pub fn to_binary_representation(&self) -> ArrayVec<u8, REFERENCE_IMPL_PRIVATE_KEY_SIZE> {
         let mut result = ArrayVec::new();
 
         result
@@ -89,7 +90,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
     }
 
     pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
-        if data.len() != RFC_PRIVATE_KEY_SIZE {
+        if data.len() != REFERENCE_IMPL_PRIVATE_KEY_SIZE {
             return None;
         }
 
@@ -99,7 +100,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         let lms_leaf_identifier = read_and_advance(data, 8, &mut index);
         result.lms_leaf_identifier = str64u(lms_leaf_identifier);
 
-        let compressed_parameter = read_and_advance(data, MAX_HSS_LEVELS, &mut index);
+        let compressed_parameter = read_and_advance(data, MAX_ALLOWED_HSS_LEVELS, &mut index);
         result.compressed_parameter =
             extract_or_return!(CompressedParameterSet::from_slice(compressed_parameter));
 
@@ -112,7 +113,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
 
     pub fn generate_root_seed_and_lms_tree_identifier(&self) -> SeedAndLmsTreeIdentifier {
         let mut hash_preimage = [0u8; TOPSEED_LEN];
-        let mut hash_postimage = [0u8; MAX_HASH];
+        let mut hash_postimage = [0u8; MAX_HASH_SIZE];
 
         hash_preimage[TOPSEED_D] = (D_TOPSEED >> 8) as u8;
         hash_preimage[TOPSEED_D + 1] = (D_TOPSEED & 0xff) as u8;
@@ -160,11 +161,11 @@ pub fn generate_child_seed_and_lms_tree_identifier(
 const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set
 
 #[derive(Default, PartialEq)]
-pub struct CompressedParameterSet([u8; MAX_HSS_LEVELS]);
+pub struct CompressedParameterSet([u8; MAX_ALLOWED_HSS_LEVELS]);
 
 impl CompressedParameterSet {
     pub fn from_slice(data: &[u8]) -> Option<Self> {
-        if data.len() != MAX_HSS_LEVELS {
+        if data.len() != MAX_ALLOWED_HSS_LEVELS {
             return None;
         }
 
@@ -175,7 +176,7 @@ impl CompressedParameterSet {
     }
 
     pub fn from<H: Hasher>(parameters: &[HssParameter<H>]) -> Option<Self> {
-        let mut result = [PARAM_SET_END; MAX_HSS_LEVELS];
+        let mut result = [PARAM_SET_END; MAX_ALLOWED_HSS_LEVELS];
 
         for (i, parameter) in parameters.iter().enumerate() {
             let lmots = parameter.get_lmots_parameter();
@@ -190,10 +191,10 @@ impl CompressedParameterSet {
         Some(Self(result))
     }
 
-    pub fn to<H: Hasher>(&self) -> ArrayVec<HssParameter<H>, MAX_HSS_LEVELS> {
+    pub fn to<H: Hasher>(&self) -> ArrayVec<HssParameter<H>, MAX_ALLOWED_HSS_LEVELS> {
         let mut result = ArrayVec::new();
 
-        for level in 0..MAX_HSS_LEVELS {
+        for level in 0..MAX_ALLOWED_HSS_LEVELS {
             let parameter = self.0[level];
 
             if parameter == PARAM_SET_END {

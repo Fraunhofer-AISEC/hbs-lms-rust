@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
 
 use crate::{
-    constants::{DAUX_D, DAUX_PREFIX_LEN, D_DAUX, MAX_H, MAX_HASH, MIN_SUBTREE},
+    constants::{DAUX_D, DAUX_PREFIX_LEN, D_DAUX, MAX_HASH_SIZE, MAX_TREE_HEIGHT, MIN_SUBTREE},
     hasher::Hasher,
     lms::parameters::LmsParameter,
     util::ustr::{str32u, u32str},
@@ -23,7 +23,7 @@ const OPAD: u8 = 0x5c;
 
 #[derive(Default)]
 pub struct MutableExpandedAuxData<'a> {
-    pub data: [Option<&'a mut [u8]>; MAX_H + 1],
+    pub data: [Option<&'a mut [u8]>; MAX_TREE_HEIGHT + 1],
     pub level: u32,
     pub hmac: &'a mut [u8],
 }
@@ -105,7 +105,7 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
 
     // Check if data is valid
     if let Some(seed) = seed {
-        for h in 0..(MAX_H + 1) {
+        for h in 0..(MAX_TREE_HEIGHT + 1) {
             if (aux_level >> h) & 1 != 0 {
                 index += size_hash << h;
             }
@@ -121,10 +121,10 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
             return None;
         }
 
-        let mut key = [0u8; MAX_HASH];
+        let mut key = [0u8; MAX_HASH_SIZE];
         compute_seed_derive::<H>(&mut key, seed);
 
-        let mut expected_mac = [0u8; MAX_HASH];
+        let mut expected_mac = [0u8; MAX_HASH_SIZE];
         compute_hmac::<H>(&mut expected_mac, &mut key, aux_data);
 
         if expected_mac[..size_hash] != aux_data[index..(index + size_hash)] {
@@ -135,7 +135,7 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     index = 4;
     aux_data = &mut aux_data[index..];
 
-    for h in 0..(MAX_H + 1) {
+    for h in 0..(MAX_TREE_HEIGHT + 1) {
         if (aux_level >> h) & 1 != 0 {
             index = size_hash << h;
             let (left, rest) = aux_data.split_at_mut(index);
@@ -194,14 +194,14 @@ pub fn hss_save_aux_data<H: Hasher>(
 }
 
 pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed: &[u8]) {
-    let mut aux_seed = [0u8; MAX_HASH];
+    let mut aux_seed = [0u8; MAX_HASH_SIZE];
 
     compute_seed_derive::<H>(&mut aux_seed, seed);
 
     let mut hasher = compute_hmac_ipad::<H>(&mut aux_seed);
     hasher.update(&data.level.to_be_bytes());
 
-    for i in 0..MAX_H {
+    for i in 0..MAX_TREE_HEIGHT {
         if let Some(x) = data.data[i].as_mut() {
             hasher.update(x);
         }
@@ -213,7 +213,7 @@ pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed:
 pub fn hss_extract_aux_data<H: Hasher>(
     aux: &MutableExpandedAuxData,
     index: usize,
-) -> Option<ArrayVec<u8, MAX_HASH>> {
+) -> Option<ArrayVec<u8, MAX_HASH_SIZE>> {
     // We need to calculate the level of the tree and the offset from the beginning
     let level = core::mem::size_of::<usize>() * 8 - index.leading_zeros() as usize - 1;
     let lms_leaf_identifier: u32 = index as u32 - 2u32.pow(level as u32);
@@ -227,7 +227,7 @@ pub fn hss_extract_aux_data<H: Hasher>(
     let start_index = lms_leaf_identifier as usize * hash_size;
     let end_index = start_index + hash_size;
 
-    if src[start_index..end_index] == [0u8; MAX_HASH] {
+    if src[start_index..end_index] == [0u8; MAX_HASH_SIZE] {
         return None;
     }
 

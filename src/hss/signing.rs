@@ -2,8 +2,8 @@ use arrayvec::ArrayVec;
 
 use crate::{
     constants::{
-        lms_public_key_length, lms_signature_length, MAX_HSS_LEVELS, MAX_HSS_SIGNATURE_LENGTH,
-        MAX_LMS_PUBLIC_KEY_LENGTH, MAX_LMS_SIGNATURE_LENGTH,
+        lms_public_key_length, lms_signature_length, MAX_ALLOWED_HSS_LEVELS,
+        MAX_HSS_SIGNATURE_LENGTH, MAX_LMS_PUBLIC_KEY_LENGTH, MAX_LMS_SIGNATURE_LENGTH,
     },
     extract_or_return,
     hasher::Hasher,
@@ -24,7 +24,7 @@ use super::{definitions::HssPrivateKey, parameter::HssParameter};
 #[derive(PartialEq)]
 pub struct HssSignature<H: Hasher> {
     pub level: usize,
-    pub signed_public_keys: ArrayVec<HssSignedPublicKey<H>, MAX_HSS_LEVELS>,
+    pub signed_public_keys: ArrayVec<HssSignedPublicKey<H>, MAX_ALLOWED_HSS_LEVELS>,
     pub signature: LmsSignature<H>,
 }
 
@@ -32,7 +32,8 @@ pub struct HssSignature<H: Hasher> {
 /// In order to reduce complexity we use ```HssSignature``` for key generation and signature generation.
 pub struct InMemoryHssSignature<'a, H: Hasher> {
     pub level: usize,
-    pub signed_public_keys: ArrayVec<Option<InMemoryHssSignedPublicKey<'a, H>>, MAX_HSS_LEVELS>,
+    pub signed_public_keys:
+        ArrayVec<Option<InMemoryHssSignedPublicKey<'a, H>>, MAX_ALLOWED_HSS_LEVELS>,
     pub signature: InMemoryLmsSignature<'a, H>,
 }
 

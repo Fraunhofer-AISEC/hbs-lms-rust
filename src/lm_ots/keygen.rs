@@ -3,7 +3,7 @@ use super::parameters::LmotsParameter;
 use crate::constants::*;
 use crate::hasher::Hasher;
 use crate::{
-    constants::{D_PBLC, MAX_HASH, MAX_P},
+    constants::{D_PBLC, MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_SIZE},
     util::ustr::*,
 };
 use arrayvec::ArrayVec;
@@ -43,7 +43,8 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
     let hash_chain_iterations: usize = 2_usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
     let key = &private_key.key;
 
-    let mut public_key_data: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P> = ArrayVec::new();
+    let mut public_key_data: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_ITERATIONS> =
+        ArrayVec::new();
 
     for i in 0..lmots_parameter.get_max_hash_iterations() as usize {
         let mut hash_chain_data = H::prepare_hash_chain_data(

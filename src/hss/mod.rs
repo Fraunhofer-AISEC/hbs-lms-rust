@@ -9,7 +9,7 @@ pub mod verify;
 use arrayvec::ArrayVec;
 
 use crate::{
-    constants::{MAX_HASH, MAX_HSS_SIGNATURE_LENGTH, RFC_PRIVATE_KEY_SIZE},
+    constants::{MAX_HASH_SIZE, MAX_HSS_SIGNATURE_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE},
     extract_or, extract_or_return,
     hasher::Hasher,
     hss::{definitions::InMemoryHssPublicKey, signing::InMemoryHssSignature},
@@ -24,14 +24,14 @@ use self::{
  * Describes a public and private key.
  * */
 pub struct HssKeyPair {
-    pub public_key: ArrayVec<u8, { 4 + 4 + 4 + 16 + MAX_HASH }>,
-    pub private_key: ArrayVec<u8, RFC_PRIVATE_KEY_SIZE>,
+    pub public_key: ArrayVec<u8, { 4 + 4 + 4 + 16 + MAX_HASH_SIZE }>,
+    pub private_key: ArrayVec<u8, REFERENCE_IMPL_PRIVATE_KEY_SIZE>,
 }
 
 impl HssKeyPair {
     fn new(
-        public_key: ArrayVec<u8, { 4 + 4 + 4 + 16 + MAX_HASH }>,
-        private_key: ArrayVec<u8, RFC_PRIVATE_KEY_SIZE>,
+        public_key: ArrayVec<u8, { 4 + 4 + 4 + 16 + MAX_HASH_SIZE }>,
+        private_key: ArrayVec<u8, REFERENCE_IMPL_PRIVATE_KEY_SIZE>,
     ) -> Self {
         Self {
             public_key,

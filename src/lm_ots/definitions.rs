@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
 
 use crate::{
-    constants::{LmsLeafIdentifier, LmsTreeIdentifier, MAX_HASH, MAX_P},
+    constants::{LmsLeafIdentifier, LmsTreeIdentifier, MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_SIZE},
     hasher::Hasher,
 };
 
@@ -11,7 +11,7 @@ use super::parameters::LmotsParameter;
 pub struct LmotsPrivateKey<H: Hasher> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lms_leaf_identifier: LmsLeafIdentifier,
-    pub key: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P>, // [[0u8; n]; p];
+    pub key: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_ITERATIONS>, // [[0u8; n]; p];
     pub lmots_parameter: LmotsParameter<H>,
 }
 
@@ -19,7 +19,7 @@ impl<H: Hasher> LmotsPrivateKey<H> {
     pub fn new(
         lms_tree_identifier: LmsTreeIdentifier,
         lms_leaf_identifier: LmsLeafIdentifier,
-        key: ArrayVec<ArrayVec<u8, MAX_HASH>, MAX_P>,
+        key: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_ITERATIONS>,
         lmots_parameter: LmotsParameter<H>,
     ) -> Self {
         LmotsPrivateKey {
@@ -34,7 +34,7 @@ impl<H: Hasher> LmotsPrivateKey<H> {
 pub struct LmotsPublicKey<H: Hasher> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lms_leaf_identifier: LmsLeafIdentifier,
-    pub key: ArrayVec<u8, MAX_HASH>,
+    pub key: ArrayVec<u8, MAX_HASH_SIZE>,
     pub lmots_parameter: LmotsParameter<H>,
 }
 
@@ -42,7 +42,7 @@ impl<H: Hasher> LmotsPublicKey<H> {
     pub fn new(
         lms_tree_identifier: LmsTreeIdentifier,
         lms_leaf_identifier: LmsLeafIdentifier,
-        key: ArrayVec<u8, MAX_HASH>,
+        key: ArrayVec<u8, MAX_HASH_SIZE>,
         lmots_parameter: LmotsParameter<H>,
     ) -> Self {
         LmotsPublicKey {

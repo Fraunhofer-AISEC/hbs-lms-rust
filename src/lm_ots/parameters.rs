@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use arrayvec::ArrayVec;
 
 use crate::{
-    constants::MAX_HASH,
+    constants::MAX_HASH_SIZE,
     hasher::{sha256::Sha256Hasher, Hasher},
     util::coef::coef,
 };
@@ -126,7 +126,7 @@ impl<H: Hasher> LmotsParameter<H> {
         sum << self.get_checksum_left_shift()
     }
 
-    pub fn append_checksum_to(&self, byte_string: &[u8]) -> ArrayVec<u8, { MAX_HASH + 2 }> {
+    pub fn append_checksum_to(&self, byte_string: &[u8]) -> ArrayVec<u8, { MAX_HASH_SIZE + 2 }> {
         let mut result = ArrayVec::new();
 
         let checksum = self.checksum(byte_string);

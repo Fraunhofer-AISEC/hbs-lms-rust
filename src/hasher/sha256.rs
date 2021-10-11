@@ -3,7 +3,7 @@ use core::convert::TryFrom;
 
 use sha2::{Digest, Sha256};
 
-use crate::constants::MAX_HASH;
+use crate::constants::MAX_HASH_SIZE;
 
 use super::Hasher;
 
@@ -35,12 +35,12 @@ impl Hasher for Sha256Hasher {
         self.hasher.update(data);
     }
 
-    fn finalize(self) -> ArrayVec<u8, MAX_HASH> {
+    fn finalize(self) -> ArrayVec<u8, MAX_HASH_SIZE> {
         let result = ArrayVec::try_from(self.hasher.finalize().iter().as_slice()).unwrap();
         result
     }
 
-    fn finalize_reset(&mut self) -> ArrayVec<u8, MAX_HASH> {
+    fn finalize_reset(&mut self) -> ArrayVec<u8, MAX_HASH_SIZE> {
         let result = ArrayVec::try_from(self.hasher.finalize_reset().iter().as_slice()).unwrap();
         result
     }

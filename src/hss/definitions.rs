@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
 
 use crate::{
-    constants::{MAX_HSS_LEVELS, MAX_LMS_PUBLIC_KEY_LENGTH},
+    constants::{MAX_ALLOWED_HSS_LEVELS, MAX_LMS_PUBLIC_KEY_LENGTH},
     hasher::Hasher,
     hss::aux::{
         hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
@@ -32,9 +32,9 @@ use super::{
 
 #[derive(Default, PartialEq)]
 pub struct HssPrivateKey<H: Hasher> {
-    pub private_key: ArrayVec<LmsPrivateKey<H>, MAX_HSS_LEVELS>,
-    pub public_key: ArrayVec<LmsPublicKey<H>, MAX_HSS_LEVELS>,
-    pub signatures: ArrayVec<LmsSignature<H>, { MAX_HSS_LEVELS - 1 }>, // Only L - 1 signatures needed
+    pub private_key: ArrayVec<LmsPrivateKey<H>, MAX_ALLOWED_HSS_LEVELS>,
+    pub public_key: ArrayVec<LmsPublicKey<H>, MAX_ALLOWED_HSS_LEVELS>,
+    pub signatures: ArrayVec<LmsSignature<H>, { MAX_ALLOWED_HSS_LEVELS - 1 }>, // Only L - 1 signatures needed
 }
 
 impl<H: Hasher> HssPrivateKey<H> {

@@ -9,11 +9,11 @@ use crate::lms::definitions::LmsPublicKey;
 
 pub fn generate_private_key_with_seed<H: Hasher>(
     seed: Seed,
-    i: LmsTreeIdentifier,
+    lms_tree_identifier: LmsTreeIdentifier,
     lmots_parameter: LmotsParameter<H>,
     lms_parameter: LmsParameter<H>,
 ) -> LmsPrivateKey<H> {
-    LmsPrivateKey::new(seed, i, lmots_parameter, lms_parameter)
+    LmsPrivateKey::new(seed, lms_tree_identifier, lmots_parameter, lms_parameter)
 }
 
 pub fn generate_private_key<H: Hasher>(

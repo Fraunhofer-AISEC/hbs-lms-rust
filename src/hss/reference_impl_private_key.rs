@@ -24,7 +24,7 @@ To be compatible with the reference implementation
 
 #[derive(Default, PartialEq)]
 pub struct ReferenceImplPrivateKey<H: Hasher> {
-    pub q: u64,
+    pub lms_leaf_identifier: u64,
     pub compressed_parameter: CompressedParameterSet,
     pub seed: Seed,
     phantom: PhantomData<H>,
@@ -32,20 +32,20 @@ pub struct ReferenceImplPrivateKey<H: Hasher> {
 
 pub struct SeedAndLmsTreeIdentifier {
     pub seed: Seed,
-    pub i: LmsTreeIdentifier,
+    pub lms_tree_identifier: LmsTreeIdentifier,
 }
 
 impl SeedAndLmsTreeIdentifier {
-    pub fn new(seed: &[u8], i: &[u8]) -> Self {
+    pub fn new(seed: &[u8], lms_leaf_identifier: &[u8]) -> Self {
         let mut local_seed: Seed = Default::default();
-        let mut local_i: LmsTreeIdentifier = Default::default();
+        let mut local_lms_leaf_identifier: LmsTreeIdentifier = Default::default();
 
         local_seed.copy_from_slice(seed);
-        local_i.copy_from_slice(&i[..16]);
+        local_lms_leaf_identifier.copy_from_slice(&lms_leaf_identifier[..16]);
 
         Self {
             seed: local_seed,
-            i: local_i,
+            lms_tree_identifier: local_lms_leaf_identifier,
         }
     }
 }
@@ -53,7 +53,7 @@ impl SeedAndLmsTreeIdentifier {
 impl<H: Hasher> ReferenceImplPrivateKey<H> {
     pub fn generate_with_seed(parameters: &[HssParameter<H>], seed: &[u8]) -> Option<Self> {
         let mut private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
-            q: 0,
+            lms_leaf_identifier: 0,
             compressed_parameter: extract_or_return!(CompressedParameterSet::from(parameters)),
             ..Default::default()
         };
@@ -77,7 +77,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<u8, RFC_PRIVATE_KEY_SIZE> {
         let mut result = ArrayVec::new();
 
-        result.try_extend_from_slice(&u64str(self.q)).unwrap();
+        result.try_extend_from_slice(&u64str(self.lms_leaf_identifier)).unwrap();
         result
             .try_extend_from_slice(&self.compressed_parameter.0)
             .unwrap();
@@ -95,7 +95,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         let mut index = 0;
 
         let lms_leaf_identifier = read_and_advance(data, 8, &mut index);
-        result.q = str64u(lms_leaf_identifier);
+        result.lms_leaf_identifier = str64u(lms_leaf_identifier);
 
         let compressed_parameter = read_and_advance(data, MAX_HSS_LEVELS, &mut index);
         result.compressed_parameter =
@@ -142,11 +142,11 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
 
 pub fn generate_child_seed_and_lms_tree_identifier(
     parent_seed: &SeedAndLmsTreeIdentifier,
-    index: u32,
+    lms_leaf_identifier: u32,
 ) -> SeedAndLmsTreeIdentifier {
-    let mut derive = SeedDerive::new(&parent_seed.seed, &parent_seed.i);
+    let mut derive = SeedDerive::new(&parent_seed.seed, &parent_seed.lms_tree_identifier);
 
-    derive.set_lms_leaf_identifier(index);
+    derive.set_lms_leaf_identifier(lms_leaf_identifier);
     derive.set_child_seed(SEED_CHILD_SEED);
 
     let seed = derive.seed_derive(true);

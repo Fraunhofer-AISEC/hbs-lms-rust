@@ -96,7 +96,7 @@ pub fn hss_sign<H: Hasher>(
     };
 
     // Advance private key
-    rfc_private_key.q += 1;
+    rfc_private_key.lms_leaf_identifier += 1;
     let updated_key = rfc_private_key.to_binary_representation();
     let update_successful = private_key_update_function(updated_key.as_slice());
 

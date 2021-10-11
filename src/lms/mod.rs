@@ -26,7 +26,7 @@ pub fn generate_key_pair_with_seed_and_aux<H: Hasher>(
     let lms_parameter = parameter.get_lms_parameter();
 
     let private_key =
-        keygen::generate_private_key_with_seed(seed.seed, seed.i, *lmots_parameter, *lms_parameter);
+        keygen::generate_private_key_with_seed(seed.seed, seed.lms_tree_identifier, *lmots_parameter, *lms_parameter);
     let public_key = keygen::generate_public_key(&private_key, aux_data);
 
     LmsKeyPair {

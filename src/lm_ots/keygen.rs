@@ -28,7 +28,12 @@ pub fn generate_private_key<H: Hasher>(
         key.push(hasher.finalize_reset());
     }
 
-    LmotsPrivateKey::new(lms_tree_identifier, lms_leaf_identifier, key, lmots_parameter)
+    LmotsPrivateKey::new(
+        lms_tree_identifier,
+        lms_leaf_identifier,
+        key,
+        lmots_parameter,
+    )
 }
 
 pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> LmotsPublicKey<H> {

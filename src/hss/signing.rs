@@ -237,8 +237,12 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
         };
 
         let sig_size = lms_signature_length(
-            sig.lmots_signature.lmots_parameter.get_hash_function_output_size(),
-            sig.lmots_signature.lmots_parameter.get_max_hash_iterations() as usize,
+            sig.lmots_signature
+                .lmots_parameter
+                .get_hash_function_output_size(),
+            sig.lmots_signature
+                .lmots_parameter
+                .get_max_hash_iterations() as usize,
             sig.lms_parameter.get_m(),
             sig.lms_parameter.get_height() as usize,
         );
@@ -254,8 +258,12 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
     pub fn len(&self) -> usize {
         let sig = &self.sig;
         let sig_size = lms_signature_length(
-            sig.lmots_signature.lmots_parameter.get_hash_function_output_size(),
-            sig.lmots_signature.lmots_parameter.get_max_hash_iterations() as usize,
+            sig.lmots_signature
+                .lmots_parameter
+                .get_hash_function_output_size(),
+            sig.lmots_signature
+                .lmots_parameter
+                .get_max_hash_iterations() as usize,
             sig.lms_parameter.get_m(),
             sig.lms_parameter.get_height() as usize,
         );

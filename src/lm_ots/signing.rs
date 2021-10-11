@@ -111,9 +111,9 @@ impl<H: Hasher> LmotsSignature<H> {
             .try_extend_from_slice(self.signature_randomizer.as_slice())
             .unwrap();
 
-        for x in self.signature_data.iter() {
-            for y in x.iter() {
-                result.try_extend_from_slice(&[*y]).unwrap();
+        for hash_chain_value in self.signature_data.iter() {
+            for hash_chain_byte in hash_chain_value.iter() {
+                result.try_extend_from_slice(&[*hash_chain_byte]).unwrap();
             }
         }
 
@@ -155,7 +155,7 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
         Some(signature)
     }
 
-    pub fn get_y(&self, index: usize) -> &[u8] {
+    pub fn get_signature_data(&self, index: usize) -> &[u8] {
         let step = self.lmots_parameter.get_hash_function_output_size();
         let start = step * index;
         let end = start + step;

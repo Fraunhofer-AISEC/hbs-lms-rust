@@ -165,8 +165,9 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
         }
 
         let mut tree_slice = data;
-        let tree_start =
-            12 + lmots_parameter.get_hash_function_output_size() as usize * (lmots_parameter.get_max_hash_iterations() as usize + 1);
+        let tree_start = 12
+            + lmots_parameter.get_hash_function_output_size() as usize
+                * (lmots_parameter.get_max_hash_iterations() as usize + 1);
 
         tree_slice = &tree_slice[tree_start..];
 

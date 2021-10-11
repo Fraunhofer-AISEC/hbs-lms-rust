@@ -77,7 +77,9 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<u8, RFC_PRIVATE_KEY_SIZE> {
         let mut result = ArrayVec::new();
 
-        result.try_extend_from_slice(&u64str(self.lms_leaf_identifier)).unwrap();
+        result
+            .try_extend_from_slice(&u64str(self.lms_leaf_identifier))
+            .unwrap();
         result
             .try_extend_from_slice(&self.compressed_parameter.0)
             .unwrap();

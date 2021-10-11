@@ -63,7 +63,7 @@ pub fn generate_public_key_candiate<'a, H: Hasher>(
             lmots_parameter.get_winternitz() as u64,
         ) as usize;
 
-        let initial = signature.get_y(i as usize);
+        let initial = signature.get_signature_data(i as usize);
         let mut hash_chain_data =
             H::prepare_hash_chain_data(lms_tree_identifier, &lms_leaf_identifier);
         let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial, a, max_w);

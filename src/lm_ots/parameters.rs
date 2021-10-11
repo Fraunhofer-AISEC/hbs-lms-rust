@@ -78,7 +78,12 @@ impl<H: Hasher> Copy for LmotsParameter<H> {}
 impl<H: Hasher> LmotsParameter<H> {
     const HASH_FUNCTION_OUTPUT_SIZE: usize = H::OUTPUT_SIZE;
 
-    pub fn new(type_id: u32, winternitz: u8, max_hash_iterations: u16, checksum_left_shift: u8) -> Self {
+    pub fn new(
+        type_id: u32,
+        winternitz: u8,
+        max_hash_iterations: u16,
+        checksum_left_shift: u8,
+    ) -> Self {
         Self {
             type_id,
             winternitz,
@@ -110,7 +115,8 @@ impl<H: Hasher> LmotsParameter<H> {
 
     fn checksum(&self, byte_string: &[u8]) -> u16 {
         let mut sum = 0_u16;
-        let max: u64 = ((Self::HASH_FUNCTION_OUTPUT_SIZE * 8) as f64 / self.get_winternitz() as f64) as u64;
+        let max: u64 =
+            ((Self::HASH_FUNCTION_OUTPUT_SIZE * 8) as f64 / self.get_winternitz() as f64) as u64;
         let max_word_size: u64 = (1 << self.get_winternitz()) - 1;
 
         for i in 0..max {

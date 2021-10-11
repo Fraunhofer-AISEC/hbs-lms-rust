@@ -9,8 +9,8 @@ use crate::{
 use arrayvec::ArrayVec;
 
 pub fn generate_private_key<H: Hasher>(
-    i: LmsTreeIdentifier,
-    q: LmsLeafIdentifier,
+    lms_tree_identifier: LmsTreeIdentifier,
+    lms_leaf_identifier: LmsLeafIdentifier,
     seed: Seed,
     lmots_parameter: LmotsParameter<H>,
 ) -> LmotsPrivateKey<H> {
@@ -19,8 +19,8 @@ pub fn generate_private_key<H: Hasher>(
     let mut hasher = lmots_parameter.get_hasher();
 
     for index in 0..lmots_parameter.get_p() {
-        hasher.update(&i);
-        hasher.update(&q);
+        hasher.update(&lms_tree_identifier);
+        hasher.update(&lms_leaf_identifier);
         hasher.update(&u16str(index as u16));
         hasher.update(&[0xff]);
         hasher.update(&seed);
@@ -28,7 +28,7 @@ pub fn generate_private_key<H: Hasher>(
         key.push(hasher.finalize_reset());
     }
 
-    LmotsPrivateKey::new(i, q, key, lmots_parameter)
+    LmotsPrivateKey::new(lms_tree_identifier, lms_leaf_identifier, key, lmots_parameter)
 }
 
 pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> LmotsPublicKey<H> {

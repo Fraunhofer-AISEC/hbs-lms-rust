@@ -1,7 +1,7 @@
 use crate::{
     constants::{
-        prng_len, LmsTreeIdentifier, Seed, ILEN, PRNG_FF, PRNG_I, PRNG_J, PRNG_MAX_LEN, PRNG_Q, PRNG_SEED,
-        SEED_LEN,
+        prng_len, LmsTreeIdentifier, Seed, ILEN, PRNG_FF, PRNG_I, PRNG_J, PRNG_MAX_LEN, PRNG_Q,
+        PRNG_SEED, SEED_LEN,
     },
     hasher::Hasher,
     util::ustr::{u16str, u32str},
@@ -10,38 +10,38 @@ use crate::{
 
 pub struct SeedDerive<'a> {
     master_seed: &'a Seed,
-    i: &'a LmsTreeIdentifier,
-    q: u32,
-    j: u16,
+    lms_tree_identifier: &'a LmsTreeIdentifier,
+    lms_leaf_identifier: u32,
+    child_seed: u16,
 }
 
 impl<'a> SeedDerive<'a> {
     pub fn new(seed: &'a Seed, i: &'a LmsTreeIdentifier) -> Self {
         SeedDerive {
             master_seed: seed,
-            i,
-            q: 0,
-            j: 0,
+            lms_tree_identifier: i,
+            lms_leaf_identifier: 0,
+            child_seed: 0,
         }
     }
 
-    pub fn set_q(&mut self, q: u32) {
-        self.q = q;
+    pub fn set_lms_leaf_identifier(&mut self, q: u32) {
+        self.lms_leaf_identifier = q;
     }
 
-    pub fn set_j(&mut self, j: u16) {
-        self.j = j;
+    pub fn set_child_seed(&mut self, j: u16) {
+        self.child_seed = j;
     }
 
     pub fn seed_derive(&mut self, increment_j: bool) -> [u8; Sha256Hasher::OUTPUT_SIZE] {
         let mut buffer = [0u8; PRNG_MAX_LEN];
 
-        buffer[PRNG_I..PRNG_I + ILEN].copy_from_slice(self.i);
+        buffer[PRNG_I..PRNG_I + ILEN].copy_from_slice(self.lms_tree_identifier);
 
-        let lms_leaf_identifier = u32str(self.q);
+        let lms_leaf_identifier = u32str(self.lms_leaf_identifier);
         buffer[PRNG_Q..PRNG_Q + 4].copy_from_slice(&lms_leaf_identifier);
 
-        let j = u16str(self.j);
+        let j = u16str(self.child_seed);
         buffer[PRNG_J..PRNG_J + 2].copy_from_slice(&j);
 
         buffer[PRNG_FF] = 0xff;
@@ -53,7 +53,7 @@ impl<'a> SeedDerive<'a> {
         hasher.update(&buffer[..prng_len(SEED_LEN)]);
 
         if increment_j {
-            self.j += 1;
+            self.child_seed += 1;
         }
 
         let mut result = [0u8; Sha256Hasher::OUTPUT_SIZE];

@@ -146,8 +146,8 @@ pub fn generate_child_seed_and_lms_tree_identifier(
 ) -> SeedAndLmsTreeIdentifier {
     let mut derive = SeedDerive::new(&parent_seed.seed, &parent_seed.i);
 
-    derive.set_q(index);
-    derive.set_j(SEED_CHILD_SEED);
+    derive.set_lms_leaf_identifier(index);
+    derive.set_child_seed(SEED_CHILD_SEED);
 
     let seed = derive.seed_derive(true);
     let lms_tree_identifier = derive.seed_derive(false);
@@ -254,9 +254,10 @@ mod tests {
         let key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
 
         let binary_representation = key.to_binary_representation();
-        let deserialized =
-            ReferenceImplPrivateKey::<Hasher>::from_binary_representation(binary_representation.as_slice())
-                .unwrap();
+        let deserialized = ReferenceImplPrivateKey::<Hasher>::from_binary_representation(
+            binary_representation.as_slice(),
+        )
+        .unwrap();
 
         assert!(key == deserialized);
     }

@@ -16,8 +16,8 @@ use crate::{
 };
 
 use self::{
-    definitions::HssPrivateKey, parameter::HssParameter, reference_impl_private_key::ReferenceImplPrivateKey,
-    signing::HssSignature,
+    definitions::HssPrivateKey, parameter::HssParameter,
+    reference_impl_private_key::ReferenceImplPrivateKey, signing::HssSignature,
 };
 
 /**
@@ -80,8 +80,9 @@ pub fn hss_sign<H: Hasher>(
     private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
     aux_data: Option<&mut &mut [u8]>,
 ) -> Option<ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>> {
-    let mut rfc_private_key =
-        extract_or_return!(ReferenceImplPrivateKey::from_binary_representation(private_key));
+    let mut rfc_private_key = extract_or_return!(
+        ReferenceImplPrivateKey::from_binary_representation(private_key)
+    );
 
     let mut parsed_private_key: HssPrivateKey<H> =
         match HssPrivateKey::from(&rfc_private_key, aux_data) {

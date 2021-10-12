@@ -20,3 +20,6 @@ hex = "0.4.3"
 [features]
 default = ["std"]
 std = ["rand"]
+
+[profile.release]
+overflow-checks = true

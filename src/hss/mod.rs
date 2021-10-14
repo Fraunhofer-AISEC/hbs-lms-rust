@@ -118,7 +118,7 @@ pub fn hss_sign<H: Hasher>(
  *
  * # Example
  * ```
- * use lms::*;
+ * use hbs_lms::*;
  *
  * let parameters = [HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5), HssParameter::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5)];
  * let mut aux_data = vec![0u8; 10_000];

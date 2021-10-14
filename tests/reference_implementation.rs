@@ -4,7 +4,7 @@ use std::{
     process::Command,
 };
 
-use lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
+use hbs_lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
 use tempfile::TempDir;
 
 const MESSAGE_FILE_NAME: &str = "message.txt";
@@ -46,7 +46,7 @@ fn create_signature_with_own_implementation() {
     let mut aux_data = vec![0u8; 2000];
     let mut aux_slice = &mut &mut aux_data[..];
 
-    let mut keys = lms::keygen::<Sha256Hasher>(
+    let mut keys = hbs_lms::keygen::<Sha256Hasher>(
         &[
             HssParameter::construct_default_parameters(),
             HssParameter::construct_default_parameters(),
@@ -112,7 +112,7 @@ fn should_produce_same_private_key() {
     let parameters =
         HssParameter::<Sha256Hasher>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
 
-    let key = lms::keygen(
+    let key = hbs_lms::keygen(
         &[parameters.clone(), parameters.clone()],
         Some(&TEST_SEED),
         None,
@@ -139,7 +139,7 @@ fn should_produce_same_aux_data() {
     let mut aux_data = vec![0u8; 2000];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    let _ = lms::keygen(
+    let _ = hbs_lms::keygen(
         &[parameters.clone(), parameters.clone()],
         Some(&TEST_SEED),
         Some(aux_slice),
@@ -199,7 +199,7 @@ fn own_signing(
         true
     };
 
-    let result = lms::sign::<Sha256Hasher>(
+    let result = hbs_lms::sign::<Sha256Hasher>(
         &message_data,
         &private_key_before,
         &mut update_private_key,
@@ -218,7 +218,7 @@ fn own_verify(temp_path: &TempDir) {
     let signature_data = read_file(path.join(SIGNATURE_FILE_NAME).to_str().unwrap());
     let public_key_data = read_file(path.join(PUBLIC_KEY_NAME).to_str().unwrap());
 
-    assert!(lms::verify::<Sha256Hasher>(
+    assert!(hbs_lms::verify::<Sha256Hasher>(
         &message_data,
         &signature_data,
         &public_key_data

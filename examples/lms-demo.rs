@@ -1,5 +1,5 @@
 use clap::{App, Arg, ArgMatches, SubCommand};
-use lms::*;
+use hbs_lms::*;
 use std::{
     error::Error,
     fmt,
@@ -118,14 +118,14 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
 
     let result = if let Some(aux_data) = aux_data.as_mut() {
         let aux_slice = &mut &mut aux_data[..];
-        lms::sign::<Sha256Hasher>(
+        hbs_lms::sign::<Sha256Hasher>(
             &message_data,
             &mut private_key_data,
             &mut private_key_update_function,
             Some(aux_slice),
         )
     } else {
-        lms::sign::<Sha256Hasher>(
+        hbs_lms::sign::<Sha256Hasher>(
             &message_data,
             &mut private_key_data,
             &mut private_key_update_function,
@@ -157,7 +157,7 @@ fn verify(args: &ArgMatches) -> bool {
     let message_data = read_file(&message_name);
     let public_key_data = read_file(&public_key_name);
 
-    lms::verify::<Sha256Hasher>(&message_data, &signature_data, &public_key_data)
+    hbs_lms::verify::<Sha256Hasher>(&message_data, &signature_data, &public_key_data)
 }
 
 fn get_public_key_name(keyname: &String) -> String {

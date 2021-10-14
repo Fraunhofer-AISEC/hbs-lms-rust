@@ -1,8 +1,16 @@
 [package]
 name = "lms"
 version = "0.1.0"
-authors = ["Maurice Hieronymus <maurice_hieronymus@yahoo.de>"]
+authors = ["Fraunhofer AISEC"]
+description = """
+Pure Rust implementation of the Leighton Micali Signature scheme with support for key generation, signature generation and verification.
+"""
 edition = "2018"
+repository = "https://github.com/Fraunhofer-AISEC/hbs-lms-rust"
+license = "Apache-2.0"
+readme = "README.md"
+keywords = ["crypto", "post-quantum", "signature", "lms"]
+categories = ["cryptography", "no-std"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

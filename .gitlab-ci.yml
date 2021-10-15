@@ -12,6 +12,16 @@ fmt:
   tags:
     - asprunner
 
+clippy:
+  stage: lint
+  image: rust:latest
+  before_script:
+    - rustup component add clippy
+  script:
+    - cargo clippy --all-targets --all-features -- -D warnings
+  tags:
+    - asprunner
+
 check-for-todos:
   stage: lint
   image: rust:latest

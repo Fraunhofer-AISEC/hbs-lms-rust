@@ -3,7 +3,7 @@
 all:
 	cargo fmt
 	cargo build
-	cargo clippy
+	cargo clippy --all-targets --all-features -- -D warnings
 	cargo build --examples
 
 test:

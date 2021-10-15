@@ -201,12 +201,10 @@ mod tests {
 
         message[0] = 33;
 
-        assert!(
-            hss_verify::<H>(
-                &message,
-                signature.as_slice(),
-                keypair.public_key.as_slice()
-            ) == false
-        );
+        assert!(!hss_verify::<H>(
+            &message,
+            signature.as_slice(),
+            keypair.public_key.as_slice()
+        ));
     }
 }

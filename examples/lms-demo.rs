@@ -32,7 +32,7 @@ impl fmt::Display for DemoError {
 impl Error for DemoError {}
 
 impl DemoError {
-    pub fn new<R>(message: &str) -> Result<R, Box<dyn Error>> {
+    pub fn raise<R>(message: &str) -> Result<R, Box<dyn Error>> {
         Err(Box::new(Self(String::from(message))))
     }
 }
@@ -82,7 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Some(args) = matches.subcommand_matches(VERIFY_COMMAND) {
         let result = verify(args);
-        if result == true {
+        if result {
             print!("Successful!");
             exit(0);
         } else {
@@ -107,7 +107,7 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let private_key_name = get_private_key_name(&keyname);
     let signature_name = get_signature_name(&message_name);
 
-    let mut private_key_data = read_file(&private_key_name);
+    let private_key_data = read_file(&private_key_name);
     let message_data = read_file(&message_name);
 
     let aux_data_name = get_aux_name(&keyname);
@@ -120,14 +120,14 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
         let aux_slice = &mut &mut aux_data[..];
         hbs_lms::sign::<Sha256Hasher>(
             &message_data,
-            &mut private_key_data,
+            &private_key_data,
             &mut private_key_update_function,
             Some(aux_slice),
         )
     } else {
         hbs_lms::sign::<Sha256Hasher>(
             &message_data,
-            &mut private_key_data,
+            &private_key_data,
             &mut private_key_update_function,
             None,
         )
@@ -160,20 +160,20 @@ fn verify(args: &ArgMatches) -> bool {
     hbs_lms::verify::<Sha256Hasher>(&message_data, &signature_data, &public_key_data)
 }
 
-fn get_public_key_name(keyname: &String) -> String {
-    keyname.clone() + ".pub"
+fn get_public_key_name(keyname: &str) -> String {
+    keyname.to_string() + ".pub"
 }
 
-fn get_signature_name(message_name: &String) -> String {
-    message_name.clone() + ".sig"
+fn get_signature_name(message_name: &str) -> String {
+    message_name.to_string() + ".sig"
 }
 
-fn get_private_key_name(private_key: &String) -> String {
-    private_key.clone() + ".prv"
+fn get_private_key_name(private_key: &str) -> String {
+    private_key.to_string() + ".prv"
 }
 
-fn get_aux_name(keyname: &String) -> String {
-    keyname.clone() + ".aux"
+fn get_aux_name(keyname: &str) -> String {
+    keyname.to_string() + ".aux"
 }
 
 fn get_parameter(name: &str, args: &ArgMatches) -> String {
@@ -184,11 +184,11 @@ fn get_parameter(name: &str, args: &ArgMatches) -> String {
 
 fn read_file(file_name: &str) -> Vec<u8> {
     let mut file = std::fs::File::open(file_name)
-        .expect(format!("Could not open file: {}", file_name).as_str());
+        .unwrap_or_else(|_| panic!("Could not read data from: {}", file_name));
 
     let mut data: Vec<u8> = Vec::new();
     file.read_to_end(&mut data)
-        .expect(format!("Could not read data from: {}", file_name).as_str());
+        .unwrap_or_else(|_| panic!("Could not read data from: {}", file_name));
 
     data
 }
@@ -202,14 +202,14 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let seed = if let Some(seed) = args.value_of(SEED_PARAMETER) {
         let decoded = hex::decode(seed)?;
         if decoded.len() < size_of::<Seed>() {
-            return DemoError::new("Seed is too short");
+            return DemoError::raise("Seed is too short");
         }
         Some(decoded)
     } else {
         None
     };
 
-    let seed_slice: Option<&[u8]> = seed.as_ref().map(|x| x.as_slice());
+    let seed_slice: Option<&[u8]> = seed.as_deref();
 
     let mut aux_data = vec![0u8; genkey_parameter.aux_data];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
@@ -244,8 +244,8 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
 
     let mut aux_data_size: Option<usize> = None;
 
-    let parameter = if parameter.contains(":") {
-        let mut splitted = parameter.split(":");
+    let parameter = if parameter.contains(':') {
+        let mut splitted = parameter.split(':');
         let parameter = splitted.next().expect("Should contain parameter");
 
         let aux_data = splitted.next().expect("Should contain aux data size");
@@ -259,7 +259,7 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
         parameter
     };
 
-    let parameters = parameter.split(",");
+    let parameters = parameter.split(',');
 
     for parameter in parameters {
         let mut splitted = parameter.split('/');

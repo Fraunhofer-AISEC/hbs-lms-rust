@@ -112,12 +112,7 @@ fn should_produce_same_private_key() {
     let parameters =
         HssParameter::<Sha256Hasher>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
 
-    let key = hbs_lms::keygen(
-        &[parameters.clone(), parameters.clone()],
-        Some(&TEST_SEED),
-        None,
-    )
-    .unwrap();
+    let key = hbs_lms::keygen(&[parameters, parameters], Some(&TEST_SEED), None).unwrap();
 
     let ref_private_key = read_private_key(path);
     let ref_public_key = read_public_key(path);
@@ -139,12 +134,7 @@ fn should_produce_same_aux_data() {
     let mut aux_data = vec![0u8; 2000];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    let _ = hbs_lms::keygen(
-        &[parameters.clone(), parameters.clone()],
-        Some(&TEST_SEED),
-        Some(aux_slice),
-    )
-    .unwrap();
+    let _ = hbs_lms::keygen(&[parameters, parameters], Some(&TEST_SEED), Some(aux_slice)).unwrap();
 
     let ref_aux_data = read_aux_data(path);
 
@@ -169,17 +159,17 @@ fn read_public_key(path: &Path) -> Vec<u8> {
 
 fn save_file(file_name: &str, data: &[u8]) {
     let mut file = std::fs::File::create(file_name)
-        .expect(format!("Could not open file: {}", file_name).as_str());
+        .unwrap_or_else(|_| panic!("Could not open file: {}", file_name));
     file.write_all(data).expect("Could not write file.");
 }
 
 fn read_file(file_name: &str) -> Vec<u8> {
     let mut file = std::fs::File::open(file_name)
-        .expect(format!("Could not open file: {}", file_name).as_str());
+        .unwrap_or_else(|_| panic!("Could not read data from: {}", file_name));
 
     let mut data: Vec<u8> = Vec::new();
     file.read_to_end(&mut data)
-        .expect(format!("Could not read data from: {}", file_name).as_str());
+        .unwrap_or_else(|_| panic!("Could not read data from: {}", file_name));
 
     data
 }

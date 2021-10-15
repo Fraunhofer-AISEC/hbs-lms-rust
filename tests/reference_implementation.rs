@@ -190,7 +190,7 @@ fn own_signing(
     };
 
     let result = hbs_lms::sign::<Sha256Hasher>(
-        &message_data,
+        message_data,
         &private_key_before,
         &mut update_private_key,
         Some(aux_slice),

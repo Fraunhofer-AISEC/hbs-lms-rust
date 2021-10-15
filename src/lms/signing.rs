@@ -223,7 +223,7 @@ mod tests {
         let binary = signature.to_binary_representation();
 
         let deserialized =
-            InMemoryLmsSignature::new(&binary.as_slice()).expect("Deserialization must succeed.");
+            InMemoryLmsSignature::new(binary.as_slice()).expect("Deserialization must succeed.");
 
         assert!(deserialized == signature);
     }

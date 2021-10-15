@@ -230,11 +230,8 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         write(&aux_name, aux_slice)?;
     }
 
-    write(public_key_filename.as_str(), &public_key_binary.as_slice())?;
-    write(
-        private_key_filename.as_str(),
-        &private_key_binary.as_slice(),
-    )?;
+    write(public_key_filename.as_str(), public_key_binary.as_slice())?;
+    write(private_key_filename.as_str(), private_key_binary.as_slice())?;
 
     Ok(())
 }

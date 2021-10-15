@@ -8,6 +8,7 @@ fmt:
   before_script:
     - rustup component add rustfmt
   script:
+    - cargo fmt --version
     - cargo fmt --all -- --check
   tags:
     - asprunner
@@ -18,6 +19,7 @@ clippy:
   before_script:
     - rustup component add clippy
   script:
+    - cargo clippy --version
     - cargo clippy --all-targets --all-features -- -D warnings
   tags:
     - asprunner
@@ -41,6 +43,7 @@ rust-latest:
   stage: build
   image: rust:latest
   script:
+    - rustc --version
     - cargo build --verbose
     - cargo test --verbose
   tags:
@@ -50,6 +53,7 @@ rust-nightly:
   stage: build
   image: rustlang/rust:nightly
   script:
+    - rustc --version
     - cargo build --verbose
     - cargo test --verbose
   allow_failure: true

@@ -53,7 +53,10 @@ impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, 
 }
 
 impl<H: Hasher> LmotsSignature<H> {
-    pub fn sign(private_key: &LmotsPrivateKey<H>, message: &[u8]) -> Self {
+    fn calculate_message_hash(
+        private_key: &LmotsPrivateKey<H>,
+        message: &[u8],
+    ) -> (H, ArrayVec<u8, MAX_HASH_SIZE>) {
         let mut signature_randomizer = ArrayVec::new();
 
         let lmots_parameter = private_key.lmots_parameter;
@@ -71,6 +74,15 @@ impl<H: Hasher> LmotsSignature<H> {
         hasher.update(&D_MESG);
         hasher.update(signature_randomizer.as_slice());
         hasher.update(message);
+
+        (hasher, signature_randomizer)
+    }
+
+    pub fn sign(private_key: &LmotsPrivateKey<H>, message: &[u8]) -> Self {
+        let lmots_parameter = private_key.lmots_parameter;
+
+        let (mut hasher, signature_randomizer) =
+            LmotsSignature::<H>::calculate_message_hash(private_key, message);
 
         let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher.finalize_reset();
         let message_hash_with_checksum =

@@ -6,7 +6,7 @@
 //! ```
 //! use hbs_lms::*;
 //!
-//! let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32]; // Some message that needs to be signed
+//! let mut message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32]; // Some message that needs to be signed
 //!
 //! // Generate keys for a 2-level HSS system (first Level W8/H5, second level W4/H15) using the standard software hashing implementation
 //! let key_pair = hbs_lms::keygen::<Sha256Hasher>(&[HssParameter::new(LmotsAlgorithm::LmotsW8, LmsAlgorithm::LmsH5), HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5)], None, None).unwrap();
@@ -19,7 +19,7 @@
 //!     true // Report successful result
 //! };
 //!
-//! let sig = hbs_lms::sign::<Sha256Hasher>(&message, private_key, &mut private_key_update_function, None).unwrap();
+//! let sig = hbs_lms::sign::<Sha256Hasher>(&mut message, private_key, &mut private_key_update_function, None).unwrap();
 //! let sig_slice = sig.as_slice();
 //!
 //! let verify_result = hbs_lms::verify::<Sha256Hasher>(&message, sig_slice, public_key);

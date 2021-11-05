@@ -62,11 +62,11 @@ fn create_signature_with_own_implementation() {
     );
 
     create_message_file(&tempdir);
-    let message_data = read_message(path);
+    let mut message_data = read_message(path);
 
     own_signing(
         &tempdir,
-        &message_data,
+        &mut message_data,
         keys.private_key.as_mut_slice(),
         &mut aux_slice,
     );
@@ -75,7 +75,7 @@ fn create_signature_with_own_implementation() {
 
     own_signing(
         &tempdir,
-        &message_data,
+        &mut message_data,
         keys.private_key.as_mut_slice(),
         &mut aux_slice,
     );
@@ -92,10 +92,10 @@ fn test_private_key_format() {
     create_message_file(&tempdir);
 
     let mut private_key = read_private_key(path);
-    let message_data = read_message(path);
+    let mut message_data = read_message(path);
     let mut aux_data = read_aux_data(path);
 
-    own_signing(&tempdir, &message_data, &mut private_key, &mut aux_data);
+    own_signing(&tempdir, &mut message_data, &mut private_key, &mut aux_data);
     reference_verify(&tempdir);
 
     reference_sign(&tempdir);
@@ -176,7 +176,7 @@ fn read_file(file_name: &str) -> Vec<u8> {
 
 fn own_signing(
     temp_path: &TempDir,
-    message_data: &[u8],
+    message_data: &mut [u8],
     private_key: &mut [u8],
     mut aux_data: &mut [u8],
 ) {

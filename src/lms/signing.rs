@@ -77,6 +77,27 @@ impl<H: Hasher> LmsSignature<H> {
         Ok(authentication_path)
     }
 
+    pub fn sign_fast_verify(
+        lms_private_key: &mut LmsPrivateKey<H>,
+        message: &mut [u8],
+    ) -> Result<LmsSignature<H>, ()> {
+        let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
+
+        let ots_signature = LmotsSignature::sign_fast_verify(&lm_ots_private_key, message);
+
+        let authentication_path =
+            LmsSignature::<H>::build_authentication_path(lms_private_key, &lm_ots_private_key)?;
+
+        let signature = LmsSignature {
+            lms_leaf_identifier: lm_ots_private_key.lms_leaf_identifier,
+            lmots_signature: ots_signature,
+            authentication_path,
+            lms_parameter: lms_private_key.lms_parameter,
+        };
+
+        Ok(signature)
+    }
+
     pub fn sign(
         lms_private_key: &mut LmsPrivateKey<H>,
         message: &[u8],

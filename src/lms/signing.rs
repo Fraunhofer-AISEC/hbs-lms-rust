@@ -4,6 +4,7 @@ use crate::constants::MAX_LMS_SIGNATURE_LENGTH;
 use crate::extract_or_return;
 use crate::hasher::Hasher;
 use crate::lm_ots;
+use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::lm_ots::signing::InMemoryLmotsSignature;
 use crate::lm_ots::signing::LmotsSignature;
@@ -58,6 +59,24 @@ impl<'a, H: Hasher> PartialEq<LmsSignature<H>> for InMemoryLmsSignature<'a, H> {
 }
 
 impl<H: Hasher> LmsSignature<H> {
+    fn build_authentication_path(
+        lms_private_key: &mut LmsPrivateKey<H>,
+        lm_ots_private_key: &LmotsPrivateKey<H>,
+    ) -> Result<ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_SIZE>, ()> {
+        let tree_height = lms_private_key.lms_parameter.get_tree_height();
+        let signature_leaf_index = 2usize.pow(tree_height as u32)
+            + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
+
+        let mut authentication_path = ArrayVec::new();
+
+        for i in 0..tree_height.into() {
+            let tree_index = (signature_leaf_index / (2usize.pow(i as u32))) ^ 0x1;
+            authentication_path.push(get_tree_element(tree_index, lms_private_key, &mut None));
+        }
+
+        Ok(authentication_path)
+    }
+
     pub fn sign(
         lms_private_key: &mut LmsPrivateKey<H>,
         message: &[u8],
@@ -66,17 +85,8 @@ impl<H: Hasher> LmsSignature<H> {
 
         let ots_signature = LmotsSignature::sign(&lm_ots_private_key, message);
 
-        let tree_height = lms_private_key.lms_parameter.get_tree_height();
-        let signature_leaf_index = 2usize.pow(tree_height as u32)
-            + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
-
-        let mut authentication_path: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_SIZE> =
-            ArrayVec::new();
-
-        for i in 0..tree_height.into() {
-            let tree_index = (signature_leaf_index / (2usize.pow(i as u32))) ^ 0x1;
-            authentication_path.push(get_tree_element(tree_index, lms_private_key, &mut None));
-        }
+        let authentication_path =
+            LmsSignature::<H>::build_authentication_path(lms_private_key, &lm_ots_private_key)?;
 
         let signature = LmsSignature {
             lms_leaf_identifier: lm_ots_private_key.lms_leaf_identifier,

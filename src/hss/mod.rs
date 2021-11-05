@@ -75,7 +75,7 @@ pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]
  * * `aux_data` - Auxiliary data to speedup signature generation if available
  */
 pub fn hss_sign<H: Hasher>(
-    message: &[u8],
+    message: &mut [u8],
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
     aux_data: Option<&mut &mut [u8]>,
@@ -186,7 +186,7 @@ mod tests {
         };
 
         let signature = hss_sign::<H>(
-            &message,
+            &mut message,
             private_key.as_slice(),
             &mut update_private_key,
             None,

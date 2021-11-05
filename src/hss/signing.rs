@@ -64,7 +64,10 @@ impl<'a, H: Hasher> PartialEq<HssSignature<H>> for InMemoryHssSignature<'a, H> {
 }
 
 impl<H: Hasher> HssSignature<H> {
-    pub fn sign(private_key: &mut HssPrivateKey<H>, message: &[u8]) -> Result<HssSignature<H>, ()> {
+    pub fn sign(
+        private_key: &mut HssPrivateKey<H>,
+        message: &mut [u8],
+    ) -> Result<HssSignature<H>, ()> {
         let max_level = private_key.get_length();
 
         let lmots_parameter = private_key.private_key[0].lmots_parameter;
@@ -110,7 +113,8 @@ impl<H: Hasher> HssSignature<H> {
         }
 
         // Sign the message
-        let new_signature = lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message)?;
+        let new_signature =
+            lms::signing::LmsSignature::sign_fast_verify(&mut prv[max_level - 1], message)?;
 
         // Check if array already contains a signature at Index max_level - 1. If so replace it, otherwise push the new signature.
         if let Some(x) = sig.get_mut(max_level - 1) {
@@ -319,10 +323,10 @@ mod tests {
 
         let mut private_key = HssPrivateKey::from(&private_key, None).unwrap();
 
-        let message = [2, 56, 123, 22, 42, 49, 22];
+        let mut message = [2, 56, 123, 22, 42, 49, 22];
 
-        let signature =
-            HssSignature::sign(&mut private_key, &message).expect("Should generate HSS signature");
+        let signature = HssSignature::sign(&mut private_key, &mut message)
+            .expect("Should generate HSS signature");
 
         let binary_representation = signature.to_binary_representation();
         let deserialized =

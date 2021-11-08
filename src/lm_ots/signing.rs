@@ -81,12 +81,12 @@ impl<H: Hasher> LmotsSignature<H> {
     fn optimize_message_hash_fast_verify(
         hasher: &mut H,
         lmots_parameter: &LmotsParameter<H>,
-    ) -> ArrayVec<u8, MAX_HASH_SIZE> {
-        let mut best_message_randomizer = ArrayVec::new();
-        let mut message_randomizer = ArrayVec::new();
+        message_randomizer: &mut [u8],
+    ) {
+        let mut trial_message_randomizer: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
 
         for _ in 0..lmots_parameter.get_hash_function_output_size() {
-            message_randomizer.push(0u8);
+            trial_message_randomizer.push(0u8);
         }
 
         let mut max_total_hash_chain_length = 0;
@@ -94,9 +94,9 @@ impl<H: Hasher> LmotsSignature<H> {
         for _ in 0..MAX_HASH_OPTIMIZATIONS {
             let mut hasher_trial = hasher.clone();
 
-            get_random(message_randomizer.as_mut_slice());
+            get_random(trial_message_randomizer.as_mut_slice());
 
-            hasher_trial.update(message_randomizer.as_slice());
+            hasher_trial.update(trial_message_randomizer.as_slice());
 
             let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher_trial.finalize_reset();
             let message_hash_with_checksum =
@@ -114,12 +114,9 @@ impl<H: Hasher> LmotsSignature<H> {
 
             if total_hash_chain_length > max_total_hash_chain_length {
                 max_total_hash_chain_length = total_hash_chain_length;
-                best_message_randomizer = message_randomizer.clone();
+                message_randomizer.copy_from_slice(trial_message_randomizer.as_slice());
             }
         }
-        assert_eq!(max_total_hash_chain_length, 0);
-
-        best_message_randomizer
     }
 
     fn calculate_signature(
@@ -154,15 +151,35 @@ impl<H: Hasher> LmotsSignature<H> {
     pub fn sign_fast_verify(private_key: &LmotsPrivateKey<H>, message: &mut [u8]) -> Self {
         let lmots_parameter = private_key.lmots_parameter;
 
-        let (mut hasher, signature_randomizer) =
-            LmotsSignature::<H>::calculate_message_hash(private_key, message);
+        let (mut hasher, signature_randomizer) = if MAX_HASH_OPTIMIZATIONS != 0
+            && message.len() > lmots_parameter.get_hash_function_output_size()
+        {
+            let message_end = message.len() - lmots_parameter.get_hash_function_output_size();
+            let (message, mut message_randomizer) = message.split_at_mut(message_end);
 
-        if MAX_HASH_OPTIMIZATIONS != 0 {
-            let message_randomizer = LmotsSignature::<H>::optimize_message_hash_fast_verify(
-                &mut hasher,
-                &lmots_parameter,
-            );
-            hasher.update(message_randomizer.as_slice());
+            let (mut hasher, signature_randomizer) =
+                LmotsSignature::<H>::calculate_message_hash(private_key, message);
+
+            let mut message_randomizer_zero = true;
+            for &byte in message_randomizer.iter() {
+                if byte != 0u8 {
+                    message_randomizer_zero = false;
+                };
+            }
+
+            if message_randomizer_zero {
+                LmotsSignature::<H>::optimize_message_hash_fast_verify(
+                    &mut hasher,
+                    &lmots_parameter,
+                    &mut message_randomizer,
+                );
+            }
+
+            hasher.update(message_randomizer);
+
+            (hasher, signature_randomizer)
+        } else {
+            LmotsSignature::<H>::calculate_message_hash(private_key, message)
         };
 
         let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher.finalize_reset();

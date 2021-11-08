@@ -39,7 +39,7 @@ check-for-todos:
   tags:
     - asprunner
 
-rust-latest:
+default-latest:
   stage: build
   image: rust:latest
   script:
@@ -49,13 +49,34 @@ rust-latest:
   tags:
     - asprunner
 
-rust-nightly:
+default-nightly:
   stage: build
   image: rustlang/rust:nightly
   script:
     - rustc --version
     - cargo build --verbose
     - cargo test --verbose
+  allow_failure: true
+  tags:
+    - asprunner
+
+feature-latest:
+  stage: build
+  image: rust:latest
+  script:
+    - rustc --version
+    - MAX_HASH_OPTIMIZATIONS=10 cargo build --features fast_verify --verbose
+    - MAX_HASH_OPTIMIZATIONS=10 cargo test --features fast_verify --verbose
+  tags:
+    - asprunner
+
+feature-nightly:
+  stage: build
+  image: rustlang/rust:nightly
+  script:
+    - rustc --version
+    - MAX_HASH_OPTIMIZATIONS=10 cargo build --features fast_verify --verbose
+    - MAX_HASH_OPTIMIZATIONS=10 cargo test --features fast_verify --verbose
   allow_failure: true
   tags:
     - asprunner

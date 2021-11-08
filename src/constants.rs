@@ -1,7 +1,7 @@
 use core::mem::size_of;
 
 #[cfg(feature = "fast_verify")]
-pub const MAX_HASH_OPTIMIZATIONS: u32 = 1000;
+include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 
 pub const ILEN: usize = 16;
 pub const SEED_LEN: usize = 32;

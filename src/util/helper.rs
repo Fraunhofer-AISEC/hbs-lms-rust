@@ -15,7 +15,7 @@ macro_rules! extract_or_return {
         match $x {
             None => return None,
             Some(x) => x,
-        };
+        }
     };
 }
 
@@ -26,6 +26,6 @@ macro_rules! extract_or {
         match $x {
             None => return $or,
             Some(x) => x,
-        };
+        }
     };
 }

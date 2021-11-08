@@ -209,4 +209,54 @@ mod tests {
             keypair.public_key.as_slice()
         ));
     }
+
+    #[cfg(feature = "fast_verify")]
+    #[test]
+    fn test_signing_fast_verify() {
+        type H = Sha256Hasher;
+
+        let mut keypair = hss_keygen::<H>(
+            &[
+                HssParameter::construct_default_parameters(),
+                HssParameter::construct_default_parameters(),
+                HssParameter::construct_default_parameters(),
+            ],
+            None,
+            None,
+        )
+        .expect("Should generate HSS keys");
+
+        let message_values = [
+            32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
+        ];
+        let mut message = [0u8; 64];
+        message[..message_values.len()].copy_from_slice(&message_values);
+
+        let private_key = keypair.private_key.clone();
+
+        let mut update_private_key = |new_key: &[u8]| {
+            keypair.private_key.as_mut_slice().copy_from_slice(new_key);
+            true
+        };
+
+        let signature = hss_sign::<H>(
+            &mut message,
+            private_key.as_slice(),
+            &mut update_private_key,
+            None,
+        )
+        .expect("Signing should complete without error.");
+
+        assert!(H::OUTPUT_SIZE == MAX_HASH_SIZE as u16);
+        assert_ne!(
+            message[(message.len() - MAX_HASH_SIZE)..],
+            [0u8; MAX_HASH_SIZE]
+        );
+
+        assert!(hss_verify::<H>(
+            &message,
+            signature.as_slice(),
+            keypair.public_key.as_slice()
+        ));
+    }
 }

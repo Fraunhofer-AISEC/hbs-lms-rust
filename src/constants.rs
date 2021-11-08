@@ -1,6 +1,7 @@
 use core::mem::size_of;
 
-pub const MAX_HASH_OPTIMIZATIONS: u32 = 0;
+#[cfg(feature = "fast_verify")]
+pub const MAX_HASH_OPTIMIZATIONS: u32 = 1000;
 
 pub const ILEN: usize = 16;
 pub const SEED_LEN: usize = 32;

@@ -28,6 +28,7 @@ hex = "0.4.3"
 [features]
 default = ["std"]
 std = ["rand"]
+fast_verify = []
 
 [profile.release]
 overflow-checks = true

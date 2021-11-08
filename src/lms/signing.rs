@@ -77,6 +77,7 @@ impl<H: Hasher> LmsSignature<H> {
         Ok(authentication_path)
     }
 
+    #[cfg(feature = "fast_verify")]
     pub fn sign_fast_verify(
         lms_private_key: &mut LmsPrivateKey<H>,
         message: &mut [u8],

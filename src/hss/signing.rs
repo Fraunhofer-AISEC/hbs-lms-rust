@@ -113,6 +113,9 @@ impl<H: Hasher> HssSignature<H> {
         }
 
         // Sign the message
+        #[cfg(not(feature = "fast_verify"))]
+        let new_signature = lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message)?;
+        #[cfg(feature = "fast_verify")]
         let new_signature =
             lms::signing::LmsSignature::sign_fast_verify(&mut prv[max_level - 1], message)?;
 
@@ -323,7 +326,9 @@ mod tests {
 
         let mut private_key = HssPrivateKey::from(&private_key, None).unwrap();
 
-        let mut message = [2, 56, 123, 22, 42, 49, 22];
+        let message_values = [2, 56, 123, 22, 42, 49, 22];
+        let mut message = [0u8; 64];
+        message[..message_values.len()].copy_from_slice(&message_values);
 
         let signature = HssSignature::sign(&mut private_key, &mut message)
             .expect("Should generate HSS signature");

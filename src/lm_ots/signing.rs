@@ -2,7 +2,7 @@ use crate::extract_or_return;
 use crate::hasher::Hasher;
 use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::{
-    constants::{D_MESG, MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_OPTIMIZATIONS, MAX_HASH_SIZE},
+    constants::{D_MESG, MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_SIZE},
     util::{
         coef::coef,
         random::get_random,
@@ -11,6 +11,9 @@ use crate::{
 };
 use arrayvec::ArrayVec;
 use core::usize;
+
+#[cfg(feature = "fast_verify")]
+use crate::constants::MAX_HASH_OPTIMIZATIONS;
 
 use super::definitions::LmotsPrivateKey;
 use super::parameters::LmotsParameter;
@@ -78,6 +81,7 @@ impl<H: Hasher> LmotsSignature<H> {
         (hasher, signature_randomizer)
     }
 
+    #[cfg(feature = "fast_verify")]
     fn optimize_message_hash_fast_verify(
         hasher: &mut H,
         lmots_parameter: &LmotsParameter<H>,
@@ -148,6 +152,7 @@ impl<H: Hasher> LmotsSignature<H> {
         signature_data
     }
 
+    #[cfg(feature = "fast_verify")]
     pub fn sign_fast_verify(private_key: &LmotsPrivateKey<H>, message: &mut [u8]) -> Self {
         let lmots_parameter = private_key.lmots_parameter;
 

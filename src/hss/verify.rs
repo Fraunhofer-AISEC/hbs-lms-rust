@@ -53,9 +53,14 @@ mod tests {
 
         let public_key = private_key.get_public_key();
 
-        let mut message = [42, 57, 20, 59, 33, 1, 49, 3, 99, 130, 50, 20];
+        let message_values = [42, 57, 20, 59, 33, 1, 49, 3, 99, 130, 50, 20];
 
+        let mut message = [0u8; 64];
+        message[..message_values.len()].copy_from_slice(&message_values);
         generate_signature_and_verify(&mut private_key, &public_key, &mut message);
+
+        let mut message = [0u8; 64];
+        message[..message_values.len()].copy_from_slice(&message_values);
         generate_signature_and_verify(&mut private_key, &public_key, &mut message);
     }
 

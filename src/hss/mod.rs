@@ -174,9 +174,11 @@ mod tests {
         )
         .expect("Should generate HSS keys");
 
-        let mut message = [
+        let message_values = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
+        let mut message = [0u8; 64];
+        message[..message_values.len()].copy_from_slice(&message_values);
 
         let private_key = keypair.private_key.clone();
 

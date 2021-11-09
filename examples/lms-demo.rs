@@ -18,7 +18,7 @@ const MESSAGE_PARAMETER: &str = "file";
 const PARAMETER_PARAMETER: &str = "parameter";
 const SEED_PARAMETER: &str = "seed";
 
-const AUX_DATA_DEFAULT_SIZE: usize = 2000;
+const AUX_DATA_DEFAULT_SIZE: usize = 100_000_000;
 
 #[derive(Debug)]
 struct DemoError(String);

@@ -76,24 +76,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Some(args) = matches.subcommand_matches(GENKEY_COMMAND) {
         genkey(args)?;
-        print!("Keys successful generated!");
+        println!("Keys successful generated!");
         return Ok(());
     }
 
     if let Some(args) = matches.subcommand_matches(VERIFY_COMMAND) {
         let result = verify(args);
         if result {
-            print!("Successful!");
+            println!("Successful!");
             exit(0);
         } else {
-            print!("Wrong signature");
+            println!("Wrong signature");
             exit(-1);
         }
     }
 
     if let Some(args) = matches.subcommand_matches(SIGN_COMMAND) {
         sign(args)?;
-        print!("Signature successful generated!");
+        println!("Signature successful generated!");
         return Ok(());
     }
 
@@ -135,7 +135,7 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
 
     let result = match result {
         None => {
-            print!("Could not sign message.");
+            println!("Could not sign message.");
             exit(-1)
         }
         Some(x) => x,

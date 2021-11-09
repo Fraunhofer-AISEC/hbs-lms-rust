@@ -110,6 +110,10 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let private_key_data = read_file(&private_key_name);
     let mut message_data = read_file(&message_name);
 
+    if cfg!(feature = "fast_verify") {
+        message_data.extend_from_slice(&[0u8; 32]);
+    }
+
     let aux_data_name = get_aux_name(&keyname);
     let mut aux_data = read(aux_data_name).ok();
 
@@ -142,6 +146,10 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     };
 
     write(&signature_name, result.as_slice())?;
+
+    if cfg!(feature = "fast_verify") {
+        write(&message_name, message_data.as_slice())?;
+    }
 
     Ok(())
 }

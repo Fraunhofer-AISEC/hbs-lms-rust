@@ -87,37 +87,37 @@ impl<H: Hasher> LmotsSignature<H> {
         lmots_parameter: &LmotsParameter<H>,
         message_randomizer: &mut [u8],
     ) {
+        let mut trial_message_randomizer_seed: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
         let mut trial_message_randomizer: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
 
         for _ in 0..lmots_parameter.get_hash_function_output_size() {
+            trial_message_randomizer_seed.push(0u8);
             trial_message_randomizer.push(0u8);
         }
 
-        let mut max_total_hash_chain_length = 0;
+        get_random(trial_message_randomizer_seed.as_mut_slice());
+
+        let mut hasher_message_randomizer = lmots_parameter.get_hasher();
+        hasher_message_randomizer.update(&trial_message_randomizer_seed);
+
+        let (max, sum, coef_cached) = lmots_parameter.checksum_cached_init();
+
+        let mut min_checksum = max;
 
         for _ in 0..MAX_HASH_OPTIMIZATIONS {
+            let mut hasher_message_randomizer_trial = hasher_message_randomizer.clone();
+            hasher_message_randomizer_trial.update(&trial_message_randomizer);
+            trial_message_randomizer = hasher_message_randomizer_trial.finalize_reset();
+
             let mut hasher_trial = hasher.clone();
-
-            get_random(trial_message_randomizer.as_mut_slice());
-
             hasher_trial.update(trial_message_randomizer.as_slice());
-
             let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher_trial.finalize_reset();
-            let message_hash_with_checksum =
-                lmots_parameter.append_checksum_to(message_hash.as_slice());
 
-            let mut total_hash_chain_length = 0;
-            for i in 0..lmots_parameter.get_max_hash_iterations() {
-                let a = coef(
-                    message_hash_with_checksum.as_slice(),
-                    i,
-                    lmots_parameter.get_winternitz(),
-                ) as usize;
-                total_hash_chain_length += a;
-            }
+            let checksum =
+                lmots_parameter.checksum_cached(message_hash.as_slice(), max, sum, &coef_cached);
 
-            if total_hash_chain_length > max_total_hash_chain_length {
-                max_total_hash_chain_length = total_hash_chain_length;
+            if checksum < min_checksum {
+                min_checksum = checksum;
                 message_randomizer.copy_from_slice(trial_message_randomizer.as_slice());
             }
         }

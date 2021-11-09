@@ -8,6 +8,9 @@ use crate::{
     util::coef::coef,
 };
 
+#[cfg(feature = "fast_verify")]
+use crate::util::coef::coef_helper;
+
 /// Specifies the used Winternitz parameter.
 #[derive(Clone, Copy)]
 pub enum LmotsAlgorithm {
@@ -111,6 +114,42 @@ impl<H: Hasher> LmotsParameter<H> {
 
     pub fn get_hash_function_output_size(&self) -> usize {
         Self::HASH_FUNCTION_OUTPUT_SIZE as usize
+    }
+
+    #[cfg(feature = "fast_verify")]
+    pub fn checksum_cached_init(&self) -> (u16, u16, ArrayVec<(usize, u16, u64), 300>) {
+        let max = (Self::HASH_FUNCTION_OUTPUT_SIZE * 8) / self.get_winternitz() as u16;
+
+        let max_word_size = (1 << self.get_winternitz()) - 1;
+        let sum = max * max_word_size;
+
+        let mut coef_cached = ArrayVec::new();
+
+        for i in 0..max {
+            let coef = coef_helper(i, self.get_winternitz());
+            coef_cached.push(coef);
+        }
+
+        (max, sum, coef_cached)
+    }
+
+    #[cfg(feature = "fast_verify")]
+    pub fn checksum_cached(
+        &self,
+        byte_string: &[u8],
+        max: u16,
+        sum: u16,
+        coef_cached: &ArrayVec<(usize, u16, u64), 300>,
+    ) -> u16 {
+        let mut sum = sum;
+
+        for i in 0..max {
+            let (index, shift, mask) = coef_cached[i as usize];
+            let hash_chain_length = ((byte_string[index] as u64 >> shift) & mask) as u16;
+            sum -= hash_chain_length;
+        }
+
+        sum
     }
 
     fn checksum(&self, byte_string: &[u8]) -> u16 {

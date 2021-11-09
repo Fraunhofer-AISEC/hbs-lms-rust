@@ -9,6 +9,17 @@ pub fn coef(byte_string: &[u8], i: u16, w: u8) -> u64 {
     (byte_string[index] as u64 >> shift) & mask
 }
 
+#[cfg(feature = "fast_verify")]
+pub fn coef_helper(i: u16, w: u8) -> (usize, u16, u64) {
+    let index = ((i * w as u16) / 8) as usize;
+
+    let digits_per_byte = 8 / w;
+    let shift = w as u16 * (!i & (digits_per_byte - 1) as u16);
+    let mask: u64 = (1 << w) - 1;
+
+    (index, shift, mask)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

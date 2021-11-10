@@ -14,7 +14,7 @@
 //! let private_key = key_pair.get_private_key();
 //! let public_key = key_pair.get_public_key();
 //!
-//! let mut private_key_update_function = |new_privtae_key: &[u8]| {
+//! let mut private_key_update_function = |new_private_key: &[u8]| {
 //!     // Update private key and save it to disk
 //!     true // Report successful result
 //! };

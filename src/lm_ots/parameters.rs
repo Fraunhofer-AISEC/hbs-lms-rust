@@ -117,7 +117,7 @@ impl<H: Hasher> LmotsParameter<H> {
     }
 
     #[cfg(feature = "fast_verify")]
-    pub fn checksum_cached_init(&self) -> (u16, u16, ArrayVec<(usize, u16, u64), 300>) {
+    pub fn fast_verify_eval_init(&self) -> (u16, u16, ArrayVec<(usize, u16, u64), 300>) {
         let max = (Self::HASH_FUNCTION_OUTPUT_SIZE * 8) / self.get_winternitz() as u16;
 
         let max_word_size = (1 << self.get_winternitz()) - 1;
@@ -125,7 +125,7 @@ impl<H: Hasher> LmotsParameter<H> {
 
         let mut coef_cached = ArrayVec::new();
 
-        for i in 0..max {
+        for i in 0..self.get_max_hash_iterations() {
             let coef = coef_helper(i, self.get_winternitz());
             coef_cached.push(coef);
         }
@@ -134,22 +134,32 @@ impl<H: Hasher> LmotsParameter<H> {
     }
 
     #[cfg(feature = "fast_verify")]
-    pub fn checksum_cached(
+    pub fn fast_verify_eval(
         &self,
         byte_string: &[u8],
         max: u16,
         sum: u16,
         coef_cached: &ArrayVec<(usize, u16, u64), 300>,
     ) -> u16 {
-        let mut sum = sum;
+        let mut total_hash_chain_iterations = 0;
 
         for i in 0..max {
             let (index, shift, mask) = coef_cached[i as usize];
             let hash_chain_length = ((byte_string[index] as u64 >> shift) & mask) as u16;
-            sum -= hash_chain_length;
+            total_hash_chain_iterations += hash_chain_length;
         }
 
-        sum
+        let mut checksum = sum - total_hash_chain_iterations;
+        checksum <<= self.get_checksum_left_shift();
+        let checksum = [(checksum >> 8 & 0xff) as u8, (checksum & 0xff) as u8];
+
+        for i in max..self.get_max_hash_iterations() {
+            let (index, shift, mask) = coef_cached[i as usize];
+            let hash_chain_length = ((checksum[index - 32] as u64 >> shift) & mask) as u16;
+            total_hash_chain_iterations += hash_chain_length;
+        }
+
+        total_hash_chain_iterations
     }
 
     fn checksum(&self, byte_string: &[u8]) -> u16 {

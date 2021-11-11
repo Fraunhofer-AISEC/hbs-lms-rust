@@ -100,9 +100,9 @@ impl<H: Hasher> LmotsSignature<H> {
         let mut hasher_message_randomizer = lmots_parameter.get_hasher();
         hasher_message_randomizer.update(&trial_message_randomizer_seed);
 
-        let (max, sum, coef_cached) = lmots_parameter.checksum_cached_init();
+        let (max, sum, coef_cached) = lmots_parameter.fast_verify_eval_init();
 
-        let mut min_checksum = max;
+        let mut max_hash_chain_iterations = 0;
 
         for _ in 0..MAX_HASH_OPTIMIZATIONS {
             let mut hasher_message_randomizer_trial = hasher_message_randomizer.clone();
@@ -113,11 +113,11 @@ impl<H: Hasher> LmotsSignature<H> {
             hasher_trial.update(trial_message_randomizer.as_slice());
             let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher_trial.finalize_reset();
 
-            let checksum =
-                lmots_parameter.checksum_cached(message_hash.as_slice(), max, sum, &coef_cached);
+            let hash_chain_iterations =
+                lmots_parameter.fast_verify_eval(message_hash.as_slice(), max, sum, &coef_cached);
 
-            if checksum < min_checksum {
-                min_checksum = checksum;
+            if hash_chain_iterations > max_hash_chain_iterations {
+                max_hash_chain_iterations = hash_chain_iterations;
                 message_randomizer.copy_from_slice(trial_message_randomizer.as_slice());
             }
         }

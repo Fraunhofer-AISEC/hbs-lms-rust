@@ -8,7 +8,6 @@ use crate::{
     util::coef::coef,
 };
 
-#[cfg(feature = "fast_verify")]
 use crate::util::coef::coef_helper;
 
 /// Specifies the used Winternitz parameter.
@@ -116,7 +115,6 @@ impl<H: Hasher> LmotsParameter<H> {
         Self::HASH_FUNCTION_OUTPUT_SIZE as usize
     }
 
-    #[cfg(feature = "fast_verify")]
     pub fn fast_verify_eval_init(&self) -> (u16, u16, ArrayVec<(usize, u16, u64), 300>) {
         let max = (Self::HASH_FUNCTION_OUTPUT_SIZE * 8) / self.get_winternitz() as u16;
 
@@ -133,7 +131,6 @@ impl<H: Hasher> LmotsParameter<H> {
         (max, sum, coef_cached)
     }
 
-    #[cfg(feature = "fast_verify")]
     pub fn fast_verify_eval(
         &self,
         byte_string: &[u8],

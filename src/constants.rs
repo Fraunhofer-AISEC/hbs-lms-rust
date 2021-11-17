@@ -1,6 +1,5 @@
 use core::mem::size_of;
 
-#[cfg(feature = "fast_verify")]
 include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 
 pub const ILEN: usize = 16;

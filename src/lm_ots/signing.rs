@@ -12,7 +12,6 @@ use crate::{
 use arrayvec::ArrayVec;
 use core::usize;
 
-#[cfg(feature = "fast_verify")]
 use {
     crate::constants::{MAX_HASH_OPTIMIZATIONS, THREADS},
     std::sync::mpsc,
@@ -86,7 +85,6 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
         (hasher, signature_randomizer)
     }
 
-    #[cfg(feature = "fast_verify")]
     fn optimize_message_hash(
         hasher: &mut H,
         lmots_parameter: &LmotsParameter<H>,
@@ -158,7 +156,6 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
         signature_data
     }
 
-    #[cfg(feature = "fast_verify")]
     pub fn sign_fast_verify(private_key: &LmotsPrivateKey<H>, message: &mut [u8]) -> Self {
         let lmots_parameter = private_key.lmots_parameter;
 
@@ -307,7 +304,6 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
     }
 }
 
-#[cfg(feature = "fast_verify")]
 fn thread_optimize_message_hash<H: Hasher>(
     thread_hash_optimizations: usize,
     hasher: &H,

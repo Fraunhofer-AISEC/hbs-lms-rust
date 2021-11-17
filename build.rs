@@ -5,26 +5,24 @@ fn main() {
     let dest_path = Path::new(&out_dir).join("constants.rs");
     let mut f = File::create(&dest_path).expect("Could not create file");
 
-    if cfg!(feature = "fast_verify") {
-        let max_hash_optimizations = option_env!("MAX_HASH_OPTIMIZATIONS");
-        let max_hash_optimizations: usize = max_hash_optimizations
-            .map_or(Ok(10_000), str::parse)
-            .expect("Could not parse MAX_HASH_OPTIMIZATIONS");
+    let max_hash_optimizations = option_env!("MAX_HASH_OPTIMIZATIONS");
+    let max_hash_optimizations: usize = max_hash_optimizations
+        .map_or(Ok(10_000), str::parse)
+        .expect("Could not parse MAX_HASH_OPTIMIZATIONS");
 
-        write!(
-            &mut f,
-            "pub const MAX_HASH_OPTIMIZATIONS: usize = {};",
-            max_hash_optimizations
-        )
-        .expect("Could not write file");
-        println!("cargo:rerun-if-env-changed=MAX_HASH_OPTIMIZATIONS");
+    writeln!(
+        &mut f,
+        "pub const MAX_HASH_OPTIMIZATIONS: usize = {};\n",
+        max_hash_optimizations
+    )
+    .expect("Could not write file");
+    println!("cargo:rerun-if-env-changed=MAX_HASH_OPTIMIZATIONS");
 
-        let threads = option_env!("THREADS");
-        let threads = threads
-            .map_or(Ok(2), str::parse)
-            .expect("Could not parse THREADS");
+    let threads = option_env!("THREADS");
+    let threads = threads
+        .map_or(Ok(1), str::parse)
+        .expect("Could not parse THREADS");
 
-        write!(&mut f, "pub const THREADS: usize = {};", threads).expect("Could not write file");
-        println!("cargo:rerun-if-env-changed=THREADS");
-    }
+    writeln!(&mut f, "pub const THREADS: usize = {};\n", threads).expect("Could not write file");
+    println!("cargo:rerun-if-env-changed=THREADS");
 }

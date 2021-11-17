@@ -90,7 +90,7 @@ pub fn hss_sign<H: 'static + Hasher>(
             Err(_) => return None,
         };
 
-    let signature = match HssSignature::sign(&mut parsed_private_key, message) {
+    let signature = match HssSignature::sign(&mut parsed_private_key, message, message_mut) {
         Err(_) => return None,
         Ok(x) => x,
     };

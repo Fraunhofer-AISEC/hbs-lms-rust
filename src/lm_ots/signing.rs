@@ -13,7 +13,11 @@ use arrayvec::ArrayVec;
 use core::usize;
 
 #[cfg(feature = "fast_verify")]
-use crate::constants::MAX_HASH_OPTIMIZATIONS;
+use {
+    crate::constants::{MAX_HASH_OPTIMIZATIONS, THREADS},
+    std::sync::mpsc,
+    std::thread,
+};
 
 use super::definitions::LmotsPrivateKey;
 use super::parameters::LmotsParameter;
@@ -82,40 +86,41 @@ impl<H: Hasher> LmotsSignature<H> {
     }
 
     #[cfg(feature = "fast_verify")]
-    fn optimize_message_hash_fast_verify(
+    fn optimize_message_hash(
         hasher: &mut H,
         lmots_parameter: &LmotsParameter<H>,
         message_randomizer: &mut [u8],
     ) {
-        let mut trial_message_randomizer_seed: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
-        let mut trial_message_randomizer: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
-
-        for _ in 0..lmots_parameter.get_hash_function_output_size() {
-            trial_message_randomizer_seed.push(0u8);
-            trial_message_randomizer.push(0u8);
-        }
-
-        get_random(trial_message_randomizer_seed.as_mut_slice());
-
-        let mut hasher_message_randomizer = lmots_parameter.get_hasher();
-        hasher_message_randomizer.update(&trial_message_randomizer_seed);
+        let mut max_hash_chain_iterations = 0;
 
         let (max, sum, coef_cached) = lmots_parameter.fast_verify_eval_init();
 
-        let mut max_hash_chain_iterations = 0;
+        let rx = {
+            let (tx, rx) = mpsc::channel();
 
-        for _ in 0..MAX_HASH_OPTIMIZATIONS {
-            let mut hasher_message_randomizer_trial = hasher_message_randomizer.clone();
-            hasher_message_randomizer_trial.update(&trial_message_randomizer);
-            trial_message_randomizer = hasher_message_randomizer_trial.finalize_reset();
+            for _ in 0..THREADS {
+                let thread_hash_optimizations = MAX_HASH_OPTIMIZATIONS / THREADS;
+                let thread_hasher = hasher.clone();
+                let thread_lmots_parameter = *lmots_parameter;
+                let thread_coef_cached = coef_cached.clone();
+                let thread_tx = tx.clone();
 
-            let mut hasher_trial = hasher.clone();
-            hasher_trial.update(trial_message_randomizer.as_slice());
-            let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher_trial.finalize_reset();
+                thread::spawn(move || {
+                    let result = thread_optimize_message_hash::<H>(
+                        thread_hash_optimizations,
+                        &thread_hasher,
+                        &thread_lmots_parameter,
+                        max,
+                        sum,
+                        &thread_coef_cached,
+                    );
+                    thread_tx.send(result).unwrap();
+                });
+            }
+            rx
+        };
 
-            let hash_chain_iterations =
-                lmots_parameter.fast_verify_eval(message_hash.as_slice(), max, sum, &coef_cached);
-
+        for (hash_chain_iterations, trial_message_randomizer) in rx {
             if hash_chain_iterations > max_hash_chain_iterations {
                 max_hash_chain_iterations = hash_chain_iterations;
                 message_randomizer.copy_from_slice(trial_message_randomizer.as_slice());
@@ -173,7 +178,7 @@ impl<H: Hasher> LmotsSignature<H> {
             }
 
             if message_randomizer_zero {
-                LmotsSignature::<H>::optimize_message_hash_fast_verify(
+                LmotsSignature::<H>::optimize_message_hash(
                     &mut hasher,
                     &lmots_parameter,
                     &mut message_randomizer,
@@ -287,6 +292,52 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
         let end = start + step;
         &self.signature_data[start..end]
     }
+}
+
+#[cfg(feature = "fast_verify")]
+fn thread_optimize_message_hash<H: Hasher>(
+    thread_hash_optimizations: usize,
+    hasher: &H,
+    lmots_parameter: &LmotsParameter<H>,
+    max: u16,
+    sum: u16,
+    coef_cached: &ArrayVec<(usize, u16, u64), 300>,
+) -> (u16, ArrayVec<u8, MAX_HASH_SIZE>) {
+    let mut max_hash_chain_iterations = 0;
+
+    let mut trial_message_randomizer_seed: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
+    let mut trial_message_randomizer: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
+    let mut message_randomizer: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
+
+    for _ in 0..lmots_parameter.get_hash_function_output_size() {
+        trial_message_randomizer_seed.push(0u8);
+        trial_message_randomizer.push(0u8);
+        message_randomizer.push(0u8);
+    }
+
+    get_random(trial_message_randomizer_seed.as_mut_slice());
+
+    let mut hasher_message_randomizer = lmots_parameter.get_hasher();
+    hasher_message_randomizer.update(&trial_message_randomizer_seed);
+
+    for _ in 0..thread_hash_optimizations {
+        let mut hasher_message_randomizer_trial = hasher_message_randomizer.clone();
+        hasher_message_randomizer_trial.update(&trial_message_randomizer);
+        trial_message_randomizer = hasher_message_randomizer_trial.finalize_reset();
+
+        let mut hasher_trial = hasher.clone();
+        hasher_trial.update(trial_message_randomizer.as_slice());
+        let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher_trial.finalize_reset();
+
+        let hash_chain_iterations =
+            lmots_parameter.fast_verify_eval(message_hash.as_slice(), max, sum, coef_cached);
+
+        if hash_chain_iterations > max_hash_chain_iterations {
+            max_hash_chain_iterations = hash_chain_iterations;
+            message_randomizer.copy_from_slice(trial_message_randomizer.as_slice());
+        }
+    }
+    (max_hash_chain_iterations, message_randomizer)
 }
 
 #[cfg(test)]

@@ -27,6 +27,7 @@ pub struct LmotsSignature<H: Hasher> {
     pub signature_randomizer: ArrayVec<u8, MAX_HASH_SIZE>,
     pub signature_data: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_ITERATIONS>,
     pub lmots_parameter: LmotsParameter<H>,
+    pub hash_iterations: u16,
 }
 
 #[derive(Clone)]
@@ -199,10 +200,21 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
         let signature_data =
             LmotsSignature::<H>::calculate_signature(private_key, &message_hash_with_checksum);
 
+        let mut hash_iterations = 0;
+        for i in 0..lmots_parameter.get_max_hash_iterations() {
+            let a = coef(
+                message_hash_with_checksum.as_slice(),
+                i,
+                lmots_parameter.get_winternitz(),
+            ) as usize;
+            hash_iterations += a as u16;
+        }
+
         LmotsSignature {
             signature_randomizer,
             signature_data,
             lmots_parameter,
+            hash_iterations,
         }
     }
 
@@ -223,6 +235,7 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
             signature_randomizer,
             signature_data,
             lmots_parameter,
+            hash_iterations: 0,
         }
     }
 
@@ -374,6 +387,7 @@ mod tests {
             signature_randomizer,
             signature_data,
             lmots_parameter,
+            hash_iterations: 0,
         };
 
         let binary_rep = signature.to_binary_representation();

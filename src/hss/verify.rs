@@ -64,7 +64,7 @@ mod tests {
         generate_signature_and_verify(&mut private_key, &public_key, &mut message);
     }
 
-    fn generate_signature_and_verify<H: Hasher>(
+    fn generate_signature_and_verify<H: 'static + Hasher>(
         private_key: &mut HssPrivateKey<H>,
         public_key: &HssPublicKey<H>,
         message: &mut [u8],

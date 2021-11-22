@@ -63,7 +63,7 @@ impl<'a, H: Hasher> PartialEq<HssSignature<H>> for InMemoryHssSignature<'a, H> {
     }
 }
 
-impl<H: Hasher> HssSignature<H> {
+impl<H: 'static + Hasher> HssSignature<H> {
     pub fn sign(
         private_key: &mut HssPrivateKey<H>,
         message: &mut [u8],
@@ -213,7 +213,7 @@ impl<'a, H: Hasher> PartialEq<HssSignedPublicKey<H>> for InMemoryHssSignedPublic
     }
 }
 
-impl<H: Hasher> HssSignedPublicKey<H> {
+impl<H: 'static + Hasher> HssSignedPublicKey<H> {
     pub fn new(signature: LmsSignature<H>, public_key: LmsPublicKey<H>) -> Self {
         Self {
             sig: signature,

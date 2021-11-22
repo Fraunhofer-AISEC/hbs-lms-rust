@@ -58,7 +58,7 @@ impl<'a, H: Hasher> PartialEq<LmsSignature<H>> for InMemoryLmsSignature<'a, H> {
     }
 }
 
-impl<H: Hasher> LmsSignature<H> {
+impl<H: 'static + Hasher> LmsSignature<H> {
     fn build_authentication_path(
         lms_private_key: &mut LmsPrivateKey<H>,
         lm_ots_private_key: &LmotsPrivateKey<H>,

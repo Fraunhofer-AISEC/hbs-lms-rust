@@ -59,7 +59,7 @@ impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, 
     }
 }
 
-impl<H: Hasher> LmotsSignature<H> {
+impl<H: 'static + Hasher> LmotsSignature<H> {
     fn calculate_message_hash(
         private_key: &LmotsPrivateKey<H>,
         message: &[u8],

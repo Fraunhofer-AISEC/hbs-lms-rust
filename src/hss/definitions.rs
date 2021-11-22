@@ -37,7 +37,7 @@ pub struct HssPrivateKey<H: Hasher> {
     pub signatures: ArrayVec<LmsSignature<H>, { MAX_ALLOWED_HSS_LEVELS - 1 }>, // Only L - 1 signatures needed
 }
 
-impl<H: Hasher> HssPrivateKey<H> {
+impl<H: 'static + Hasher> HssPrivateKey<H> {
     pub fn get_length(&self) -> usize {
         self.private_key.len()
     }

@@ -74,7 +74,7 @@ pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]
  * * `private_key_update_function` - The update function that is called with the new private key. This function should save the new private key.
  * * `aux_data` - Auxiliary data to speedup signature generation if available
  */
-pub fn hss_sign<H: Hasher>(
+pub fn hss_sign<H: 'static + Hasher>(
     message: &mut [u8],
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
@@ -127,7 +127,7 @@ pub fn hss_sign<H: Hasher>(
  * let key_pair = keygen::<Sha256Hasher>(&parameters, None, Some(aux_slice));
  * ```
  */
-pub fn hss_keygen<H: Hasher>(
+pub fn hss_keygen<H: 'static + Hasher>(
     parameters: &[HssParameter<H>],
     seed: Option<&[u8]>,
     aux_data: Option<&mut &mut [u8]>,

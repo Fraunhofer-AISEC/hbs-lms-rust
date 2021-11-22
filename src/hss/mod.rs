@@ -74,12 +74,47 @@ pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]
  * * `private_key_update_function` - The update function that is called with the new private key. This function should save the new private key.
  * * `aux_data` - Auxiliary data to speedup signature generation if available
  */
+
 pub fn hss_sign<H: 'static + Hasher>(
-    message: &mut [u8],
+    message: &[u8],
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
     aux_data: Option<&mut &mut [u8]>,
 ) -> Option<ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>> {
+    let (signature, _) = hss_sign_core::<H>(
+        Some(message),
+        None,
+        private_key,
+        private_key_update_function,
+        aux_data,
+    )?;
+
+    Some(signature)
+}
+
+#[cfg(feature = "fast_verify")]
+pub fn hss_sign_mut<H: 'static + Hasher>(
+    message: &mut [u8],
+    private_key: &[u8],
+    private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
+    aux_data: Option<&mut &mut [u8]>,
+) -> Option<(ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Option<u16>)> {
+    hss_sign_core::<H>(
+        None,
+        Some(message),
+        private_key,
+        private_key_update_function,
+        aux_data,
+    )
+}
+
+fn hss_sign_core<H: 'static + Hasher>(
+    message: Option<&[u8]>,
+    message_mut: Option<&mut [u8]>,
+    private_key: &[u8],
+    private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
+    aux_data: Option<&mut &mut [u8]>,
+) -> Option<(ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Option<u16>)> {
     let mut rfc_private_key = extract_or_return!(
         ReferenceImplPrivateKey::from_binary_representation(private_key)
     );
@@ -100,11 +135,21 @@ pub fn hss_sign<H: 'static + Hasher>(
     let updated_key = rfc_private_key.to_binary_representation();
     let update_successful = private_key_update_function(updated_key.as_slice());
 
-    if update_successful {
-        Some(signature.to_binary_representation())
+    if !update_successful {
+        return None;
+    }
+
+    let hash_iterations = if cfg!(feature = "fast_verify") {
+        let mut hash_iterations = 0;
+        for signed_public_key in signature.signed_public_keys.iter() {
+            hash_iterations += signed_public_key.sig.lmots_signature.hash_iterations;
+        }
+        Some(hash_iterations + signature.signature.lmots_signature.hash_iterations)
     } else {
         None
-    }
+    };
+
+    Some((signature.to_binary_representation(), hash_iterations))
 }
 
 /**
@@ -188,7 +233,7 @@ mod tests {
         };
 
         let signature = hss_sign::<H>(
-            &mut message,
+            &message,
             private_key.as_slice(),
             &mut update_private_key,
             None,
@@ -239,7 +284,7 @@ mod tests {
             true
         };
 
-        let signature = hss_sign::<H>(
+        let (signature, _) = hss_sign_mut::<H>(
             &mut message,
             private_key.as_slice(),
             &mut update_private_key,

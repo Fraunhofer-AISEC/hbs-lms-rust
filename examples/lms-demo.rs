@@ -108,11 +108,7 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let signature_name = get_signature_name(&message_name);
 
     let private_key_data = read_file(&private_key_name);
-    let mut message_data = read_file(&message_name);
-
-    if cfg!(feature = "fast_verify") {
-        message_data.extend_from_slice(&[0u8; 32]);
-    }
+    let message_data = read_file(&message_name);
 
     let aux_data_name = get_aux_name(&keyname);
     let mut aux_data = read(aux_data_name).ok();
@@ -123,14 +119,14 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let result = if let Some(aux_data) = aux_data.as_mut() {
         let aux_slice = &mut &mut aux_data[..];
         hbs_lms::sign::<Sha256Hasher>(
-            &mut message_data,
+            &message_data,
             &private_key_data,
             &mut private_key_update_function,
             Some(aux_slice),
         )
     } else {
         hbs_lms::sign::<Sha256Hasher>(
-            &mut message_data,
+            &message_data,
             &private_key_data,
             &mut private_key_update_function,
             None,
@@ -146,10 +142,6 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     };
 
     write(&signature_name, result.as_slice())?;
-
-    if cfg!(feature = "fast_verify") {
-        write(&message_name, message_data.as_slice())?;
-    }
 
     Ok(())
 }

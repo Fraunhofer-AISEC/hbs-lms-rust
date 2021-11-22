@@ -7,7 +7,7 @@ fn main() {
 
     if cfg!(feature = "fast_verify") {
         let max_hash_optimizations = option_env!("MAX_HASH_OPTIMIZATIONS");
-        let max_hash_optimizations = max_hash_optimizations
+        let max_hash_optimizations: usize = max_hash_optimizations
             .map_or(Ok(10_000), str::parse)
             .expect("Could not parse MAX_HASH_OPTIMIZATIONS");
 
@@ -18,5 +18,13 @@ fn main() {
         )
         .expect("Could not write file");
         println!("cargo:rerun-if-env-changed=MAX_HASH_OPTIMIZATIONS");
+
+        let threads = option_env!("THREADS");
+        let threads = threads
+            .map_or(Ok(2), str::parse)
+            .expect("Could not parse THREADS");
+
+        write!(&mut f, "pub const THREADS: usize = {};", threads).expect("Could not write file");
+        println!("cargo:rerun-if-env-changed=THREADS");
     }
 }

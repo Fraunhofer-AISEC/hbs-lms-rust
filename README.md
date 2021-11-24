@@ -17,6 +17,10 @@ cargo run --release --example lms-demo -- genkey mykey 10/2
 # Generates `message.txt.sig`
 cargo run --release --example lms-demo -- sign mykey message.txt
 
+# Signing (fast_verification)
+# Generates `message.txt_mut`, `message.txt_mut.sig`
+cargo run --release --example lms-demo --features fast_verify -- sign_mut mykey message.txt
+
 # Verification
 # Verifies `message.txt` with `message.txt.sig` against `mykey.pub`
 cargo run --release --example lms-demo -- verify mykey message.txt

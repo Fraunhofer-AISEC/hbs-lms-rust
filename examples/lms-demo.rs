@@ -13,6 +13,9 @@ const GENKEY_COMMAND: &str = "genkey";
 const VERIFY_COMMAND: &str = "verify";
 const SIGN_COMMAND: &str = "sign";
 
+#[cfg(feature = "fast_verify")]
+const SIGN_MUT_COMMAND: &str = "sign_mut";
+
 const KEYNAME_PARAMETER: &str = "keyname";
 const MESSAGE_PARAMETER: &str = "file";
 const PARAMETER_PARAMETER: &str = "parameter";
@@ -53,7 +56,7 @@ impl GenKeyParameter {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = App::new("LMS Demo")
+    let command = App::new("LMS Demo")
         .about("Generates a LMS key pair")
         .subcommand(
             SubCommand::with_name(GENKEY_COMMAND)
@@ -71,8 +74,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             SubCommand::with_name(SIGN_COMMAND)
             .arg(Arg::with_name(KEYNAME_PARAMETER).required(true))
             .arg(Arg::with_name(MESSAGE_PARAMETER).required(true))
-        )
-        .get_matches();
+        );
+
+    #[cfg(feature = "fast_verify")]
+    let command = command.subcommand(
+        SubCommand::with_name(SIGN_MUT_COMMAND)
+            .arg(Arg::with_name(KEYNAME_PARAMETER).required(true))
+            .arg(Arg::with_name(MESSAGE_PARAMETER).required(true)),
+    );
+
+    let matches = command.get_matches();
 
     if let Some(args) = matches.subcommand_matches(GENKEY_COMMAND) {
         genkey(args)?;
@@ -94,6 +105,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(args) = matches.subcommand_matches(SIGN_COMMAND) {
         sign(args)?;
         println!("Signature successful generated!");
+        return Ok(());
+    }
+
+    #[cfg(feature = "fast_verify")]
+    if let Some(args) = matches.subcommand_matches(SIGN_MUT_COMMAND) {
+        sign_mut(args)?;
+        println!("Mut signature successful generated!");
         return Ok(());
     }
 
@@ -146,6 +164,62 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     Ok(())
 }
 
+#[cfg(feature = "fast_verify")]
+fn sign_mut(args: &ArgMatches) -> Result<(), std::io::Error> {
+    let keyname = get_parameter(KEYNAME_PARAMETER, args);
+    let message_name = get_parameter(MESSAGE_PARAMETER, args);
+
+    let private_key_name = get_private_key_name(&keyname);
+
+    let signature_name_mut = get_signature_mut_name(&message_name);
+    let message_name_mut = get_message_mut_name(&message_name);
+
+    let private_key_data = read_file(&private_key_name);
+
+    let mut message_data = read_file(&message_name);
+    message_data.extend_from_slice(&[0u8; 32]);
+
+    let aux_data_name = get_aux_name(&keyname);
+    let mut aux_data = read(aux_data_name).ok();
+
+    let mut private_key_update_function =
+        |new_key: &[u8]| write(&private_key_name, new_key).is_ok();
+
+    let signature_result = if let Some(aux_data) = aux_data.as_mut() {
+        let aux_slice = &mut &mut aux_data[..];
+        hbs_lms::sign_mut::<Sha256Hasher>(
+            &mut message_data,
+            &private_key_data,
+            &mut private_key_update_function,
+            Some(aux_slice),
+        )
+    } else {
+        hbs_lms::sign_mut::<Sha256Hasher>(
+            &mut message_data,
+            &private_key_data,
+            &mut private_key_update_function,
+            None,
+        )
+    };
+
+    let signature = match signature_result {
+        None => {
+            println!("Could not sign message.");
+            exit(-1)
+        }
+        Some(x) => x,
+    };
+
+    write(&signature_name_mut, signature.0.as_slice())?;
+    write(&message_name_mut, &message_data)?;
+
+    if let Some(iterations) = signature.1 {
+        println!("fast_verify needed {} iterations.", iterations);
+    }
+
+    Ok(())
+}
+
 fn verify(args: &ArgMatches) -> bool {
     let keyname: String = get_parameter(KEYNAME_PARAMETER, args);
     let message_name: String = get_parameter(MESSAGE_PARAMETER, args);
@@ -166,6 +240,16 @@ fn get_public_key_name(keyname: &str) -> String {
 
 fn get_signature_name(message_name: &str) -> String {
     message_name.to_string() + ".sig"
+}
+
+#[cfg(feature = "fast_verify")]
+fn get_signature_mut_name(message_name: &str) -> String {
+    message_name.to_string() + "_mut.sig"
+}
+
+#[cfg(feature = "fast_verify")]
+fn get_message_mut_name(message_name: &str) -> String {
+    message_name.to_string() + "_mut"
 }
 
 fn get_private_key_name(private_key: &str) -> String {

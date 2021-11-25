@@ -44,7 +44,9 @@ default-latest:
   image: rust:latest
   script:
     - rustc --version
+    - rustup target add riscv32imac-unknown-none-elf
     - cargo build --verbose
+    - cargo build --target riscv32imac-unknown-none-elf --no-default-features
     - cargo test --verbose
   tags:
     - asprunner
@@ -54,7 +56,9 @@ default-nightly:
   image: rustlang/rust:nightly
   script:
     - rustc --version
+    - rustup target add riscv32imac-unknown-none-elf
     - cargo build --verbose
+    - cargo build --verbose --target riscv32imac-unknown-none-elf --no-default-features
     - cargo test --verbose
   allow_failure: true
   tags:
@@ -65,7 +69,9 @@ feature-latest:
   image: rust:latest
   script:
     - rustc --version
-    - MAX_HASH_OPTIMIZATIONS=10 cargo build --features fast_verify --verbose
+    - rustup target add riscv32imac-unknown-none-elf
+    - MAX_HASH_OPTIMIZATIONS=10 THREADS=2 cargo build --features fast_verify --verbose
+    - MAX_HASH_OPTIMIZATIONS=10 cargo build --features fast_verify --verbose --target riscv32imac-unknown-none-elf --no-default-features
     - MAX_HASH_OPTIMIZATIONS=10 cargo test --features fast_verify --verbose
   tags:
     - asprunner
@@ -75,7 +81,9 @@ feature-nightly:
   image: rustlang/rust:nightly
   script:
     - rustc --version
-    - MAX_HASH_OPTIMIZATIONS=10 cargo build --features fast_verify --verbose
+    - rustup target add riscv32imac-unknown-none-elf
+    - MAX_HASH_OPTIMIZATIONS=10 THREADS=2 cargo build --features fast_verify --verbose
+    - MAX_HASH_OPTIMIZATIONS=10 cargo build --features fast_verify --verbose --target riscv32imac-unknown-none-elf --no-default-features
     - MAX_HASH_OPTIMIZATIONS=10 cargo test --features fast_verify --verbose
   allow_failure: true
   tags:

@@ -2,7 +2,7 @@ use crate::extract_or_return;
 use crate::hasher::Hasher;
 use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::{
-    constants::{D_MESG, MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_SIZE},
+    constants::{D_MESG, MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_OPTIMIZATIONS, MAX_HASH_SIZE},
     util::{
         coef::coef,
         random::get_random,
@@ -12,11 +12,8 @@ use crate::{
 use arrayvec::ArrayVec;
 use core::usize;
 
-use {
-    crate::constants::{MAX_HASH_OPTIMIZATIONS, THREADS},
-    std::sync::mpsc,
-    std::thread,
-};
+#[cfg(feature = "std")]
+use {crate::constants::THREADS, std::sync::mpsc, std::thread};
 
 use super::definitions::LmotsPrivateKey;
 use super::parameters::LmotsParameter;
@@ -90,40 +87,57 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
         lmots_parameter: &LmotsParameter<H>,
         message_randomizer: &mut [u8],
     ) {
-        let mut max_hash_chain_iterations = 0;
-
         let (max, sum, coef_cached) = lmots_parameter.fast_verify_eval_init();
 
-        let rx = {
-            let (tx, rx) = mpsc::channel();
+        #[cfg(feature = "std")]
+        {
+            let mut max_hash_chain_iterations = 0;
 
-            for _ in 0..THREADS {
-                let thread_hash_optimizations = MAX_HASH_OPTIMIZATIONS / THREADS;
-                let thread_hasher = hasher.clone();
-                let thread_lmots_parameter = *lmots_parameter;
-                let thread_coef_cached = coef_cached.clone();
-                let thread_tx = tx.clone();
+            let rx = {
+                let (tx, rx) = mpsc::channel();
 
-                thread::spawn(move || {
-                    let result = thread_optimize_message_hash::<H>(
-                        thread_hash_optimizations,
-                        &thread_hasher,
-                        &thread_lmots_parameter,
-                        max,
-                        sum,
-                        &thread_coef_cached,
-                    );
-                    thread_tx.send(result).unwrap();
-                });
+                for _ in 0..THREADS {
+                    let thread_hash_optimizations = MAX_HASH_OPTIMIZATIONS / THREADS;
+                    let thread_hasher = hasher.clone();
+                    let thread_lmots_parameter = *lmots_parameter;
+                    let thread_coef_cached = coef_cached.clone();
+                    let thread_tx = tx.clone();
+
+                    thread::spawn(move || {
+                        let result = thread_optimize_message_hash::<H>(
+                            thread_hash_optimizations,
+                            &thread_hasher,
+                            &thread_lmots_parameter,
+                            max,
+                            sum,
+                            &thread_coef_cached,
+                        );
+                        thread_tx.send(result).unwrap();
+                    });
+                }
+                rx
+            };
+
+            for (hash_chain_iterations, trial_message_randomizer) in rx {
+                if hash_chain_iterations > max_hash_chain_iterations {
+                    max_hash_chain_iterations = hash_chain_iterations;
+                    message_randomizer.copy_from_slice(trial_message_randomizer.as_slice());
+                }
             }
-            rx
-        };
+        }
 
-        for (hash_chain_iterations, trial_message_randomizer) in rx {
-            if hash_chain_iterations > max_hash_chain_iterations {
-                max_hash_chain_iterations = hash_chain_iterations;
-                message_randomizer.copy_from_slice(trial_message_randomizer.as_slice());
-            }
+        #[cfg(not(feature = "std"))]
+        {
+            let (_, trial_message_randomizer) = thread_optimize_message_hash::<H>(
+                MAX_HASH_OPTIMIZATIONS,
+                &hasher,
+                &lmots_parameter,
+                max,
+                sum,
+                &coef_cached,
+            );
+
+            message_randomizer.copy_from_slice(trial_message_randomizer.as_slice());
         }
     }
 

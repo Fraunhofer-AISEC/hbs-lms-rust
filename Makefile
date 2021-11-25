@@ -27,3 +27,13 @@ check-for-todos:
 	    echo "Failure: Found TODO comments"; \
 	    exit 1; \
 	fi
+
+run-pipeline-local: check-for-todos
+	gitlab-runner exec shell fmt
+	gitlab-runner exec shell clippy
+
+	gitlab-runner exec shell default-latest
+	gitlab-runner exec shell default-nightly
+
+	gitlab-runner exec shell feature-latest
+	gitlab-runner exec shell feature-nightly

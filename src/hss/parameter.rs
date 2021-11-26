@@ -1,6 +1,6 @@
 use crate::{
     hasher::Hasher, lm_ots::parameters::LmotsParameter, lms::parameters::LmsParameter,
-    LmotsAlgorithm, LmsAlgorithm, Sha256Hasher,
+    LmotsAlgorithm, LmsAlgorithm,
 };
 
 /**
@@ -38,7 +38,7 @@ impl<H: Hasher> HssParameter<H> {
     }
 }
 
-impl HssParameter<Sha256Hasher> {
+impl<H: Hasher> HssParameter<H> {
     pub fn construct_default_parameters() -> Self {
         let lmots_parameter = LmotsAlgorithm::LmotsW1;
         let lms_parameter = LmsAlgorithm::LmsH5;

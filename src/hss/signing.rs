@@ -300,8 +300,9 @@ mod tests {
 
     #[test]
     fn test_signed_public_key_binary_representation() {
-        let mut keypair =
-            crate::lms::generate_key_pair(&HssParameter::construct_default_parameters());
+        let mut keypair = crate::lms::generate_key_pair::<Sha256Hasher>(
+            &HssParameter::construct_default_parameters(),
+        );
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
         let signature =

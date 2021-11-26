@@ -201,13 +201,21 @@ pub fn hss_keygen<H: 'static + Hasher>(
 mod tests {
 
     use crate::hasher::sha256::Sha256Hasher;
+    use crate::hasher::shake256::Shake256Hasher;
+    use crate::hasher::Hasher;
 
     use super::*;
 
     #[test]
-    fn test_signing() {
-        type H = Sha256Hasher;
+    fn test_signing_sha256() {
+        test_signing_core::<Sha256Hasher>();
+    }
+    #[test]
+    fn test_signing_shake256() {
+        test_signing_core::<Shake256Hasher>();
+    }
 
+    fn test_signing_core<H: 'static + Hasher>() {
         let mut keypair = hss_keygen::<H>(
             &[
                 HssParameter::construct_default_parameters(),

@@ -40,6 +40,7 @@ pub use hasher::Hasher;
 pub use crate::constants::Seed;
 
 pub use crate::hasher::sha256::Sha256Hasher;
+pub use crate::hasher::shake256::Shake256Hasher;
 
 pub use crate::hss::parameter::HssParameter;
 pub use crate::lm_ots::parameters::LmotsAlgorithm;

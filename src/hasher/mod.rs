@@ -7,6 +7,7 @@ use crate::{
 };
 
 pub mod sha256;
+pub mod shake256;
 
 pub struct HashChainData([u8; ITER_MAX_LEN]);
 

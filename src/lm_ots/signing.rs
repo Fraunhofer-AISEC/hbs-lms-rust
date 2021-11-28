@@ -2,7 +2,10 @@ use crate::extract_or_return;
 use crate::hasher::Hasher;
 use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::{
-    constants::{D_MESG, MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_OPTIMIZATIONS, MAX_HASH_SIZE},
+    constants::{
+        D_MESG, MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_OPTIMIZATIONS, MAX_HASH_SIZE,
+        MAX_LMS_PUBLIC_KEY_LENGTH, THREADS,
+    },
     util::{
         coef::coef,
         random::get_random,
@@ -10,10 +13,10 @@ use crate::{
     },
 };
 use arrayvec::ArrayVec;
-use core::usize;
+use core::convert::TryFrom;
 
 #[cfg(feature = "std")]
-use {crate::constants::THREADS, std::sync::mpsc, std::thread};
+use std::{sync::mpsc, thread};
 
 use super::definitions::LmotsPrivateKey;
 use super::parameters::LmotsParameter;
@@ -82,62 +85,51 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
         (hasher, signature_randomizer)
     }
 
-    fn optimize_message_hash(
-        hasher: &mut H,
-        lmots_parameter: &LmotsParameter<H>,
-        message_randomizer: &mut [u8],
-    ) {
-        let (max, sum, coef_cached) = lmots_parameter.fast_verify_eval_init();
+    fn calculate_message_hash_fast_verify(
+        private_key: &LmotsPrivateKey<H>,
+        message: Option<&[u8]>,
+        message_mut: Option<&mut [u8]>,
+    ) -> (H, ArrayVec<u8, MAX_HASH_SIZE>) {
+        let lmots_parameter = private_key.lmots_parameter;
 
-        #[cfg(feature = "std")]
-        {
-            let mut max_hash_chain_iterations = 0;
-
-            let rx = {
-                let (tx, rx) = mpsc::channel();
-
-                for _ in 0..THREADS {
-                    let thread_hash_optimizations = MAX_HASH_OPTIMIZATIONS / THREADS;
-                    let thread_hasher = hasher.clone();
-                    let thread_lmots_parameter = *lmots_parameter;
-                    let thread_coef_cached = coef_cached.clone();
-                    let thread_tx = tx.clone();
-
-                    thread::spawn(move || {
-                        let result = thread_optimize_message_hash::<H>(
-                            thread_hash_optimizations,
-                            &thread_hasher,
-                            &thread_lmots_parameter,
-                            max,
-                            sum,
-                            &thread_coef_cached,
-                        );
-                        thread_tx.send(result).unwrap();
-                    });
-                }
-                rx
-            };
-
-            for (hash_chain_iterations, trial_message_randomizer) in rx {
-                if hash_chain_iterations > max_hash_chain_iterations {
-                    max_hash_chain_iterations = hash_chain_iterations;
-                    message_randomizer.copy_from_slice(trial_message_randomizer.as_slice());
-                }
-            }
+        let mut signature_randomizer = ArrayVec::new();
+        for _ in 0..lmots_parameter.get_hash_function_output_size() {
+            signature_randomizer.push(0u8);
         }
 
-        #[cfg(not(feature = "std"))]
-        {
-            let (_, trial_message_randomizer) = thread_optimize_message_hash::<H>(
-                MAX_HASH_OPTIMIZATIONS,
+        let mut hasher = lmots_parameter.get_hasher();
+        hasher.update(&private_key.lms_tree_identifier);
+        hasher.update(&private_key.lms_leaf_identifier);
+        hasher.update(&D_MESG);
+
+        if let Some(message_mut) = message_mut {
+            let message_end = message_mut.len() - H::OUTPUT_SIZE as usize;
+            let (message_mut, message_randomizer) = message_mut.split_at_mut(message_end);
+
+            get_random(signature_randomizer.as_mut_slice());
+
+            hasher.update(signature_randomizer.as_slice());
+            hasher.update(message_mut);
+
+            if message_randomizer.iter().all(|&byte| byte == 0u8) {
+                optimize_message_hash(&hasher, &lmots_parameter, message_randomizer, None);
+            }
+
+            hasher.update(message_randomizer);
+
+            (hasher, signature_randomizer)
+        } else {
+            optimize_message_hash(
                 &hasher,
                 &lmots_parameter,
-                max,
-                sum,
-                &coef_cached,
+                &mut signature_randomizer,
+                message,
             );
 
-            message_randomizer.copy_from_slice(trial_message_randomizer.as_slice());
+            hasher.update(signature_randomizer.as_slice());
+            hasher.update(message.unwrap());
+
+            (hasher, signature_randomizer)
         }
     }
 
@@ -170,39 +162,19 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
         signature_data
     }
 
-    pub fn sign_fast_verify(private_key: &LmotsPrivateKey<H>, message: &mut [u8]) -> Self {
+    pub fn sign_fast_verify(
+        private_key: &LmotsPrivateKey<H>,
+        message: Option<&[u8]>,
+        message_mut: Option<&mut [u8]>,
+    ) -> Self {
         let lmots_parameter = private_key.lmots_parameter;
 
-        let (mut hasher, signature_randomizer) = if MAX_HASH_OPTIMIZATIONS != 0
-            && message.len() > lmots_parameter.get_hash_function_output_size()
-        {
-            let message_end = message.len() - lmots_parameter.get_hash_function_output_size();
-            let (message, mut message_randomizer) = message.split_at_mut(message_end);
-
-            let (mut hasher, signature_randomizer) =
-                LmotsSignature::<H>::calculate_message_hash(private_key, message);
-
-            let mut message_randomizer_zero = true;
-            for &byte in message_randomizer.iter() {
-                if byte != 0u8 {
-                    message_randomizer_zero = false;
-                };
-            }
-
-            if message_randomizer_zero {
-                LmotsSignature::<H>::optimize_message_hash(
-                    &mut hasher,
-                    &lmots_parameter,
-                    &mut message_randomizer,
-                );
-            }
-
-            hasher.update(message_randomizer);
-
-            (hasher, signature_randomizer)
-        } else {
-            LmotsSignature::<H>::calculate_message_hash(private_key, message)
-        };
+        let (mut hasher, signature_randomizer) =
+            LmotsSignature::<H>::calculate_message_hash_fast_verify(
+                private_key,
+                message,
+                message_mut,
+            );
 
         let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher.finalize_reset();
         let message_hash_with_checksum =

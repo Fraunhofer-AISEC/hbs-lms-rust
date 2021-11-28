@@ -111,9 +111,7 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
             hasher.update(signature_randomizer.as_slice());
             hasher.update(message_mut);
 
-            if message_randomizer.iter().all(|&byte| byte == 0u8) {
-                optimize_message_hash(&hasher, &lmots_parameter, message_randomizer, None);
-            }
+            optimize_message_hash(&hasher, &lmots_parameter, message_randomizer, None);
 
             hasher.update(message_randomizer);
 

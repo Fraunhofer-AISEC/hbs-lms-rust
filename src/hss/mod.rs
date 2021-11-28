@@ -94,14 +94,23 @@ pub fn hss_sign<H: 'static + Hasher>(
 
 #[cfg(feature = "fast_verify")]
 pub fn hss_sign_mut<H: 'static + Hasher>(
-    message: &mut [u8],
+    message_mut: &mut [u8],
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
     aux_data: Option<&mut &mut [u8]>,
 ) -> Option<(ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Option<u16>)> {
+    if message_mut.len() <= H::OUTPUT_SIZE.into() {
+        return None;
+    }
+
+    let (_, message_randomizer) = message_mut.split_at(message_mut.len() - H::OUTPUT_SIZE as usize);
+    if !message_randomizer.iter().all(|&byte| byte == 0u8) {
+        return None;
+    }
+
     hss_sign_core::<H>(
         None,
-        Some(message),
+        Some(message_mut),
         private_key,
         private_key_update_function,
         aux_data,

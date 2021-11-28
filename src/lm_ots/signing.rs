@@ -162,19 +162,32 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
         signature_data
     }
 
+    pub fn sign(private_key: &LmotsPrivateKey<H>, message: &[u8]) -> Self {
+        let (mut hasher, signature_randomizer) =
+            LmotsSignature::<H>::calculate_message_hash(private_key, message);
+        LmotsSignature::<H>::sign_core(private_key, &mut hasher, signature_randomizer)
+    }
+
     pub fn sign_fast_verify(
         private_key: &LmotsPrivateKey<H>,
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
     ) -> Self {
-        let lmots_parameter = private_key.lmots_parameter;
-
         let (mut hasher, signature_randomizer) =
             LmotsSignature::<H>::calculate_message_hash_fast_verify(
                 private_key,
                 message,
                 message_mut,
             );
+        LmotsSignature::<H>::sign_core(private_key, &mut hasher, signature_randomizer)
+    }
+
+    fn sign_core(
+        private_key: &LmotsPrivateKey<H>,
+        hasher: &mut H,
+        signature_randomizer: ArrayVec<u8, MAX_HASH_SIZE>,
+    ) -> Self {
+        let lmots_parameter = private_key.lmots_parameter;
 
         let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher.finalize_reset();
         let message_hash_with_checksum =
@@ -198,27 +211,6 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
             signature_data,
             lmots_parameter,
             hash_iterations,
-        }
-    }
-
-    pub fn sign(private_key: &LmotsPrivateKey<H>, message: &[u8]) -> Self {
-        let lmots_parameter = private_key.lmots_parameter;
-
-        let (mut hasher, signature_randomizer) =
-            LmotsSignature::<H>::calculate_message_hash(private_key, message);
-
-        let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher.finalize_reset();
-        let message_hash_with_checksum =
-            lmots_parameter.append_checksum_to(message_hash.as_slice());
-
-        let signature_data =
-            LmotsSignature::<H>::calculate_signature(private_key, &message_hash_with_checksum);
-
-        LmotsSignature {
-            signature_randomizer,
-            signature_data,
-            lmots_parameter,
-            hash_iterations: 0,
         }
     }
 

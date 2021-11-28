@@ -196,15 +196,13 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
         let signature_data =
             LmotsSignature::<H>::calculate_signature(private_key, &message_hash_with_checksum);
 
-        let mut hash_iterations = 0;
-        for i in 0..lmots_parameter.get_max_hash_iterations() {
-            let a = coef(
+        let hash_iterations = (0..lmots_parameter.get_max_hash_iterations()).fold(0, |sum, i| {
+            sum + coef(
                 message_hash_with_checksum.as_slice(),
                 i,
                 lmots_parameter.get_winternitz(),
-            ) as usize;
-            hash_iterations += a as u16;
-        }
+            ) as u16
+        });
 
         LmotsSignature {
             signature_randomizer,

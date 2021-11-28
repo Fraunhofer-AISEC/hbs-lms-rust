@@ -18,14 +18,11 @@ fn main() {
     .expect("Could not write file");
     println!("cargo:rerun-if-env-changed=MAX_HASH_OPTIMIZATIONS");
 
-    if cfg!(feature = "std") {
-        let threads = option_env!("THREADS");
-        let threads = threads
-            .map_or(Ok(1), str::parse)
-            .expect("Could not parse THREADS");
+    let threads = option_env!("THREADS");
+    let threads = threads
+        .map_or(Ok(1), str::parse)
+        .expect("Could not parse THREADS");
 
-        writeln!(&mut f, "pub const THREADS: usize = {};\n", threads)
-            .expect("Could not write file");
-        println!("cargo:rerun-if-env-changed=THREADS");
-    }
+    writeln!(&mut f, "pub const THREADS: usize = {};\n", threads).expect("Could not write file");
+    println!("cargo:rerun-if-env-changed=THREADS");
 }

@@ -134,23 +134,22 @@ impl<H: Hasher> LmotsParameter<H> {
     pub fn fast_verify_eval(
         &self,
         byte_string: &[u8],
-        max: u16,
-        sum: u16,
-        coef_cached: &ArrayVec<(usize, u16, u64), 300>,
+        fast_verify_cached: &(u16, u16, ArrayVec<(usize, u16, u64), 300>),
     ) -> u16 {
+        let (max, sum, coef_cached) = fast_verify_cached;
         let mut total_hash_chain_iterations = 0;
 
-        for i in 0..max {
+        for i in 0..*max {
             let (index, shift, mask) = coef_cached[i as usize];
             let hash_chain_length = ((byte_string[index] as u64 >> shift) & mask) as u16;
             total_hash_chain_iterations += hash_chain_length;
         }
 
-        let mut checksum = sum - total_hash_chain_iterations;
+        let mut checksum = *sum - total_hash_chain_iterations;
         checksum <<= self.get_checksum_left_shift();
         let checksum = [(checksum >> 8 & 0xff) as u8, (checksum & 0xff) as u8];
 
-        for i in max..self.get_max_hash_iterations() {
+        for i in *max..self.get_max_hash_iterations() {
             let (index, shift, mask) = coef_cached[i as usize];
             let hash_chain_length = ((checksum[index - 32] as u64 >> shift) & mask) as u16;
             total_hash_chain_iterations += hash_chain_length;

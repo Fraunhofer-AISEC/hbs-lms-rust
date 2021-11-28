@@ -105,21 +105,28 @@ impl<H: 'static + Hasher> HssSignature<H> {
             public[current_level] = lms_key_pair.public_key;
             prv[current_level] = lms_key_pair.private_key;
 
-            let signature = lms::signing::LmsSignature::sign(
-                &mut prv[current_level - 1],
-                public[current_level].to_binary_representation().as_slice(),
-            )?;
+            let signature = if cfg!(feature = "fast_verify") {
+                lms::signing::LmsSignature::sign_fast_verify(
+                    &mut prv[current_level - 1],
+                    Some(public[current_level].to_binary_representation().as_slice()),
+                    None,
+                )
+            } else {
+                lms::signing::LmsSignature::sign(
+                    &mut prv[current_level - 1],
+                    public[current_level].to_binary_representation().as_slice(),
+                )
+            }?;
+
             sig[current_level - 1] = signature;
             current_level += 1;
         }
 
         // Sign the message
-        let new_signature = if let Some(message) = message {
-            lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message)
-        } else if let Some(message_mut) = message_mut {
-            lms::signing::LmsSignature::sign_fast_verify(&mut prv[max_level - 1], message_mut)
+        let new_signature = if cfg!(feature = "fast_verify") && message_mut.is_some() {
+            lms::signing::LmsSignature::sign_fast_verify(&mut prv[max_level - 1], None, message_mut)
         } else {
-            Err(())
+            lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message.unwrap())
         }?;
 
         // Check if array already contains a signature at Index max_level - 1. If so replace it, otherwise push the new signature.

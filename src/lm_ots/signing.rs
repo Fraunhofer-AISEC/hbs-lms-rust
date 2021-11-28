@@ -315,20 +315,20 @@ fn optimize_message_hash<H: 'static + Hasher>(
         };
 
         let mut max_hash_chain_iterations = 0;
-        for (hash_chain_iterations, trial_message_randomizer) in rx {
+        for (hash_chain_iterations, trial_randomizer) in rx {
             if hash_chain_iterations > max_hash_chain_iterations {
                 max_hash_chain_iterations = hash_chain_iterations;
-                randomizer.copy_from_slice(trial_message_randomizer.as_slice());
+                randomizer.copy_from_slice(trial_randomizer.as_slice());
             }
         }
     }
 
     #[cfg(not(feature = "std"))]
     {
-        let (_, trial_message_randomizer) =
+        let (_, trial_randomizer) =
             thread_optimize_message_hash::<H>(hasher, lmots_parameter, fast_verify_cached, message);
 
-        randomizer.copy_from_slice(trial_message_randomizer.as_slice());
+        randomizer.copy_from_slice(trial_randomizer.as_slice());
     }
 }
 
@@ -340,28 +340,28 @@ fn thread_optimize_message_hash<H: Hasher>(
 ) -> (u16, ArrayVec<u8, MAX_HASH_SIZE>) {
     let mut max_hash_chain_iterations = 0;
 
-    let mut trial_message_randomizer_seed: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
-    let mut trial_message_randomizer: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
-    let mut message_randomizer: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
+    let mut trial_randomizer_seed: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
+    let mut trial_randomizer: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
+    let mut randomizer: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
 
     for _ in 0..lmots_parameter.get_hash_function_output_size() {
-        trial_message_randomizer_seed.push(0u8);
-        trial_message_randomizer.push(0u8);
-        message_randomizer.push(0u8);
+        trial_randomizer_seed.push(0u8);
+        trial_randomizer.push(0u8);
+        randomizer.push(0u8);
     }
 
-    get_random(trial_message_randomizer_seed.as_mut_slice());
+    get_random(trial_randomizer_seed.as_mut_slice());
 
-    let mut hasher_message_randomizer = lmots_parameter.get_hasher();
-    hasher_message_randomizer.update(&trial_message_randomizer_seed);
+    let mut hasher_randomizer = lmots_parameter.get_hasher();
+    hasher_randomizer.update(&trial_randomizer_seed);
 
     for _ in 0..MAX_HASH_OPTIMIZATIONS / THREADS {
-        let mut hasher_message_randomizer_trial = hasher_message_randomizer.clone();
-        hasher_message_randomizer_trial.update(&trial_message_randomizer);
-        trial_message_randomizer = hasher_message_randomizer_trial.finalize_reset();
+        let mut hasher_randomizer_trial = hasher_randomizer.clone();
+        hasher_randomizer_trial.update(&trial_randomizer);
+        trial_randomizer = hasher_randomizer_trial.finalize_reset();
 
         let mut hasher_trial = hasher.clone();
-        hasher_trial.update(trial_message_randomizer.as_slice());
+        hasher_trial.update(trial_randomizer.as_slice());
 
         if let Some(message) = &message {
             hasher_trial.update(message);
@@ -373,10 +373,10 @@ fn thread_optimize_message_hash<H: Hasher>(
 
         if hash_chain_iterations > max_hash_chain_iterations {
             max_hash_chain_iterations = hash_chain_iterations;
-            message_randomizer.copy_from_slice(trial_message_randomizer.as_slice());
+            randomizer.copy_from_slice(trial_randomizer.as_slice());
         }
     }
-    (max_hash_chain_iterations, message_randomizer)
+    (max_hash_chain_iterations, randomizer)
 }
 
 #[cfg(test)]

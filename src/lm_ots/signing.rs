@@ -318,6 +318,60 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
     }
 }
 
+fn optimize_message_hash<H: 'static + Hasher>(
+    hasher: &H,
+    lmots_parameter: &LmotsParameter<H>,
+    randomizer: &mut [u8],
+    message: Option<&[u8]>,
+) {
+    let message = message.map(|message| ArrayVec::try_from(message).unwrap());
+
+    let fast_verify_cached = lmots_parameter.fast_verify_eval_init();
+
+    #[cfg(feature = "std")]
+    {
+        let rx = {
+            let (tx, rx) = mpsc::channel();
+
+            for _ in 0..THREADS {
+                thread::spawn({
+                    let tx = tx.clone();
+                    let hasher = hasher.clone();
+                    let lmots_parameter = *lmots_parameter;
+                    let fast_verify_cached = fast_verify_cached.clone();
+                    let message = message.clone();
+                    move || {
+                        tx.send(thread_optimize_message_hash::<H>(
+                            &hasher,
+                            &lmots_parameter,
+                            fast_verify_cached,
+                            message,
+                        ))
+                        .unwrap()
+                    }
+                });
+            }
+            rx
+        };
+
+        let mut max_hash_chain_iterations = 0;
+        for (hash_chain_iterations, trial_message_randomizer) in rx {
+            if hash_chain_iterations > max_hash_chain_iterations {
+                max_hash_chain_iterations = hash_chain_iterations;
+                randomizer.copy_from_slice(trial_message_randomizer.as_slice());
+            }
+        }
+    }
+
+    #[cfg(not(feature = "std"))]
+    {
+        let (_, trial_message_randomizer) =
+            thread_optimize_message_hash::<H>(hasher, lmots_parameter, fast_verify_cached, message);
+
+        randomizer.copy_from_slice(trial_message_randomizer.as_slice());
+    }
+}
+
 fn thread_optimize_message_hash<H: Hasher>(
     hasher: &H,
     lmots_parameter: &LmotsParameter<H>,

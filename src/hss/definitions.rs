@@ -88,12 +88,24 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);
 
-            let signature = lms::signing::LmsSignature::sign(
-                &mut hss_private_key.private_key[i - 1],
-                hss_private_key.public_key[i]
-                    .to_binary_representation()
-                    .as_slice(),
-            )?;
+            let signature = if cfg!(feature = "fast_verify") {
+                lms::signing::LmsSignature::sign_fast_verify(
+                    &mut hss_private_key.private_key[i - 1],
+                    Some(
+                        hss_private_key.public_key[i]
+                            .to_binary_representation()
+                            .as_slice(),
+                    ),
+                    None,
+                )
+            } else {
+                lms::signing::LmsSignature::sign(
+                    &mut hss_private_key.private_key[i - 1],
+                    hss_private_key.public_key[i]
+                        .to_binary_representation()
+                        .as_slice(),
+                )
+            }?;
 
             hss_private_key.signatures.push(signature);
         }

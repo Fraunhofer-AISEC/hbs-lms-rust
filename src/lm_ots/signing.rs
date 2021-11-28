@@ -319,12 +319,10 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
 }
 
 fn thread_optimize_message_hash<H: Hasher>(
-    thread_hash_optimizations: usize,
     hasher: &H,
     lmots_parameter: &LmotsParameter<H>,
-    max: u16,
-    sum: u16,
-    coef_cached: &ArrayVec<(usize, u16, u64), 300>,
+    fast_verify_cached: (u16, u16, ArrayVec<(usize, u16, u64), 300>),
+    message: Option<ArrayVec<u8, MAX_LMS_PUBLIC_KEY_LENGTH>>,
 ) -> (u16, ArrayVec<u8, MAX_HASH_SIZE>) {
     let mut max_hash_chain_iterations = 0;
 
@@ -343,17 +341,21 @@ fn thread_optimize_message_hash<H: Hasher>(
     let mut hasher_message_randomizer = lmots_parameter.get_hasher();
     hasher_message_randomizer.update(&trial_message_randomizer_seed);
 
-    for _ in 0..thread_hash_optimizations {
+    for _ in 0..MAX_HASH_OPTIMIZATIONS / THREADS {
         let mut hasher_message_randomizer_trial = hasher_message_randomizer.clone();
         hasher_message_randomizer_trial.update(&trial_message_randomizer);
         trial_message_randomizer = hasher_message_randomizer_trial.finalize_reset();
 
         let mut hasher_trial = hasher.clone();
         hasher_trial.update(trial_message_randomizer.as_slice());
+
+        if let Some(message) = &message {
+            hasher_trial.update(message);
+        }
         let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher_trial.finalize_reset();
 
         let hash_chain_iterations =
-            lmots_parameter.fast_verify_eval(message_hash.as_slice(), max, sum, coef_cached);
+            lmots_parameter.fast_verify_eval(message_hash.as_slice(), &fast_verify_cached);
 
         if hash_chain_iterations > max_hash_chain_iterations {
             max_hash_chain_iterations = hash_chain_iterations;

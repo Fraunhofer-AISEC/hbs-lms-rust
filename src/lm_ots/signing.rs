@@ -68,19 +68,19 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
 
         let lmots_parameter = private_key.lmots_parameter;
 
-        let mut hasher = lmots_parameter.get_hasher();
-
         for _ in 0..lmots_parameter.get_hash_function_output_size() {
             signature_randomizer.push(0u8);
         }
 
         get_random(signature_randomizer.as_mut_slice());
 
-        hasher.update(&private_key.lms_tree_identifier);
-        hasher.update(&private_key.lms_leaf_identifier);
-        hasher.update(&D_MESG);
-        hasher.update(signature_randomizer.as_slice());
-        hasher.update(message);
+        let hasher = lmots_parameter
+            .get_hasher()
+            .chain(&private_key.lms_tree_identifier)
+            .chain(&private_key.lms_leaf_identifier)
+            .chain(&D_MESG)
+            .chain(signature_randomizer.as_slice())
+            .chain(message);
 
         (hasher, signature_randomizer)
     }
@@ -97,10 +97,11 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
             signature_randomizer.push(0u8);
         }
 
-        let mut hasher = lmots_parameter.get_hasher();
-        hasher.update(&private_key.lms_tree_identifier);
-        hasher.update(&private_key.lms_leaf_identifier);
-        hasher.update(&D_MESG);
+        let mut hasher = lmots_parameter
+            .get_hasher()
+            .chain(&private_key.lms_tree_identifier)
+            .chain(&private_key.lms_leaf_identifier)
+            .chain(&D_MESG);
 
         if let Some(message_mut) = message_mut {
             let message_end = message_mut.len() - H::OUTPUT_SIZE as usize;
@@ -340,33 +341,27 @@ fn thread_optimize_message_hash<H: Hasher>(
 ) -> (u16, ArrayVec<u8, MAX_HASH_SIZE>) {
     let mut max_hash_chain_iterations = 0;
 
-    let mut trial_randomizer_seed: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
     let mut trial_randomizer: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
     let mut randomizer: ArrayVec<u8, MAX_HASH_SIZE> = ArrayVec::new();
 
     for _ in 0..lmots_parameter.get_hash_function_output_size() {
-        trial_randomizer_seed.push(0u8);
         trial_randomizer.push(0u8);
         randomizer.push(0u8);
     }
 
-    get_random(trial_randomizer_seed.as_mut_slice());
-
-    let mut hasher_randomizer = lmots_parameter.get_hasher();
-    hasher_randomizer.update(&trial_randomizer_seed);
+    get_random(trial_randomizer.as_mut_slice());
 
     for _ in 0..MAX_HASH_OPTIMIZATIONS / THREADS {
-        let mut hasher_randomizer_trial = hasher_randomizer.clone();
-        hasher_randomizer_trial.update(&trial_randomizer);
-        trial_randomizer = hasher_randomizer_trial.finalize_reset();
+        trial_randomizer = lmots_parameter
+            .get_hasher()
+            .chain(&trial_randomizer)
+            .finalize();
 
-        let mut hasher_trial = hasher.clone();
-        hasher_trial.update(trial_randomizer.as_slice());
-
-        if let Some(message) = &message {
-            hasher_trial.update(message);
-        }
-        let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher_trial.finalize_reset();
+        let message_hash: ArrayVec<u8, MAX_HASH_SIZE> = hasher
+            .clone()
+            .chain(trial_randomizer.as_slice())
+            .chain(message.as_ref().unwrap_or(&ArrayVec::new()))
+            .finalize();
 
         let hash_chain_iterations =
             lmots_parameter.fast_verify_eval(message_hash.as_slice(), &fast_verify_cached);

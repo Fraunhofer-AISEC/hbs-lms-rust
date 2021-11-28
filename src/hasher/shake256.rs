@@ -38,6 +38,12 @@ impl Hasher for Shake256Hasher {
         self.hasher.update(data);
     }
 
+    fn chain(self, data: &[u8]) -> Self {
+        Shake256Hasher {
+            hasher: self.hasher.chain(data),
+        }
+    }
+
     fn finalize(self) -> ArrayVec<u8, MAX_HASH_SIZE> {
         let mut digest = [0u8; 32];
         self.hasher.finalize_xof().read(&mut digest);

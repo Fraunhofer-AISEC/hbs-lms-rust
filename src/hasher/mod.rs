@@ -25,6 +25,7 @@ pub trait Hasher: Default + Clone + PartialEq + Send {
     const BLOCK_SIZE: u16;
     fn get_hasher() -> Self;
     fn update(&mut self, data: &[u8]);
+    fn chain(self, data: &[u8]) -> Self;
     fn finalize(self) -> ArrayVec<u8, MAX_HASH_SIZE>;
     fn finalize_reset(&mut self) -> ArrayVec<u8, MAX_HASH_SIZE>;
 

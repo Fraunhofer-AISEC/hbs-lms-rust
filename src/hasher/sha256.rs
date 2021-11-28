@@ -35,6 +35,12 @@ impl Hasher for Sha256Hasher {
         self.hasher.update(data);
     }
 
+    fn chain(self, data: &[u8]) -> Self {
+        Sha256Hasher {
+            hasher: self.hasher.chain(data),
+        }
+    }
+
     fn finalize(self) -> ArrayVec<u8, MAX_HASH_SIZE> {
         let result = ArrayVec::try_from(self.hasher.finalize().iter().as_slice()).unwrap();
         result

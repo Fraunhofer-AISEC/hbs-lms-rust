@@ -69,8 +69,11 @@ mod tests {
         public_key: &HssPublicKey<H>,
         message: &mut [u8],
     ) {
-        let signature =
-            HssSignature::sign(private_key, None, Some(message)).expect("Should sign message");
+        let signature = if cfg!(feature = "fast_verify") {
+            HssSignature::sign(private_key, None, Some(message)).expect("Should sign message")
+        } else {
+            HssSignature::sign(private_key, Some(message), None).expect("Should sign message")
+        };
 
         let mem_sig = signature.to_binary_representation();
         let mem_sig = InMemoryHssSignature::<H>::new(mem_sig.as_slice()).unwrap();

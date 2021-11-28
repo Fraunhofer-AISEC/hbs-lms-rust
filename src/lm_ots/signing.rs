@@ -115,8 +115,6 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
             optimize_message_hash(&hasher, &lmots_parameter, message_randomizer, None);
 
             hasher.update(message_randomizer);
-
-            (hasher, signature_randomizer)
         } else {
             optimize_message_hash(
                 &hasher,
@@ -127,9 +125,8 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
 
             hasher.update(signature_randomizer.as_slice());
             hasher.update(message.unwrap());
-
-            (hasher, signature_randomizer)
         }
+        (hasher, signature_randomizer)
     }
 
     fn calculate_signature(

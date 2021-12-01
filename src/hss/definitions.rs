@@ -48,6 +48,7 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
     ) -> Result<Self, ()> {
         let parameters = private_key.compressed_parameter.to::<H>();
         let levels = parameters.len();
+        let used_leafs_indexes = private_key.compressed_lms_leaf_identifier.to(&parameters);
 
         let top_lms_parameter = parameters[0].get_lms_parameter();
 
@@ -71,6 +72,7 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
         let lms_keypair = generate_key_pair_with_seed_and_aux(
             &current_seed,
             &parameters[0],
+            &used_leafs_indexes[0],
             &mut expanded_aux_data,
         );
 
@@ -80,10 +82,19 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
         for i in 1..levels {
             let parameter = &parameters[i];
 
-            current_seed = generate_child_seed_and_lms_tree_identifier(&current_seed, i as u32);
+            let parent_used_leafs_index: u32 =
+                hss_private_key.private_key[i - 1].used_leafs_index as u32;
+            current_seed = generate_child_seed_and_lms_tree_identifier(
+                &current_seed,
+                &parent_used_leafs_index,
+            );
 
-            let lms_keypair =
-                generate_key_pair_with_seed_and_aux(&current_seed, parameter, &mut None);
+            let lms_keypair = generate_key_pair_with_seed_and_aux(
+                &current_seed,
+                parameter,
+                &used_leafs_indexes[i],
+                &mut None,
+            );
 
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);

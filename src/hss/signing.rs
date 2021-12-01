@@ -317,8 +317,8 @@ mod tests {
         );
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
-        let signature =
-            LmsSignature::sign(&mut keypair.private_key, &message).expect("Signing should work");
+        let signature = LmsSignature::sign(&mut keypair.private_key, &message, None)
+            .expect("Signing should work");
 
         let signed_public_key = HssSignedPublicKey {
             public_key: keypair.public_key,

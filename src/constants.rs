@@ -39,7 +39,9 @@ pub const PRNG_MAX_LEN: usize = prng_len(MAX_HASH_SIZE);
 pub const MAX_HASH_CHAIN_ITERATIONS: usize = 265;
 pub const MAX_TREE_HEIGHT: usize = 25;
 
-pub const REFERENCE_IMPL_PRIVATE_KEY_SIZE: usize = 8 + MAX_ALLOWED_HSS_LEVELS + size_of::<Seed>();
+pub const LMS_LEAF_IDENTIFIERS_SIZE: usize = 8;
+pub const REFERENCE_IMPL_PRIVATE_KEY_SIZE: usize =
+    LMS_LEAF_IDENTIFIERS_SIZE + MAX_ALLOWED_HSS_LEVELS + size_of::<Seed>();
 
 pub const MAX_LMS_PUBLIC_KEY_LENGTH: usize = lms_public_key_length(MAX_HASH_SIZE);
 pub const MAX_LMS_SIGNATURE_LENGTH: usize = lms_signature_length(

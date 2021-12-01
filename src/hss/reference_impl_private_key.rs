@@ -161,11 +161,11 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
 
 pub fn generate_child_seed_and_lms_tree_identifier(
     parent_seed: &SeedAndLmsTreeIdentifier,
-    lms_leaf_identifier: u32,
+    parent_lms_leaf_identifier: &u32,
 ) -> SeedAndLmsTreeIdentifier {
     let mut derive = SeedDerive::new(&parent_seed.seed, &parent_seed.lms_tree_identifier);
 
-    derive.set_lms_leaf_identifier(lms_leaf_identifier);
+    derive.set_lms_leaf_identifier(*parent_lms_leaf_identifier);
     derive.set_child_seed(SEED_CHILD_SEED);
 
     let seed = derive.seed_derive(true);

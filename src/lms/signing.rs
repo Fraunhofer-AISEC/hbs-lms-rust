@@ -81,11 +81,16 @@ impl<H: 'static + Hasher> LmsSignature<H> {
         lms_private_key: &mut LmsPrivateKey<H>,
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
+        signature_randomizer: Option<ArrayVec<u8, MAX_HASH_SIZE>>,
     ) -> Result<LmsSignature<H>, ()> {
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
-        let ots_signature =
-            LmotsSignature::sign_fast_verify(&lm_ots_private_key, message, message_mut);
+        let ots_signature = LmotsSignature::sign_fast_verify(
+            &lm_ots_private_key,
+            signature_randomizer,
+            message,
+            message_mut,
+        );
 
         let authentication_path =
             LmsSignature::<H>::build_authentication_path(lms_private_key, &lm_ots_private_key)?;
@@ -103,10 +108,12 @@ impl<H: 'static + Hasher> LmsSignature<H> {
     pub fn sign(
         lms_private_key: &mut LmsPrivateKey<H>,
         message: &[u8],
+        signature_randomizer: Option<ArrayVec<u8, MAX_HASH_SIZE>>,
     ) -> Result<LmsSignature<H>, ()> {
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
-        let ots_signature = LmotsSignature::sign(&lm_ots_private_key, message);
+        let ots_signature =
+            LmotsSignature::sign(&lm_ots_private_key, signature_randomizer, message);
 
         let authentication_path =
             LmsSignature::<H>::build_authentication_path(lms_private_key, &lm_ots_private_key)?;

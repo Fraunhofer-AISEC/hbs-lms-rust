@@ -97,6 +97,7 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
                             .as_slice(),
                     ),
                     None,
+                    None,
                 )
             } else {
                 lms::signing::LmsSignature::sign(
@@ -104,6 +105,7 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
                     hss_private_key.public_key[i]
                         .to_binary_representation()
                         .as_slice(),
+                    None,
                 )
             }?;
 

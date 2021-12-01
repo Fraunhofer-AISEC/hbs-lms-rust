@@ -124,9 +124,14 @@ impl<H: 'static + Hasher> HssSignature<H> {
 
         // Sign the message
         let new_signature = if cfg!(feature = "fast_verify") && message_mut.is_some() {
-            lms::signing::LmsSignature::sign_fast_verify(&mut prv[max_level - 1], None, message_mut)
+            lms::signing::LmsSignature::sign_fast_verify(
+                &mut prv[max_level - 1],
+                None,
+                message_mut,
+                None,
+            )
         } else {
-            lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message.unwrap())
+            lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message.unwrap(), None)
         }?;
 
         // Check if array already contains a signature at Index max_level - 1. If so replace it, otherwise push the new signature.

@@ -19,6 +19,8 @@ use crate::{
     HssParameter, LmotsAlgorithm, LmsAlgorithm,
 };
 
+const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set
+
 /**
 To be compatible with the reference implementation
  */
@@ -52,6 +54,12 @@ impl SeedAndLmsTreeIdentifier {
 }
 
 impl<H: Hasher> ReferenceImplPrivateKey<H> {
+    fn wipe(&mut self) {
+        self.seed = [0u8; SEED_LEN] as Seed;
+        self.compressed_parameter =
+            CompressedParameterSet::from_slice(&[PARAM_SET_END; MAX_ALLOWED_HSS_LEVELS]).unwrap();
+        self.compressed_used_leafs_indexes = CompressedUsedLeafsIndexes::new(0);
+    }
     pub fn generate_with_seed(parameters: &[HssParameter<H>], seed: &[u8]) -> Option<Self> {
         let mut private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
             compressed_used_leafs_indexes: CompressedUsedLeafsIndexes { count: 0 },
@@ -143,6 +151,12 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
 
         SeedAndLmsTreeIdentifier::new(seed.as_slice(), lms_tree_identifier.as_slice())
     }
+
+    pub fn increment(&mut self, parameters: &[u8]) {
+        self.compressed_used_leafs_indexes
+            .increment(parameters)
+            .unwrap_or_else(|_| self.wipe());
+    }
 }
 
 pub fn generate_child_seed_and_lms_tree_identifier(
@@ -159,8 +173,6 @@ pub fn generate_child_seed_and_lms_tree_identifier(
 
     SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier[..16])
 }
-
-const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set
 
 #[derive(Default, PartialEq)]
 pub struct CompressedParameterSet([u8; MAX_ALLOWED_HSS_LEVELS]);

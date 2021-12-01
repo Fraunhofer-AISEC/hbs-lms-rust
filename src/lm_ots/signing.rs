@@ -163,20 +163,26 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
         signature_data
     }
 
-    pub fn sign(private_key: &LmotsPrivateKey<H>, message: &[u8]) -> Self {
+    pub fn sign(
+        private_key: &LmotsPrivateKey<H>,
+        signature_randomizer: Option<ArrayVec<u8, MAX_HASH_SIZE>>,
+        message: &[u8],
+    ) -> Self {
         let (mut hasher, signature_randomizer) =
-            LmotsSignature::<H>::calculate_message_hash(private_key, message);
+            LmotsSignature::<H>::calculate_message_hash(private_key, signature_randomizer, message);
         LmotsSignature::<H>::sign_core(private_key, &mut hasher, signature_randomizer)
     }
 
     pub fn sign_fast_verify(
         private_key: &LmotsPrivateKey<H>,
+        signature_randomizer: Option<ArrayVec<u8, MAX_HASH_SIZE>>,
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
     ) -> Self {
         let (mut hasher, signature_randomizer) =
             LmotsSignature::<H>::calculate_message_hash_fast_verify(
                 private_key,
+                signature_randomizer,
                 message,
                 message_mut,
             );

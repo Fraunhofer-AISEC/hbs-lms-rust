@@ -1,12 +1,15 @@
 use crate::{
     constants::{
-        prng_len, LmsTreeIdentifier, Seed, ILEN, PRNG_FF, PRNG_I, PRNG_J, PRNG_MAX_LEN, PRNG_Q,
-        PRNG_SEED, SEED_LEN,
+        LmsTreeIdentifier, Seed, ILEN, PRNG_FF, PRNG_I, PRNG_J, PRNG_MAX_LEN, PRNG_Q, PRNG_SEED,
+        SEED_LEN,
     },
     hasher::Hasher,
     util::ustr::{u16str, u32str},
     Sha256Hasher,
 };
+
+use arrayvec::ArrayVec;
+use core::convert::TryFrom;
 
 pub struct SeedDerive<'a> {
     master_seed: &'a Seed,
@@ -37,29 +40,19 @@ impl<'a> SeedDerive<'a> {
         let mut buffer = [0u8; PRNG_MAX_LEN];
 
         buffer[PRNG_I..PRNG_I + ILEN].copy_from_slice(self.lms_tree_identifier);
-
-        let lms_leaf_identifier = u32str(self.lms_leaf_identifier);
-        buffer[PRNG_Q..PRNG_Q + 4].copy_from_slice(&lms_leaf_identifier);
-
-        let j = u16str(self.child_seed);
-        buffer[PRNG_J..PRNG_J + 2].copy_from_slice(&j);
-
+        buffer[PRNG_Q..PRNG_Q + 4].copy_from_slice(&u32str(self.lms_leaf_identifier));
+        buffer[PRNG_J..PRNG_J + 2].copy_from_slice(&u16str(self.child_seed));
         buffer[PRNG_FF] = 0xff;
-
         buffer[PRNG_SEED..PRNG_SEED + SEED_LEN].copy_from_slice(self.master_seed);
-
-        let mut hasher = Sha256Hasher::new(); // We always use SHA256 to derive seeds
-
-        hasher.update(&buffer[..prng_len(SEED_LEN)]);
 
         if increment_j {
             self.child_seed += 1;
         }
 
-        let mut result = [0u8; Sha256Hasher::OUTPUT_SIZE as usize];
-
-        result.copy_from_slice(hasher.finalize().as_slice());
-
-        result
+        // We always use SHA256 to derive seeds
+        ArrayVec::try_from(Sha256Hasher::new().chain(&buffer).finalize().as_slice())
+            .unwrap()
+            .into_inner()
+            .unwrap()
     }
 }

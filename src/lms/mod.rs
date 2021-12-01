@@ -20,6 +20,7 @@ pub struct LmsKeyPair<H: Hasher> {
 pub fn generate_key_pair_with_seed_and_aux<H: Hasher>(
     seed: &SeedAndLmsTreeIdentifier,
     parameter: &HssParameter<H>,
+    used_leafs_index: &u32,
     aux_data: &mut Option<MutableExpandedAuxData>,
 ) -> LmsKeyPair<H> {
     let lmots_parameter = parameter.get_lmots_parameter();
@@ -28,6 +29,7 @@ pub fn generate_key_pair_with_seed_and_aux<H: Hasher>(
     let private_key = keygen::generate_private_key_with_seed(
         seed.seed,
         seed.lms_tree_identifier,
+        *used_leafs_index,
         *lmots_parameter,
         *lms_parameter,
     );
@@ -39,6 +41,7 @@ pub fn generate_key_pair_with_seed_and_aux<H: Hasher>(
     }
 }
 
+#[cfg(test)]
 pub fn generate_key_pair<H: Hasher>(parameter: &HssParameter<H>) -> LmsKeyPair<H> {
     let lmots_parameter = parameter.get_lmots_parameter();
     let lms_parameter = parameter.get_lms_parameter();

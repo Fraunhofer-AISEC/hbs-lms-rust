@@ -26,13 +26,14 @@ impl<H: Hasher> LmsPrivateKey<H> {
     pub fn new(
         seed: Seed,
         lms_tree_identifier: LmsTreeIdentifier,
+        used_leafs_index: u32,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
     ) -> Self {
         LmsPrivateKey {
             seed,
             lms_tree_identifier,
-            used_leafs_index: 0,
+            used_leafs_index,
             lmots_parameter,
             lms_parameter,
         }

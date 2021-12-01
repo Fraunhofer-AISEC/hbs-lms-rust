@@ -10,12 +10,20 @@ use crate::lms::definitions::LmsPublicKey;
 pub fn generate_private_key_with_seed<H: Hasher>(
     seed: Seed,
     lms_tree_identifier: LmsTreeIdentifier,
+    used_leafs_index: u32,
     lmots_parameter: LmotsParameter<H>,
     lms_parameter: LmsParameter<H>,
 ) -> LmsPrivateKey<H> {
-    LmsPrivateKey::new(seed, lms_tree_identifier, lmots_parameter, lms_parameter)
+    LmsPrivateKey::new(
+        seed,
+        lms_tree_identifier,
+        used_leafs_index,
+        lmots_parameter,
+        lms_parameter,
+    )
 }
 
+#[cfg(test)]
 pub fn generate_private_key<H: Hasher>(
     lmots_parameter: LmotsParameter<H>,
     lms_parameter: LmsParameter<H>,
@@ -26,7 +34,7 @@ pub fn generate_private_key<H: Hasher>(
     let mut seed: Seed = [0u8; 32];
     crate::util::random::get_random(&mut seed);
 
-    LmsPrivateKey::new(seed, lms_tree_identifier, lmots_parameter, lms_parameter)
+    LmsPrivateKey::new(seed, lms_tree_identifier, 0, lmots_parameter, lms_parameter)
 }
 
 pub fn generate_public_key<H: Hasher>(

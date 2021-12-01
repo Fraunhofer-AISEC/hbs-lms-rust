@@ -112,7 +112,7 @@ mod tests {
 
                 let mut message = [1, 3, 5, 9, 0];
 
-                let signature = LmotsSignature::sign(&private_key, &message);
+                let signature = LmotsSignature::sign(&private_key, None, &message);
 
                 let bin_representation = signature.to_binary_representation();
 

@@ -258,7 +258,7 @@ mod tests {
         let message = "Hi, what up?".as_bytes();
 
         let signature =
-            LmsSignature::sign(&mut private_key, message).expect("Signing must succeed.");
+            LmsSignature::sign(&mut private_key, message, None).expect("Signing must succeed.");
 
         let binary = signature.to_binary_representation();
 

@@ -108,10 +108,10 @@ mod tests {
         let mut first_message = [0u8, 4, 2, 7, 4, 2, 58, 3, 69, 3];
         let mut second_message = [1u8, 2, 3, 4, 5, 6, 7, 0];
 
-        let first_signature = LmsSignature::sign(&mut private_key, &first_message)
+        let first_signature = LmsSignature::sign(&mut private_key, &first_message, None)
             .unwrap()
             .to_binary_representation();
-        let second_signature = LmsSignature::sign(&mut private_key, &second_message)
+        let second_signature = LmsSignature::sign(&mut private_key, &second_message, None)
             .unwrap()
             .to_binary_representation();
 

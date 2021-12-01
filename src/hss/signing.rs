@@ -16,10 +16,9 @@ use crate::{
         helper::read_and_advance,
         ustr::{str32u, u32str},
     },
-    LmotsAlgorithm, LmsAlgorithm,
 };
 
-use super::{definitions::HssPrivateKey, parameter::HssParameter};
+use super::definitions::HssPrivateKey;
 
 #[derive(PartialEq)]
 pub struct HssSignature<H: Hasher> {
@@ -71,56 +70,9 @@ impl<H: 'static + Hasher> HssSignature<H> {
     ) -> Result<HssSignature<H>, ()> {
         let max_level = private_key.get_length();
 
-        let lmots_parameter = private_key.private_key[0].lmots_parameter;
-        let lms_parameter = private_key.private_key[0].lms_parameter;
-
-        let parameter = HssParameter::new(
-            LmotsAlgorithm::from(lmots_parameter.get_type_id()),
-            LmsAlgorithm::from(lms_parameter.get_type_id()),
-        );
-
         let prv = &mut private_key.private_key;
         let public = &mut private_key.public_key;
         let sig = &mut private_key.signatures;
-
-        // Regenerate the keys if neccessary
-        // Algorithm is heavily borrowed from RFC (https://datatracker.ietf.org/doc/html/rfc8554#section-6.2)
-
-        // Start from lowest level tree and check if it is exhausted.
-        // Stop if either a tree is not exhausted or we have reached the top level tree.
-        let mut current_level = max_level;
-
-        while prv[current_level - 1].used_leafs_index
-            == 2u32.pow(prv[current_level - 1].lms_parameter.get_tree_height() as u32)
-        {
-            current_level -= 1;
-            if current_level == 0 {
-                return Err(());
-            }
-        }
-
-        // Then rebuild all the exhausted trees
-        while current_level < max_level {
-            let lms_key_pair = lms::generate_key_pair(&parameter);
-            public[current_level] = lms_key_pair.public_key;
-            prv[current_level] = lms_key_pair.private_key;
-
-            let signature = if cfg!(feature = "fast_verify") {
-                lms::signing::LmsSignature::sign_fast_verify(
-                    &mut prv[current_level - 1],
-                    Some(public[current_level].to_binary_representation().as_slice()),
-                    None,
-                )
-            } else {
-                lms::signing::LmsSignature::sign(
-                    &mut prv[current_level - 1],
-                    public[current_level].to_binary_representation().as_slice(),
-                )
-            }?;
-
-            sig[current_level - 1] = signature;
-            current_level += 1;
-        }
 
         // Sign the message
         let new_signature = if cfg!(feature = "fast_verify") && message_mut.is_some() {
@@ -134,16 +86,14 @@ impl<H: 'static + Hasher> HssSignature<H> {
             lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message.unwrap(), None)
         }?;
 
-        // Check if array already contains a signature at Index max_level - 1. If so replace it, otherwise push the new signature.
-        if let Some(x) = sig.get_mut(max_level - 1) {
-            *x = new_signature;
-        } else {
-            sig.push(new_signature);
+        // Raise error, if array already contains a signature at index max_level - 1.
+        if sig.get_mut(max_level - 1).is_some() {
+            return Err(());
         }
-
-        let mut signed_public_keys = ArrayVec::new();
+        sig.push(new_signature);
 
         // Create list of signed keys
+        let mut signed_public_keys = ArrayVec::new();
         for i in 0..max_level - 1 {
             signed_public_keys.push(HssSignedPublicKey::new(
                 sig[i].clone(),
@@ -309,6 +259,26 @@ mod tests {
     use super::HssPrivateKey;
     use super::HssSignature;
     use super::HssSignedPublicKey;
+
+    #[test]
+    #[should_panic(expected = "Signing should panic!")]
+    fn reuse_loaded_keypair() {
+        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(&[
+            HssParameter::construct_default_parameters(),
+            HssParameter::construct_default_parameters(),
+        ])
+        .unwrap();
+
+        let mut private_key = HssPrivateKey::from(&private_key, None).unwrap();
+
+        let message = [2, 56, 123, 22, 42, 49, 22];
+
+        let _ = HssSignature::sign(&mut private_key, Some(&message), None)
+            .expect("Should generate HSS signature");
+
+        let _ = HssSignature::sign(&mut private_key, Some(&message), None)
+            .expect("Signing should panic!");
+    }
 
     #[test]
     fn test_signed_public_key_binary_representation() {

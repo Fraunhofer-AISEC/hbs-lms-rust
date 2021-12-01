@@ -58,10 +58,6 @@ mod tests {
         let mut message = [0u8; 64];
         message[..message_values.len()].copy_from_slice(&message_values);
         generate_signature_and_verify(&mut private_key, &public_key, &mut message);
-
-        let mut message = [0u8; 64];
-        message[..message_values.len()].copy_from_slice(&message_values);
-        generate_signature_and_verify(&mut private_key, &public_key, &mut message);
     }
 
     fn generate_signature_and_verify<H: 'static + Hasher>(

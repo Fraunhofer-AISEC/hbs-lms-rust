@@ -217,8 +217,161 @@ mod tests {
     use crate::hasher::sha256::Sha256Hasher;
     use crate::hasher::shake256::Shake256Hasher;
     use crate::hasher::Hasher;
+    use crate::{
+        constants::{LMS_LEAF_IDENTIFIERS_SIZE, SEED_LEN},
+        util::ustr::u64str,
+        LmotsAlgorithm, LmsAlgorithm,
+    };
 
     use super::*;
+
+    #[test]
+    fn update_keypair() {
+        let message = [
+            32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
+        ];
+        type H = Sha256Hasher;
+
+        let lmots = LmotsAlgorithm::LmotsW4;
+        let lms = LmsAlgorithm::LmsH5;
+        let parameters = [HssParameter::new(lmots, lms)];
+
+        let mut keypair =
+            hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
+
+        let private_key = keypair.private_key.clone();
+
+        let mut update_private_key = |new_key: &[u8]| {
+            keypair.private_key.as_mut_slice().copy_from_slice(new_key);
+            true
+        };
+
+        let signature = hss_sign::<H>(
+            &message,
+            private_key.as_slice(),
+            &mut update_private_key,
+            None,
+        )
+        .expect("Signing should complete without error.");
+
+        assert!(hss_verify::<H>(
+            &message,
+            signature.as_slice(),
+            keypair.public_key.as_slice()
+        ));
+
+        assert_ne!(keypair.private_key, private_key);
+        assert_eq!(
+            keypair.private_key[LMS_LEAF_IDENTIFIERS_SIZE..],
+            private_key[LMS_LEAF_IDENTIFIERS_SIZE..]
+        );
+    }
+
+    #[test]
+    fn exhaust_keypair() {
+        let message = [
+            32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
+        ];
+        type H = Sha256Hasher;
+
+        let lmots = LmotsAlgorithm::LmotsW2;
+        let lms = LmsAlgorithm::LmsH2;
+        let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
+
+        let tree_heights = parameters
+            .iter()
+            .map(|parameter| parameter.get_lms_parameter().get_tree_height())
+            .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>();
+
+        let mut keypair =
+            hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
+        assert_ne!(
+            keypair.private_key[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
+            [0u8; SEED_LEN],
+        );
+
+        for index in 0..2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into()) {
+            assert_eq!(
+                keypair.private_key[..LMS_LEAF_IDENTIFIERS_SIZE],
+                u64str(index),
+            );
+
+            let private_key = keypair.private_key.clone();
+
+            let mut update_private_key = |new_key: &[u8]| {
+                keypair.private_key.as_mut_slice().copy_from_slice(new_key);
+                true
+            };
+
+            let signature = hss_sign::<H>(
+                &message,
+                private_key.as_slice(),
+                &mut update_private_key,
+                None,
+            )
+            .expect("Signing should complete without error.");
+
+            assert!(hss_verify::<H>(
+                &message,
+                signature.as_slice(),
+                keypair.public_key.as_slice()
+            ));
+        }
+        assert_eq!(
+            keypair.private_key[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
+            [0u8; SEED_LEN],
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Signing should panic!")]
+    fn use_exhausted_keypair() {
+        let message = [
+            32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
+        ];
+        type H = Sha256Hasher;
+
+        let lmots = LmotsAlgorithm::LmotsW2;
+        let lms = LmsAlgorithm::LmsH2;
+        let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
+
+        let tree_heights = parameters
+            .iter()
+            .map(|parameter| parameter.get_lms_parameter().get_tree_height())
+            .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>();
+
+        let mut keypair =
+            hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
+
+        for index in 0..(1u64 + 2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into())) {
+            let private_key = keypair.private_key.clone();
+
+            let mut update_private_key = |new_key: &[u8]| {
+                keypair.private_key.as_mut_slice().copy_from_slice(new_key);
+                true
+            };
+
+            let signature = hss_sign::<H>(
+                &message,
+                private_key.as_slice(),
+                &mut update_private_key,
+                None,
+            )
+            .unwrap_or_else(|| {
+                if index < 2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into()) {
+                    panic!("Signing should complete without error.");
+                } else {
+                    panic!("Signing should panic!");
+                }
+            });
+
+            assert!(hss_verify::<H>(
+                &message,
+                signature.as_slice(),
+                keypair.public_key.as_slice()
+            ));
+        }
+    }
 
     #[test]
     fn test_signing_sha256() {

@@ -282,9 +282,64 @@ impl CompressedUsedLeafsIndexes {
 mod tests {
 
     use super::{CompressedParameterSet, ReferenceImplPrivateKey};
-    use crate::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
+    use crate::{
+        constants::MAX_ALLOWED_HSS_LEVELS, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher,
+    };
+
+    use arrayvec::ArrayVec;
 
     type Hasher = Sha256Hasher;
+
+    #[test]
+    fn exhaust_state() {
+        let lmots = LmotsAlgorithm::LmotsW4;
+        let lms = LmsAlgorithm::LmsH5;
+
+        let parameters = [HssParameter::<Hasher>::new(lmots, lms)];
+
+        let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+        let seed = rfc_private_key.seed;
+
+        let tree_heights = parameters
+            .iter()
+            .map(|parameter| parameter.get_lms_parameter().get_tree_height())
+            .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>();
+
+        for _ in 0..2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into()) {
+            assert_eq!(rfc_private_key.seed, seed);
+            rfc_private_key.increment(&tree_heights);
+        }
+
+        assert_ne!(rfc_private_key.seed, seed);
+    }
+
+    #[test]
+    #[should_panic(expected = "Parsing should panic!")]
+    fn parse_exhausted_state() {
+        let lmots = LmotsAlgorithm::LmotsW4;
+        let lms = LmsAlgorithm::LmsH5;
+
+        let parameters = [HssParameter::<Hasher>::new(lmots, lms)];
+
+        let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+
+        let tree_heights = parameters
+            .iter()
+            .map(|parameter| parameter.get_lms_parameter().get_tree_height())
+            .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>();
+
+        for _ in 0..2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into()) {
+            let _ = rfc_private_key
+                .compressed_parameter
+                .to::<Hasher>()
+                .expect("Parsing should complete without error");
+            rfc_private_key.increment(&tree_heights);
+        }
+        let _ = rfc_private_key
+            .compressed_parameter
+            .to::<Hasher>()
+            .expect("Parsing should panic!");
+    }
 
     #[test]
     fn test_binary_representation_compressed_parameter() {

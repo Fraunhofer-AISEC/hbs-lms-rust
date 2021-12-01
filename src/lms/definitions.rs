@@ -46,14 +46,13 @@ impl<H: Hasher> LmsPrivateKey<H> {
             return Err(());
         }
 
-        self.used_leafs_index += 1;
-
         let key = lm_ots::generate_private_key(
-            u32str(self.used_leafs_index - 1),
             self.lms_tree_identifier,
+            u32str(self.used_leafs_index),
             self.seed,
             self.lmots_parameter,
         );
+        self.used_leafs_index += 1;
 
         Ok(key)
     }

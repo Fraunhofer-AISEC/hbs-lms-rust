@@ -12,8 +12,8 @@ pub mod signing;
 pub mod verify;
 
 pub fn generate_private_key<H: Hasher>(
-    lms_leaf_identifier: LmsLeafIdentifier,
     lms_tree_identifier: LmsTreeIdentifier,
+    lms_leaf_identifier: LmsLeafIdentifier,
     seed: Seed,
     lmots_parameter: LmotsParameter<H>,
 ) -> LmotsPrivateKey<H> {

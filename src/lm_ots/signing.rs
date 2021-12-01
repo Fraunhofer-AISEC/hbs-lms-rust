@@ -62,17 +62,19 @@ impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, 
 impl<H: 'static + Hasher> LmotsSignature<H> {
     fn calculate_message_hash(
         private_key: &LmotsPrivateKey<H>,
+        signature_randomizer: Option<ArrayVec<u8, MAX_HASH_SIZE>>,
         message: &[u8],
     ) -> (H, ArrayVec<u8, MAX_HASH_SIZE>) {
-        let mut signature_randomizer = ArrayVec::new();
-
         let lmots_parameter = private_key.lmots_parameter;
 
-        for _ in 0..lmots_parameter.get_hash_function_output_size() {
-            signature_randomizer.push(0u8);
-        }
-
-        get_random(signature_randomizer.as_mut_slice());
+        let signature_randomizer = signature_randomizer.unwrap_or_else(|| {
+            let mut randomizer = ArrayVec::new();
+            for _ in 0..lmots_parameter.get_hash_function_output_size() {
+                randomizer.push(0u8);
+            }
+            get_random(randomizer.as_mut_slice());
+            randomizer
+        });
 
         let hasher = lmots_parameter
             .get_hasher()
@@ -87,15 +89,20 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
 
     fn calculate_message_hash_fast_verify(
         private_key: &LmotsPrivateKey<H>,
+        signature_randomizer: Option<ArrayVec<u8, MAX_HASH_SIZE>>,
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
     ) -> (H, ArrayVec<u8, MAX_HASH_SIZE>) {
         let lmots_parameter = private_key.lmots_parameter;
 
-        let mut signature_randomizer = ArrayVec::new();
-        for _ in 0..lmots_parameter.get_hash_function_output_size() {
-            signature_randomizer.push(0u8);
-        }
+        let mut signature_randomizer = signature_randomizer.unwrap_or_else(|| {
+            let mut randomizer = ArrayVec::new();
+            for _ in 0..lmots_parameter.get_hash_function_output_size() {
+                randomizer.push(0u8);
+            }
+            get_random(randomizer.as_mut_slice());
+            randomizer
+        });
 
         let mut hasher = lmots_parameter
             .get_hasher()
@@ -106,8 +113,6 @@ impl<H: 'static + Hasher> LmotsSignature<H> {
         if let Some(message_mut) = message_mut {
             let message_end = message_mut.len() - H::OUTPUT_SIZE as usize;
             let (message_mut, message_randomizer) = message_mut.split_at_mut(message_end);
-
-            get_random(signature_randomizer.as_mut_slice());
 
             hasher.update(signature_randomizer.as_slice());
             hasher.update(message_mut);

@@ -140,7 +140,12 @@ fn hss_sign_core<H: 'static + Hasher>(
     };
 
     // Advance private key
-    rfc_private_key.lms_leaf_identifier += 1;
+    let tree_heights = parsed_private_key
+        .public_key
+        .iter()
+        .map(|pk| pk.lms_parameter.get_tree_height())
+        .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>();
+    rfc_private_key.increment(&tree_heights);
     let updated_key = rfc_private_key.to_binary_representation();
     let update_successful = private_key_update_function(updated_key.as_slice());
 

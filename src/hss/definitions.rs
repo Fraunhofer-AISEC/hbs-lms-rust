@@ -48,7 +48,7 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
     ) -> Result<Self, ()> {
         let parameters = private_key.compressed_parameter.to::<H>();
         let levels = parameters.len();
-        let used_leafs_indexes = private_key.compressed_lms_leaf_identifier.to(&parameters);
+        let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
 
         let top_lms_parameter = parameters[0].get_lms_parameter();
 

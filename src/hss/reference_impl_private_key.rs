@@ -4,9 +4,9 @@ use arrayvec::ArrayVec;
 
 use crate::{
     constants::{
-        LmsTreeIdentifier, Seed, D_TOPSEED, MAX_ALLOWED_HSS_LEVELS, MAX_HASH_SIZE,
-        REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_CHILD_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED,
-        TOPSEED_WHICH,
+        LmsTreeIdentifier, Seed, D_TOPSEED, LMS_LEAF_IDENTIFIERS_SIZE, MAX_ALLOWED_HSS_LEVELS,
+        MAX_HASH_SIZE, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_CHILD_SEED, SEED_LEN, TOPSEED_D,
+        TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
     },
     extract_or_return,
     hasher::Hasher,
@@ -25,7 +25,7 @@ To be compatible with the reference implementation
 
 #[derive(Default, PartialEq)]
 pub struct ReferenceImplPrivateKey<H: Hasher> {
-    pub lms_leaf_identifier: u64,
+    pub compressed_used_leafs_indexes: CompressedUsedLeafsIndexes,
     pub compressed_parameter: CompressedParameterSet,
     pub seed: Seed,
     phantom: PhantomData<H>,
@@ -54,7 +54,7 @@ impl SeedAndLmsTreeIdentifier {
 impl<H: Hasher> ReferenceImplPrivateKey<H> {
     pub fn generate_with_seed(parameters: &[HssParameter<H>], seed: &[u8]) -> Option<Self> {
         let mut private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
-            lms_leaf_identifier: 0,
+            compressed_used_leafs_indexes: CompressedUsedLeafsIndexes { count: 0 },
             compressed_parameter: extract_or_return!(CompressedParameterSet::from(parameters)),
             ..Default::default()
         };
@@ -79,7 +79,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         let mut result = ArrayVec::new();
 
         result
-            .try_extend_from_slice(&u64str(self.lms_leaf_identifier))
+            .try_extend_from_slice(&u64str(self.compressed_used_leafs_indexes.count))
             .unwrap();
         result
             .try_extend_from_slice(&self.compressed_parameter.0)
@@ -97,8 +97,10 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         let mut result = Self::default();
         let mut index = 0;
 
-        let lms_leaf_identifier = read_and_advance(data, 8, &mut index);
-        result.lms_leaf_identifier = str64u(lms_leaf_identifier);
+        let compressed_used_leafs_indexes =
+            read_and_advance(data, LMS_LEAF_IDENTIFIERS_SIZE, &mut index);
+        result.compressed_used_leafs_indexes =
+            CompressedUsedLeafsIndexes::from_slice(compressed_used_leafs_indexes);
 
         let compressed_parameter = read_and_advance(data, MAX_ALLOWED_HSS_LEVELS, &mut index);
         result.compressed_parameter =
@@ -213,6 +215,50 @@ impl CompressedParameterSet {
         }
 
         result
+    }
+}
+
+#[derive(Default, PartialEq)]
+pub struct CompressedUsedLeafsIndexes {
+    count: u64,
+}
+
+impl CompressedUsedLeafsIndexes {
+    pub fn new(count: u64) -> Self {
+        CompressedUsedLeafsIndexes { count }
+    }
+
+    pub fn from_slice(data: &[u8]) -> Self {
+        CompressedUsedLeafsIndexes {
+            count: str64u(data),
+        }
+    }
+
+    pub fn to<H: Hasher>(
+        &self,
+        parameters: &ArrayVec<HssParameter<H>, MAX_ALLOWED_HSS_LEVELS>,
+    ) -> [u32; MAX_ALLOWED_HSS_LEVELS] {
+        let mut lms_leaf_identifier_set = [0u32; MAX_ALLOWED_HSS_LEVELS];
+        let mut compressed_used_leafs_indexes = self.count;
+
+        for (i, parameter) in parameters.iter().enumerate().rev() {
+            let tree_height: u32 = parameter.get_lms_parameter().get_tree_height().into();
+            lms_leaf_identifier_set[i] =
+                (compressed_used_leafs_indexes & (2u32.pow(tree_height) - 1) as u64) as u32;
+            compressed_used_leafs_indexes >>= tree_height;
+        }
+        lms_leaf_identifier_set
+    }
+
+    pub fn increment(&mut self, tree_heights: &[u8]) -> Result<(), ()> {
+        let total_tree_height: u32 = tree_heights.iter().sum::<u8>().into();
+
+        if self.count >= (2u64.pow(total_tree_height) - 1) {
+            return Err(());
+        }
+
+        self.count += 1;
+        Ok(())
     }
 }
 

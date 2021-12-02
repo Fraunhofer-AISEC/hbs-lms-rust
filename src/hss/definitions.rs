@@ -46,7 +46,7 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
         private_key: &ReferenceImplPrivateKey<H>,
         aux_data: Option<&mut &mut [u8]>,
     ) -> Result<Self, ()> {
-        let parameters = private_key.compressed_parameter.to::<H>();
+        let parameters = private_key.compressed_parameter.to::<H>()?;
         let levels = parameters.len();
         let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
 

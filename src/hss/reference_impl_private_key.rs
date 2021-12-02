@@ -193,7 +193,7 @@ impl CompressedParameterSet {
         Some(Self(result))
     }
 
-    pub fn to<H: Hasher>(&self) -> ArrayVec<HssParameter<H>, MAX_ALLOWED_HSS_LEVELS> {
+    pub fn to<H: Hasher>(&self) -> Result<ArrayVec<HssParameter<H>, MAX_ALLOWED_HSS_LEVELS>, ()> {
         let mut result = ArrayVec::new();
 
         for level in 0..MAX_ALLOWED_HSS_LEVELS {
@@ -214,7 +214,11 @@ impl CompressedParameterSet {
                 .unwrap();
         }
 
-        result
+        if result.is_empty() {
+            return Err(());
+        }
+
+        Ok(result)
     }
 }
 
@@ -284,7 +288,7 @@ mod tests {
         ];
 
         let compressed = CompressedParameterSet::from(&parameter).unwrap();
-        let arr = compressed.to::<Hasher>();
+        let arr = compressed.to::<Hasher>().unwrap();
 
         for (i, p) in arr.iter().enumerate() {
             assert!(p == &parameter[i])

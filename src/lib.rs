@@ -49,6 +49,7 @@ pub use crate::lms::parameters::LmsAlgorithm;
 pub use crate::hss::HssKeyPair;
 
 pub use crate::hss::hss_keygen as keygen;
+pub use crate::hss::hss_lifetime as lifetime;
 pub use crate::hss::hss_sign as sign;
 #[cfg(feature = "fast_verify")]
 pub use crate::hss::hss_sign_mut as sign_mut;

@@ -211,6 +211,43 @@ pub fn hss_keygen<H: 'static + Hasher>(
     }
 }
 
+/**
+ * This function is used to generate a public and private key.
+ * # Arguments
+ *
+ * * `Hasher` - The hasher implementation that should be used. ```Sha256Hasher``` is a standard software implementation.
+ * * `private_key` - The private key that should be used.
+ * * `aux_data` - The reference to a slice to auxiliary data. This can be used to speedup signature generation.
+ *
+ * # Example
+ * ```
+ * use hbs_lms::*;
+ *
+ * let parameters = [HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5), HssParameter::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5)];
+ * let mut aux_data = vec![0u8; 10_000];
+ * let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+ *
+ * let key_pair = keygen::<Sha256Hasher>(&parameters, None, Some(aux_slice));
+ * ```
+ */
+
+pub fn hss_lifetime<H: 'static + Hasher>(
+    private_key: &[u8],
+    aux_data: Option<&mut &mut [u8]>,
+) -> Option<u64> {
+    let rfc_private_key = extract_or_return!(ReferenceImplPrivateKey::from_binary_representation(
+        private_key
+    ));
+
+    let parsed_private_key: HssPrivateKey<H> = match HssPrivateKey::from(&rfc_private_key, aux_data)
+    {
+        Ok(x) => x,
+        Err(_) => return None,
+    };
+
+    Some(parsed_private_key.get_lifetime())
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -278,22 +315,23 @@ mod tests {
         let lms = LmsAlgorithm::LmsH2;
         let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
 
-        let tree_heights = parameters
-            .iter()
-            .map(|parameter| parameter.get_lms_parameter().get_tree_height())
-            .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>();
-
         let mut keypair =
             hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
+        let keypair_lifetime = hss_lifetime::<H>(keypair.private_key.as_slice(), None).unwrap();
+
         assert_ne!(
             keypair.private_key[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
             [0u8; SEED_LEN],
         );
 
-        for index in 0..2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into()) {
+        for index in 0..keypair_lifetime {
             assert_eq!(
                 keypair.private_key[..LMS_LEAF_IDENTIFIERS_SIZE],
                 u64str(index),
+            );
+            assert_eq!(
+                keypair_lifetime - hss_lifetime::<H>(keypair.private_key.as_slice(), None).unwrap(),
+                index
             );
 
             let private_key = keypair.private_key.clone();
@@ -335,15 +373,11 @@ mod tests {
         let lms = LmsAlgorithm::LmsH2;
         let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
 
-        let tree_heights = parameters
-            .iter()
-            .map(|parameter| parameter.get_lms_parameter().get_tree_height())
-            .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>();
-
         let mut keypair =
             hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
+        let keypair_lifetime = hss_lifetime::<H>(keypair.private_key.as_slice(), None).unwrap();
 
-        for index in 0..(1u64 + 2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into())) {
+        for index in 0..(1u64 + keypair_lifetime) {
             let private_key = keypair.private_key.clone();
 
             let mut update_private_key = |new_key: &[u8]| {
@@ -358,9 +392,13 @@ mod tests {
                 None,
             )
             .unwrap_or_else(|| {
-                if index < 2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into()) {
+                if index < keypair_lifetime {
                     panic!("Signing should complete without error.");
                 } else {
+                    assert_eq!(
+                        hss_lifetime::<H>(keypair.private_key.as_slice(), None),
+                        None
+                    );
                     panic!("Signing should panic!");
                 }
             });

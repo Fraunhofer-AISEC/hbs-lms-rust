@@ -174,6 +174,27 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
             level: self.get_length(),
         }
     }
+
+    pub fn get_lifetime(&self) -> u64 {
+        let mut lifetime: u64 = 0;
+        let mut trees_total_lmots_keys: ArrayVec<u64, MAX_ALLOWED_HSS_LEVELS> = ArrayVec::new();
+
+        for lms_private_key in (&self.private_key).into_iter().rev() {
+            let total_lmots_keys = lms_private_key.lms_parameter.number_of_lm_ots_keys() as u64;
+            let mut free_lmots_keys = total_lmots_keys - lms_private_key.used_leafs_index as u64;
+
+            // For the intermediate and root trees all other trees on top need to be taken into
+            // account. Thus, the top tree total count needs to be multiplied with free leafs of
+            // the current level.
+            for subtree_total_lmots_keys in &trees_total_lmots_keys {
+                free_lmots_keys *= subtree_total_lmots_keys;
+            }
+            trees_total_lmots_keys.push(total_lmots_keys);
+
+            lifetime += free_lmots_keys;
+        }
+        lifetime
+    }
 }
 
 #[derive(PartialEq)]
@@ -334,6 +355,45 @@ mod tests {
         let hss_key_after = HssPrivateKey::from(&rfc_key, None).unwrap();
 
         (hss_key_before, hss_key_after)
+    }
+
+    #[test]
+    fn lifetime() {
+        type H = Sha256Hasher;
+
+        let lmots = LmotsAlgorithm::LmotsW4;
+        let lms = LmsAlgorithm::LmsH2;
+        let parameters = [
+            HssParameter::<H>::new(lmots, lms),
+            HssParameter::<H>::new(lmots, lms),
+            HssParameter::<H>::new(lmots, lms),
+        ];
+
+        let mut private_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+        let hss_key = HssPrivateKey::from(&private_key, None).unwrap();
+
+        let tree_heights = hss_key
+            .public_key
+            .iter()
+            .map(|pk| pk.lms_parameter.get_tree_height());
+        let total_ots_count = 2u64.pow(tree_heights.clone().sum::<u8>().into());
+
+        assert_eq!(hss_key.get_lifetime(), total_ots_count,);
+
+        const STEP_BY: usize = 27;
+        for index in (0..total_ots_count).step_by(STEP_BY) {
+            let hss_key = HssPrivateKey::from(&private_key, None).unwrap();
+
+            assert_eq!(hss_key.get_lifetime(), total_ots_count - index,);
+
+            for _ in 0..STEP_BY {
+                private_key.increment(
+                    &tree_heights
+                        .clone()
+                        .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>(),
+                );
+            }
+        }
     }
 
     #[test]

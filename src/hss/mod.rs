@@ -75,7 +75,7 @@ pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]
  * * `aux_data` - Auxiliary data to speedup signature generation if available
  */
 
-pub fn hss_sign<H: 'static + Hasher>(
+pub fn hss_sign<H: Hasher>(
     message: &[u8],
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
@@ -93,7 +93,7 @@ pub fn hss_sign<H: 'static + Hasher>(
 }
 
 #[cfg(feature = "fast_verify")]
-pub fn hss_sign_mut<H: 'static + Hasher>(
+pub fn hss_sign_mut<H: Hasher>(
     message_mut: &mut [u8],
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
@@ -117,7 +117,7 @@ pub fn hss_sign_mut<H: 'static + Hasher>(
     )
 }
 
-fn hss_sign_core<H: 'static + Hasher>(
+fn hss_sign_core<H: Hasher>(
     message: Option<&[u8]>,
     message_mut: Option<&mut [u8]>,
     private_key: &[u8],
@@ -181,7 +181,7 @@ fn hss_sign_core<H: 'static + Hasher>(
  * let key_pair = keygen::<Sha256Hasher>(&parameters, None, Some(aux_slice));
  * ```
  */
-pub fn hss_keygen<H: 'static + Hasher>(
+pub fn hss_keygen<H: Hasher>(
     parameters: &[HssParameter<H>],
     seed: Option<&[u8]>,
     aux_data: Option<&mut &mut [u8]>,
@@ -226,7 +226,7 @@ pub fn hss_keygen<H: 'static + Hasher>(
  * ```
  */
 
-pub fn hss_lifetime<H: 'static + Hasher>(
+pub fn hss_lifetime<H: Hasher>(
     private_key: &[u8],
     aux_data: Option<&mut &mut [u8]>,
 ) -> Option<u64> {
@@ -415,7 +415,7 @@ mod tests {
         test_signing_core::<Shake256Hasher>();
     }
 
-    fn test_signing_core<H: 'static + Hasher>() {
+    fn test_signing_core<H: Hasher>() {
         let mut keypair = hss_keygen::<H>(
             &[
                 HssParameter::construct_default_parameters(),

@@ -40,7 +40,7 @@ pub struct HssPrivateKey<H: Hasher> {
     pub signatures: ArrayVec<LmsSignature<H>, { MAX_ALLOWED_HSS_LEVELS - 1 }>, // Only L - 1 signatures needed
 }
 
-impl<H: 'static + Hasher> HssPrivateKey<H> {
+impl<H: Hasher> HssPrivateKey<H> {
     pub fn get_length(&self) -> usize {
         self.private_key.len()
     }
@@ -311,9 +311,7 @@ mod tests {
         assert_ne!(hss_key.public_key[2], hss_key_second.public_key[2]);
     }
 
-    fn tree_lms_leaf_update<H: 'static + Hasher>(
-        increment_by: u8,
-    ) -> (HssPrivateKey<H>, HssPrivateKey<H>) {
+    fn tree_lms_leaf_update<H: Hasher>(increment_by: u8) -> (HssPrivateKey<H>, HssPrivateKey<H>) {
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
         let parameters = [

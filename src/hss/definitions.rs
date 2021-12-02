@@ -109,26 +109,13 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
                 ))
                 .unwrap(),
             );
-            let signature = if cfg!(feature = "fast_verify") {
-                lms::signing::LmsSignature::sign_fast_verify(
-                    &mut hss_private_key.private_key[i - 1],
-                    Some(
-                        hss_private_key.public_key[i]
-                            .to_binary_representation()
-                            .as_slice(),
-                    ),
-                    None,
-                    signature_randomizer,
-                )
-            } else {
-                lms::signing::LmsSignature::sign(
-                    &mut hss_private_key.private_key[i - 1],
-                    hss_private_key.public_key[i]
-                        .to_binary_representation()
-                        .as_slice(),
-                    signature_randomizer,
-                )
-            }?;
+            let signature = lms::signing::LmsSignature::sign(
+                &mut hss_private_key.private_key[i - 1],
+                hss_private_key.public_key[i]
+                    .to_binary_representation()
+                    .as_slice(),
+                signature_randomizer,
+            )?;
 
             hss_private_key.signatures.push(signature);
         }

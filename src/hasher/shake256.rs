@@ -13,7 +13,7 @@ use super::Hasher;
 /**
  * Standard software implementation for Shake256. Can be passed into the library, because it implements the `Hasher` trait.
  * */
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Shake256Hasher {
     hasher: Shake256,
 }

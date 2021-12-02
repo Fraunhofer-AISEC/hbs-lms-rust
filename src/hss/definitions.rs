@@ -1,4 +1,5 @@
 use arrayvec::ArrayVec;
+use core::convert::TryFrom;
 
 use crate::{
     constants::{MAX_ALLOWED_HSS_LEVELS, MAX_LMS_PUBLIC_KEY_LENGTH},
@@ -27,10 +28,12 @@ use crate::{
 use super::reference_impl_private_key::ReferenceImplPrivateKey;
 use super::{
     aux::{hss_is_aux_data_used, MutableExpandedAuxData},
-    reference_impl_private_key::generate_child_seed_and_lms_tree_identifier,
+    reference_impl_private_key::{
+        generate_child_seed_and_lms_tree_identifier, generate_child_signature_randomizer,
+    },
 };
 
-#[derive(Default, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 pub struct HssPrivateKey<H: Hasher> {
     pub private_key: ArrayVec<LmsPrivateKey<H>, MAX_ALLOWED_HSS_LEVELS>,
     pub public_key: ArrayVec<LmsPublicKey<H>, MAX_ALLOWED_HSS_LEVELS>,
@@ -99,6 +102,13 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);
 
+            let signature_randomizer = Some(
+                ArrayVec::try_from(generate_child_signature_randomizer(
+                    &current_seed,
+                    &parent_used_leafs_index,
+                ))
+                .unwrap(),
+            );
             let signature = if cfg!(feature = "fast_verify") {
                 lms::signing::LmsSignature::sign_fast_verify(
                     &mut hss_private_key.private_key[i - 1],
@@ -108,7 +118,7 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
                             .as_slice(),
                     ),
                     None,
-                    None,
+                    signature_randomizer,
                 )
             } else {
                 lms::signing::LmsSignature::sign(
@@ -116,7 +126,7 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
                     hss_private_key.public_key[i]
                         .to_binary_representation()
                         .as_slice(),
-                    None,
+                    signature_randomizer,
                 )
             }?;
 
@@ -220,10 +230,129 @@ impl<'a, H: Hasher> InMemoryHssPublicKey<'a, H> {
 
 #[cfg(test)]
 mod tests {
-    use super::HssPublicKey;
+    use arrayvec::ArrayVec;
+
+    use super::{HssPrivateKey, HssPublicKey};
     use crate::hasher::sha256::Sha256Hasher;
     use crate::hss::definitions::InMemoryHssPublicKey;
-    use crate::HssParameter;
+    use crate::{
+        constants::MAX_ALLOWED_HSS_LEVELS,
+        hss::reference_impl_private_key::ReferenceImplPrivateKey, Hasher, HssParameter,
+        LmotsAlgorithm, LmsAlgorithm,
+    };
+
+    #[test]
+    fn child_tree_lms_leaf_update() {
+        type H = Sha256Hasher;
+        let (hss_key, hss_key_second) = tree_lms_leaf_update::<H>(1);
+
+        // 1 increment of the key updates the leaf in the top child tree.
+        // This updates the private key of the top child tree.
+        assert_eq!(hss_key.private_key[0], hss_key_second.private_key[0]);
+        assert_eq!(hss_key.public_key[0], hss_key_second.public_key[0]);
+        assert_eq!(hss_key.signatures[0], hss_key_second.signatures[0]);
+
+        assert_eq!(hss_key.private_key[1], hss_key_second.private_key[1]);
+        assert_eq!(hss_key.public_key[1], hss_key_second.public_key[1]);
+        assert_eq!(hss_key.signatures[1], hss_key_second.signatures[1]);
+
+        assert_ne!(hss_key.private_key[2], hss_key_second.private_key[2]);
+        assert_eq!(hss_key.public_key[2], hss_key_second.public_key[2]);
+    }
+
+    #[test]
+    fn intermediate_tree_lms_leaf_update() {
+        type H = Sha256Hasher;
+        let (hss_key, hss_key_second) = tree_lms_leaf_update::<H>(4);
+
+        // 4 increments of the key updates leafs in the top child tree and the intermediate
+        // child tree.
+        // This updates the private and public key of the top child tree, as the top child tree is
+        // exhausted (with a tree heigth of two). Thus, the intermediate child tree is updated as
+        // well with the effect of a changed private key and a new intermediate signature for the
+        // new top child tree signed by the update intermediate private key.
+        assert_eq!(hss_key.private_key[0], hss_key_second.private_key[0]);
+        assert_eq!(hss_key.public_key[0], hss_key_second.public_key[0]);
+        assert_eq!(hss_key.signatures[0], hss_key_second.signatures[0]);
+
+        assert_ne!(hss_key.private_key[1], hss_key_second.private_key[1]);
+        assert_eq!(hss_key.public_key[1], hss_key_second.public_key[1]);
+        assert_ne!(hss_key.signatures[1], hss_key_second.signatures[1]);
+
+        assert_ne!(hss_key.private_key[2], hss_key_second.private_key[2]);
+        assert_ne!(hss_key.public_key[2], hss_key_second.public_key[2]);
+    }
+
+    #[test]
+    fn root_tree_lms_leaf_update() {
+        type H = Sha256Hasher;
+        let (hss_key, hss_key_second) = tree_lms_leaf_update::<H>(16);
+
+        // 16 increments of the key updates leafs in the top child tree, the intermediate
+        // child tree and the root tree.
+        // Top and intermediate child tree are exhausted and the root tree is updated. Thus top
+        // child tree private and public key is updated together with the intermediate signature
+        // and further intermediate tree private and public key is updated together with the
+        // intermediate signature. Root tree private key is updated as the leaf is switched.
+        assert_ne!(hss_key.private_key[0], hss_key_second.private_key[0]);
+        assert_eq!(hss_key.public_key[0], hss_key_second.public_key[0]);
+        assert_ne!(hss_key.signatures[0], hss_key_second.signatures[0]);
+
+        assert_ne!(hss_key.private_key[1], hss_key_second.private_key[1]);
+        assert_ne!(hss_key.public_key[1], hss_key_second.public_key[1]);
+        assert_ne!(hss_key.signatures[1], hss_key_second.signatures[1]);
+
+        assert_ne!(hss_key.private_key[2], hss_key_second.private_key[2]);
+        assert_ne!(hss_key.public_key[2], hss_key_second.public_key[2]);
+    }
+
+    fn tree_lms_leaf_update<H: 'static + Hasher>(
+        increment_by: u8,
+    ) -> (HssPrivateKey<H>, HssPrivateKey<H>) {
+        let lmots = LmotsAlgorithm::LmotsW4;
+        let lms = LmsAlgorithm::LmsH2;
+        let parameters = [
+            HssParameter::<H>::new(lmots, lms),
+            HssParameter::<H>::new(lmots, lms),
+            HssParameter::<H>::new(lmots, lms),
+        ];
+
+        let mut rfc_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+
+        let hss_key_before = HssPrivateKey::from(&rfc_key, None).unwrap();
+
+        let tree_heights = hss_key_before
+            .public_key
+            .iter()
+            .map(|pk| pk.lms_parameter.get_tree_height())
+            .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>();
+
+        for _ in 0..increment_by {
+            rfc_key.increment(&tree_heights);
+        }
+
+        let hss_key_after = HssPrivateKey::from(&rfc_key, None).unwrap();
+
+        (hss_key_before, hss_key_after)
+    }
+
+    #[test]
+    fn deterministic_signed_public_key_signatures() {
+        type H = Sha256Hasher;
+
+        let lmots = LmotsAlgorithm::LmotsW4;
+        let lms = LmsAlgorithm::LmsH2;
+        let parameters = [
+            HssParameter::<H>::new(lmots, lms),
+            HssParameter::<H>::new(lmots, lms),
+        ];
+
+        let private_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+
+        let hss_key = HssPrivateKey::from(&private_key, None).unwrap();
+        let hss_key_second = HssPrivateKey::from(&private_key, None).unwrap();
+        assert_eq!(hss_key, hss_key_second);
+    }
 
     #[test]
     fn test_public_key_binary_representation() {

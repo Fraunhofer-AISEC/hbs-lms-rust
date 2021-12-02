@@ -10,7 +10,7 @@ use super::Hasher;
 /**
  * Standard software implementation for Sha256. Can be passed into the library, because it implements the `Hasher` trait.
  * */
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Sha256Hasher {
     hasher: Sha256,
 }

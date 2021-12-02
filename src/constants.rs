@@ -27,6 +27,7 @@ pub const PRNG_FF: usize = 22;
 pub const PRNG_SEED: usize = 23;
 
 pub const SEED_CHILD_SEED: u16 = !1;
+pub const SEED_SIGNATURE_RANDOMIZER_SEED: u16 = 0xabba;
 
 pub const fn prng_len(seed_len: usize) -> usize {
     23 + seed_len

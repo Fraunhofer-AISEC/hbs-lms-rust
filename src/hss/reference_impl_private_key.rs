@@ -5,8 +5,8 @@ use arrayvec::ArrayVec;
 use crate::{
     constants::{
         LmsTreeIdentifier, Seed, D_TOPSEED, LMS_LEAF_IDENTIFIERS_SIZE, MAX_ALLOWED_HSS_LEVELS,
-        MAX_HASH_SIZE, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_CHILD_SEED, SEED_LEN, TOPSEED_D,
-        TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
+        MAX_HASH_SIZE, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_CHILD_SEED, SEED_LEN,
+        SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
     },
     extract_or_return,
     hasher::Hasher,
@@ -60,6 +60,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
             CompressedParameterSet::from_slice(&[PARAM_SET_END; MAX_ALLOWED_HSS_LEVELS]).unwrap();
         self.compressed_used_leafs_indexes = CompressedUsedLeafsIndexes::new(0);
     }
+
     pub fn generate_with_seed(parameters: &[HssParameter<H>], seed: &[u8]) -> Option<Self> {
         let mut private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
             compressed_used_leafs_indexes: CompressedUsedLeafsIndexes { count: 0 },
@@ -172,6 +173,18 @@ pub fn generate_child_seed_and_lms_tree_identifier(
     let lms_tree_identifier = derive.seed_derive(false);
 
     SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier[..16])
+}
+
+pub fn generate_child_signature_randomizer(
+    child_seed: &SeedAndLmsTreeIdentifier,
+    parent_lms_leaf_identifier: &u32,
+) -> [u8; MAX_HASH_SIZE] {
+    let mut derive = SeedDerive::new(&child_seed.seed, &child_seed.lms_tree_identifier);
+
+    derive.set_lms_leaf_identifier(*parent_lms_leaf_identifier);
+    derive.set_child_seed(SEED_SIGNATURE_RANDOMIZER_SEED);
+
+    derive.seed_derive(false)
 }
 
 #[derive(Default, PartialEq)]

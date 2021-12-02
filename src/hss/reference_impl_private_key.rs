@@ -10,7 +10,7 @@ use crate::{
     },
     extract_or_return,
     hasher::Hasher,
-    hss::seed_derive::SeedDerive,
+    hss::{definitions::HssPrivateKey, seed_derive::SeedDerive},
     util::{
         helper::read_and_advance,
         random::get_random,
@@ -153,9 +153,14 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         SeedAndLmsTreeIdentifier::new(seed.as_slice(), lms_tree_identifier.as_slice())
     }
 
-    pub fn increment(&mut self, parameters: &[u8]) {
+    pub fn increment(&mut self, hss_private_key: &HssPrivateKey<H>) {
+        let tree_heights = hss_private_key
+            .public_key
+            .iter()
+            .map(|pk| pk.lms_parameter.get_tree_height())
+            .collect();
         self.compressed_used_leafs_indexes
-            .increment(parameters)
+            .increment(&tree_heights)
             .unwrap_or_else(|_| self.wipe());
     }
 }
@@ -279,7 +284,10 @@ impl CompressedUsedLeafsIndexes {
         lms_leaf_identifier_set
     }
 
-    pub fn increment(&mut self, tree_heights: &[u8]) -> Result<(), ()> {
+    pub fn increment(
+        &mut self,
+        tree_heights: &ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>,
+    ) -> Result<(), ()> {
         let total_tree_height: u32 = tree_heights.iter().sum::<u8>().into();
 
         if self.count >= (2u64.pow(total_tree_height) - 1) {
@@ -296,7 +304,8 @@ mod tests {
 
     use super::{CompressedParameterSet, ReferenceImplPrivateKey};
     use crate::{
-        constants::MAX_ALLOWED_HSS_LEVELS, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher,
+        constants::MAX_ALLOWED_HSS_LEVELS, hss::definitions::HssPrivateKey, HssParameter,
+        LmotsAlgorithm, LmsAlgorithm, Sha256Hasher,
     };
 
     use arrayvec::ArrayVec;
@@ -311,6 +320,8 @@ mod tests {
         let parameters = [HssParameter::<Hasher>::new(lmots, lms)];
 
         let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+        let hss_private_key = HssPrivateKey::from(&rfc_private_key, None).unwrap();
+
         let seed = rfc_private_key.seed;
 
         let tree_heights = parameters
@@ -320,7 +331,7 @@ mod tests {
 
         for _ in 0..2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into()) {
             assert_eq!(rfc_private_key.seed, seed);
-            rfc_private_key.increment(&tree_heights);
+            rfc_private_key.increment(&hss_private_key);
         }
 
         assert_ne!(rfc_private_key.seed, seed);
@@ -335,18 +346,15 @@ mod tests {
         let parameters = [HssParameter::<Hasher>::new(lmots, lms)];
 
         let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+        let hss_private_key = HssPrivateKey::from(&rfc_private_key, None).unwrap();
+        let keypair_lifetime = hss_private_key.get_lifetime();
 
-        let tree_heights = parameters
-            .iter()
-            .map(|parameter| parameter.get_lms_parameter().get_tree_height())
-            .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>();
-
-        for _ in 0..2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into()) {
+        for _ in 0..keypair_lifetime {
             let _ = rfc_private_key
                 .compressed_parameter
                 .to::<Hasher>()
                 .expect("Parsing should complete without error");
-            rfc_private_key.increment(&tree_heights);
+            rfc_private_key.increment(&hss_private_key);
         }
         let _ = rfc_private_key
             .compressed_parameter

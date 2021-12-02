@@ -251,13 +251,10 @@ impl<'a, H: Hasher> InMemoryHssPublicKey<'a, H> {
 
 #[cfg(test)]
 mod tests {
-    use arrayvec::ArrayVec;
-
     use super::{HssPrivateKey, HssPublicKey};
     use crate::hasher::sha256::Sha256Hasher;
     use crate::hss::definitions::InMemoryHssPublicKey;
     use crate::{
-        constants::MAX_ALLOWED_HSS_LEVELS,
         hss::reference_impl_private_key::ReferenceImplPrivateKey, Hasher, HssParameter,
         LmotsAlgorithm, LmsAlgorithm,
     };
@@ -342,14 +339,8 @@ mod tests {
 
         let hss_key_before = HssPrivateKey::from(&rfc_key, None).unwrap();
 
-        let tree_heights = hss_key_before
-            .public_key
-            .iter()
-            .map(|pk| pk.lms_parameter.get_tree_height())
-            .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>();
-
         for _ in 0..increment_by {
-            rfc_key.increment(&tree_heights);
+            rfc_key.increment(&hss_key_before);
         }
 
         let hss_key_after = HssPrivateKey::from(&rfc_key, None).unwrap();
@@ -387,11 +378,7 @@ mod tests {
             assert_eq!(hss_key.get_lifetime(), total_ots_count - index,);
 
             for _ in 0..STEP_BY {
-                private_key.increment(
-                    &tree_heights
-                        .clone()
-                        .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>(),
-                );
+                private_key.increment(&hss_key);
             }
         }
     }

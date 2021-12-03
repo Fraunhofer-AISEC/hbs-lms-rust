@@ -44,7 +44,7 @@ fn create_signature_with_own_implementation() {
     let path = tempdir.path();
 
     let mut aux_data = vec![0u8; 2000];
-    let mut aux_slice = &mut &mut aux_data[..];
+    let aux_slice = &mut &mut aux_data[..];
 
     let mut keys = hbs_lms::keygen::<Sha256Hasher>(
         &[
@@ -68,7 +68,7 @@ fn create_signature_with_own_implementation() {
         &tempdir,
         &mut message_data,
         keys.private_key.as_mut_slice(),
-        &mut aux_slice,
+        aux_slice,
     );
 
     reference_verify(&tempdir);
@@ -77,7 +77,7 @@ fn create_signature_with_own_implementation() {
         &tempdir,
         &mut message_data,
         keys.private_key.as_mut_slice(),
-        &mut aux_slice,
+        aux_slice,
     );
 
     reference_verify(&tempdir);

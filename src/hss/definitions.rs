@@ -142,7 +142,7 @@ impl<H: 'static + Hasher> HssPrivateKey<H> {
                 let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter);
 
                 // Shrink input slice
-                let moved = core::mem::replace(aux_data, &mut []);
+                let moved = core::mem::take(aux_data);
                 *aux_data = &mut moved[..aux_len];
 
                 let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None);

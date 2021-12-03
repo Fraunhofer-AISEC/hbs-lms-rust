@@ -173,17 +173,15 @@ pub fn hss_save_aux_data<H: Hasher>(
 ) {
     // We need to calculate the level of the tree and the offset from the beginning
     let level = core::mem::size_of::<usize>() * 8 - index.leading_zeros() as usize - 1;
-    let lms_leaf_identifier: u32 = index as u32 - 2u32.pow(level as u32);
-
-    if data.data[level as usize].is_none() {
+    if data.data[level].is_none() {
         return;
     }
 
-    let size_hash = H::OUTPUT_SIZE as usize;
+    let lms_leaf_identifier: usize = index - 2u32.pow(level as u32) as usize;
+    let start_index = lms_leaf_identifier * H::OUTPUT_SIZE as usize;
+    let end_index = start_index + H::OUTPUT_SIZE as usize;
 
-    let dest = data.data[level as usize].as_mut().unwrap();
-    let start_index = size_hash * lms_leaf_identifier as usize;
-    let end_index = start_index + size_hash;
+    let dest = data.data[level].as_mut().unwrap();
     dest[start_index..end_index].copy_from_slice(cur_val);
 }
 

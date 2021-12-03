@@ -123,40 +123,24 @@ impl<H: Hasher> LmsPublicKey<H> {
 impl<'a, H: Hasher> InMemoryLmsPublicKey<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         // Parsing like desribed in 5.4.2
-        if data.len() < 8 {
-            return None;
-        }
-
         let mut data_index = 0;
 
-        let lms_type = str32u(read_and_advance(data, 4, &mut data_index));
+        let lms_parameter = extract_or_return!(LmsAlgorithm::get_from_type(str32u(
+            read_and_advance(data, 4, &mut data_index)
+        )));
+        let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type(str32u(
+            read_and_advance(data, 4, &mut data_index)
+        )));
+        let lms_tree_identifier = read_and_advance(data, 16, &mut data_index);
+        let key = read_and_advance(data, H::OUTPUT_SIZE.into(), &mut data_index);
 
-        let lms_parameter = extract_or_return!(LmsAlgorithm::get_from_type(lms_type));
-
-        let lm_ots_typecode = str32u(read_and_advance(data, 4, &mut data_index));
-
-        let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type(lm_ots_typecode));
-
-        if data.len() - data_index == 24 + lms_parameter.get_hash_function_output_size() as usize {
-            return None;
-        }
-
-        let lms_tree_identifier: &'a [u8] = &data[data_index..data_index + 16];
-        data_index += 16;
-
-        let key: &'a [u8] =
-            &data[data_index..data_index + lms_parameter.get_hash_function_output_size() as usize];
-
-        let public_key = Self {
+        Some(Self {
             lmots_parameter,
             lms_parameter,
             lms_tree_identifier,
             key,
-            complete_data: &data
-                [..data_index + lms_parameter.get_hash_function_output_size() as usize],
-        };
-
-        Some(public_key)
+            complete_data: &data[..data_index],
+        })
     }
 
     pub fn as_slice(&self) -> &[u8] {

@@ -197,12 +197,9 @@ pub fn hss_save_aux_data<H: Hasher>(
 }
 
 pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed: &[u8]) {
-    let mut aux_seed = [0u8; MAX_HASH_SIZE];
+    let aux_seed = compute_seed_derive::<H>(seed);
 
-    compute_seed_derive::<H>(&mut aux_seed, seed);
-
-    let mut hasher = compute_hmac_ipad::<H>(&mut aux_seed);
-    hasher.update(&data.level.to_be_bytes());
+    let mut hasher = compute_hmac_ipad::<H>(&aux_seed).chain(&data.level.to_be_bytes());
 
     for i in 0..MAX_TREE_HEIGHT {
         if let Some(x) = data.data[i].as_mut() {
@@ -210,7 +207,8 @@ pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed:
         }
     }
 
-    compute_hmac_opad::<H>(&mut hasher, data.hmac, &mut aux_seed);
+    data.hmac
+        .copy_from_slice(compute_hmac_opad::<H>(&mut hasher, &aux_seed).as_slice());
 }
 
 pub fn hss_extract_aux_data<H: Hasher>(

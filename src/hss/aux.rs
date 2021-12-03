@@ -240,18 +240,13 @@ pub fn hss_extract_aux_data<H: Hasher>(
     Some(result)
 }
 
-fn compute_seed_derive<H: Hasher>(result: &mut [u8], seed: &[u8]) {
+fn compute_seed_derive<H: Hasher>(seed: &[u8]) -> ArrayVec<u8, MAX_HASH_SIZE> {
     let mut prefix = [0u8; DAUX_PREFIX_LEN];
 
     prefix[DAUX_D] = (D_DAUX >> 8) as u8;
     prefix[DAUX_D + 1] = (D_DAUX & 0xff) as u8;
 
-    let mut hasher = H::get_hasher();
-
-    hasher.update(&prefix[..]);
-    hasher.update(seed);
-
-    result.copy_from_slice(hasher.finalize().as_slice());
+    H::get_hasher().chain(&prefix[..]).chain(seed).finalize()
 }
 
 fn xor_key(key: &mut [u8], xor_val: u8) {

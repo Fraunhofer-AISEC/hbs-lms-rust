@@ -1,4 +1,5 @@
 use arrayvec::ArrayVec;
+use core::convert::TryFrom;
 
 use crate::{
     constants::{
@@ -7,7 +8,10 @@ use crate::{
     },
     hasher::Hasher,
     lms::parameters::LmsParameter,
-    util::ustr::{str32u, u32str},
+    util::{
+        helper::read_and_advance,
+        ustr::{str32u, u32str},
+    },
 };
 
 /**
@@ -87,65 +91,52 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     aux_data: Option<&'a mut [u8]>,
     seed: Option<&'a [u8]>,
 ) -> Option<MutableExpandedAuxData<'a>> {
-    let size_hash = H::OUTPUT_SIZE as usize;
+    let mut index = 0;
 
     let mut expanded_aux_data: MutableExpandedAuxData = Default::default();
 
-    aux_data.as_ref()?;
     let mut aux_data = aux_data.unwrap();
 
     if aux_data[AUX_DATA_MARKER] == NO_AUX_DATA {
         return None;
     }
 
-    let mut index = 4;
-
     // REMARK: Reference implementation treats that as u64 and ANDs it with 0x7ffffffffL after its stored in expanded_aux_data
     // However in our opinion that should make no difference, because we only read 4 bytes.
-    let aux_level = str32u(&aux_data[0..index]);
+    expanded_aux_data.level = str32u(read_and_advance(aux_data, 4, &mut index));
 
-    expanded_aux_data.level = aux_level;
+    const LEN_LAYER_SIZES: usize = 1 + MAX_TREE_HEIGHT;
+    let mut layer_sizes: ArrayVec<usize, LEN_LAYER_SIZES> =
+        ArrayVec::try_from([0usize; LEN_LAYER_SIZES]).unwrap();
+    for index in 0..layer_sizes.capacity() {
+        if (expanded_aux_data.level >> index) & 1 == 0 {
+            continue;
+        }
+        layer_sizes[index] = (H::OUTPUT_SIZE as usize) << index;
+    }
 
     // Check if data is valid
     if let Some(seed) = seed {
-        for h in 0..(MAX_TREE_HEIGHT + 1) {
-            if (aux_level >> h) & 1 != 0 {
-                index += size_hash << h;
-            }
-        }
+        let len_aux_data = index + layer_sizes.iter().sum::<usize>();
+        let (aux_data, aux_data_mac) = aux_data.split_at(len_aux_data);
 
-        let expected_len = index + size_hash;
-
-        if expected_len > aux_data.len() {
-            return None;
-        }
-
-        if aux_data.len() < 4 + size_hash {
-            return None;
-        }
-
-        let mut key = [0u8; MAX_HASH_SIZE];
-        compute_seed_derive::<H>(&mut key, seed);
-
-        let mut expected_mac = [0u8; MAX_HASH_SIZE];
-        compute_hmac::<H>(&mut expected_mac, &mut key, aux_data);
-
-        if expected_mac[..size_hash] != aux_data[index..(index + size_hash)] {
+        let key = compute_seed_derive::<H>(seed);
+        if compute_hmac::<H>(&key, aux_data).as_slice() != aux_data_mac {
             return None;
         }
     }
 
-    index = 4;
     aux_data = &mut aux_data[index..];
 
-    for h in 0..(MAX_TREE_HEIGHT + 1) {
-        if (aux_level >> h) & 1 != 0 {
-            index = size_hash << h;
-            let (left, rest) = aux_data.split_at_mut(index);
+    for (index, layer_size) in layer_sizes
+        .iter()
+        .enumerate()
+        .filter(|(_, size)| **size != 0)
+    {
+        let (data, data_rest) = aux_data.split_at_mut(*layer_size);
 
-            expanded_aux_data.data[h] = Some(left);
-            aux_data = rest;
-        }
+        expanded_aux_data.data[index] = Some(data);
+        aux_data = data_rest;
     }
     expanded_aux_data.hmac = aux_data;
 

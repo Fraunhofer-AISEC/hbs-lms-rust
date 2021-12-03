@@ -1,7 +1,10 @@
 use arrayvec::ArrayVec;
 
 use crate::{
-    constants::{DAUX_D, DAUX_PREFIX_LEN, D_DAUX, MAX_HASH_SIZE, MAX_TREE_HEIGHT, MIN_SUBTREE},
+    constants::{
+        DAUX_D, DAUX_PREFIX_LEN, D_DAUX, MAX_HASH_BLOCK_SIZE, MAX_HASH_SIZE, MAX_TREE_HEIGHT,
+        MIN_SUBTREE,
+    },
     hasher::Hasher,
     lms::parameters::LmsParameter,
     util::ustr::{str32u, u32str},
@@ -249,52 +252,37 @@ fn compute_seed_derive<H: Hasher>(seed: &[u8]) -> ArrayVec<u8, MAX_HASH_SIZE> {
     H::get_hasher().chain(&prefix[..]).chain(seed).finalize()
 }
 
-fn xor_key(key: &mut [u8], xor_val: u8) {
-    for val in key {
-        *val ^= xor_val;
-    }
+fn compute_hmac_ipad<H: Hasher>(key: &[u8]) -> H {
+    const IPAD_ARRAY: [u8; MAX_HASH_BLOCK_SIZE] = [IPAD; MAX_HASH_BLOCK_SIZE];
+
+    let key = key
+        .iter()
+        .map(|byte| byte ^ IPAD)
+        .collect::<ArrayVec<u8, MAX_HASH_SIZE>>();
+
+    H::get_hasher()
+        .chain(&key)
+        .chain(&IPAD_ARRAY[H::OUTPUT_SIZE.into()..H::BLOCK_SIZE.into()])
 }
 
-fn compute_hmac_ipad<H: Hasher>(key: &mut [u8]) -> H {
-    let size_hash = H::OUTPUT_SIZE;
-    let block_size = H::BLOCK_SIZE;
+fn compute_hmac_opad<H: Hasher>(hasher: &mut H, key: &[u8]) -> ArrayVec<u8, MAX_HASH_SIZE> {
+    const OPAD_ARRAY: [u8; MAX_HASH_BLOCK_SIZE] = [OPAD; MAX_HASH_BLOCK_SIZE];
 
-    let mut hasher = H::get_hasher();
+    let buffer = hasher.finalize_reset();
 
-    xor_key(key, IPAD);
-    hasher.update(key);
+    let key = key
+        .iter()
+        .map(|byte| byte ^ OPAD)
+        .collect::<ArrayVec<u8, MAX_HASH_SIZE>>();
 
-    for _ in size_hash..block_size {
-        hasher.update(&[IPAD]);
-    }
-
-    hasher
+    H::get_hasher()
+        .chain(&key)
+        .chain(&OPAD_ARRAY[H::OUTPUT_SIZE.into()..H::BLOCK_SIZE.into()])
+        .chain(&buffer)
+        .finalize_reset()
 }
 
-fn compute_hmac_opad<H: Hasher>(hasher: &mut H, dest: &mut [u8], key: &mut [u8]) {
-    let size_hash = H::OUTPUT_SIZE;
-    let block_size = H::BLOCK_SIZE;
-
-    dest.copy_from_slice(hasher.finalize_reset().as_slice());
-
-    xor_key(key, IPAD ^ OPAD);
-    hasher.update(key);
-
-    for _ in size_hash..block_size {
-        hasher.update(&[OPAD]);
-    }
-
-    hasher.update(dest);
-
-    dest.copy_from_slice(hasher.finalize_reset().as_slice());
-
-    xor_key(key, OPAD);
-}
-
-fn compute_hmac<H: Hasher>(dest: &mut [u8], key: &mut [u8], data: &[u8]) {
-    let mut hasher = compute_hmac_ipad::<H>(key);
-
-    hasher.update(data);
-
-    compute_hmac_opad::<H>(&mut hasher, dest, key);
+fn compute_hmac<H: Hasher>(key: &[u8], data: &[u8]) -> ArrayVec<u8, MAX_HASH_SIZE> {
+    let mut hasher = compute_hmac_ipad::<H>(key).chain(data);
+    compute_hmac_opad::<H>(&mut hasher, key)
 }

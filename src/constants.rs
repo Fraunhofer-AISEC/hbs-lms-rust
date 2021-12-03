@@ -34,6 +34,7 @@ pub const fn prng_len(seed_len: usize) -> usize {
 }
 
 pub const MAX_HASH_SIZE: usize = 32;
+pub const MAX_HASH_BLOCK_SIZE: usize = 64;
 
 pub const PRNG_MAX_LEN: usize = prng_len(MAX_HASH_SIZE);
 

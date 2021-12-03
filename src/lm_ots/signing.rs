@@ -1,4 +1,3 @@
-use crate::extract_or_return;
 use crate::hasher::Hasher;
 use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::{
@@ -8,6 +7,7 @@ use crate::{
     },
     util::{
         coef::coef,
+        helper::read_and_advance,
         random::get_random,
         ustr::{str32u, u32str},
     },
@@ -243,40 +243,25 @@ impl<H: Hasher> LmotsSignature<H> {
 
 impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
-        if data.len() < 4 {
-            return None;
-        }
+        let mut index = 0;
 
-        let mut consumed_data = data;
+        let lmots_parameter =
+            LmotsAlgorithm::get_from_type::<H>(str32u(read_and_advance(data, 4, &mut index)))
+                .unwrap();
 
-        let lm_ots_type = str32u(&consumed_data[..4]);
-        consumed_data = &consumed_data[4..];
+        let signature_randomizer = read_and_advance(data, H::OUTPUT_SIZE as usize, &mut index);
 
-        let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type(lm_ots_type));
+        let signature_data = read_and_advance(
+            data,
+            (H::OUTPUT_SIZE * lmots_parameter.get_max_hash_iterations()) as usize,
+            &mut index,
+        );
 
-        let lm_ots_hash_function_output_size = lmots_parameter.get_hash_function_output_size();
-        let max_hash_iterations = lmots_parameter.get_max_hash_iterations();
-
-        if data.len()
-            != 4 + lm_ots_hash_function_output_size as usize * (max_hash_iterations as usize + 1)
-        {
-            return None;
-        }
-
-        let signature_randomizer: &'a [u8] =
-            &consumed_data[..lm_ots_hash_function_output_size as usize];
-        consumed_data = &consumed_data[lm_ots_hash_function_output_size as usize..];
-
-        let signature_data: &'a [u8] =
-            &consumed_data[..max_hash_iterations as usize * lm_ots_hash_function_output_size];
-
-        let signature = Self {
+        Some(Self {
             signature_randomizer,
             signature_data,
             lmots_parameter,
-        };
-
-        Some(signature)
+        })
     }
 
     pub fn get_signature_data(&self, index: usize) -> &[u8] {

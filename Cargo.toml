@@ -1,6 +1,6 @@
 [package]
 name = "hbs-lms"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 authors = ["Fraunhofer AISEC"]
 description = """
 Pure Rust implementation of the Leighton Micali Signature scheme with support for key generation, signature generation and verification.

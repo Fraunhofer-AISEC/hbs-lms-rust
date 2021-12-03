@@ -1,7 +1,6 @@
 use crate::constants::LmsLeafIdentifier;
 use crate::constants::MAX_HASH_SIZE;
 use crate::constants::MAX_LMS_SIGNATURE_LENGTH;
-use crate::extract_or_return;
 use crate::hasher::Hasher;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
@@ -10,8 +9,10 @@ use crate::lm_ots::signing::InMemoryLmotsSignature;
 use crate::lm_ots::signing::LmotsSignature;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::parameters::LmsAlgorithm;
-use crate::util::ustr::str32u;
-use crate::util::ustr::u32str;
+use crate::util::{
+    helper::{read, read_and_advance},
+    ustr::{str32u, u32str},
+};
 use arrayvec::ArrayVec;
 
 use super::helper::get_tree_element;
@@ -156,77 +157,38 @@ impl<H: Hasher> LmsSignature<H> {
 impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         // Parsing like 5.4.2 Algorithm 6a
+        let mut index = 0;
 
-        if data.len() < 8 {
+        let lms_leaf_identifier = str32u(read_and_advance(data, 4, &mut index));
+
+        // LMOTS Signature consists of LMOTS parameter, signature randomizer & signature data
+        let lmots_parameter =
+            LmotsAlgorithm::get_from_type::<H>(str32u(read(data, 4, &index))).unwrap();
+        let lmots_signature = lm_ots::signing::InMemoryLmotsSignature::new(read_and_advance(
+            data,
+            (4 + H::OUTPUT_SIZE * (1 + lmots_parameter.get_max_hash_iterations())) as usize,
+            &mut index,
+        ))
+        .unwrap();
+
+        let lms_parameter =
+            LmsAlgorithm::get_from_type(str32u(read_and_advance(data, 4, &mut index))).unwrap();
+        let authentication_path = read_and_advance(
+            data,
+            (H::OUTPUT_SIZE * lms_parameter.get_tree_height() as u16) as usize,
+            &mut index,
+        );
+
+        if lms_leaf_identifier >= lms_parameter.number_of_lm_ots_keys() as u32 {
             return None;
         }
 
-        let mut consumed_data = data;
-
-        let lms_leaf_identifier = str32u(&consumed_data[..4]);
-        consumed_data = &consumed_data[4..];
-
-        let lm_ots_type = str32u(&consumed_data[..4]);
-        // consumed_data = &consumed_data[4..];
-
-        let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type::<H>(lm_ots_type));
-
-        let lmots_hash_output_size = lmots_parameter.get_hash_function_output_size();
-        let max_hash_iterations = lmots_parameter.get_max_hash_iterations();
-
-        if data.len() < 12 + lmots_hash_output_size as usize * (max_hash_iterations as usize + 1) {
-            return None;
-        }
-
-        let lmots_signature = match lm_ots::signing::InMemoryLmotsSignature::new(
-            &data[4..=(7 + lmots_hash_output_size as usize * (max_hash_iterations as usize + 1))],
-        ) {
-            None => return None,
-            Some(x) => x,
-        };
-
-        let lms_type_start =
-            8 + lmots_hash_output_size as usize * (max_hash_iterations as usize + 1);
-        let lms_type_end =
-            11 + lmots_hash_output_size as usize * (max_hash_iterations as usize + 1);
-
-        let lms_type = str32u(&data[lms_type_start..=lms_type_end]);
-
-        let lms_parameter = extract_or_return!(LmsAlgorithm::get_from_type(lms_type));
-
-        let tree_height = lms_parameter.get_tree_height();
-
-        if lms_leaf_identifier >= 2u32.pow(tree_height as u32) {
-            return None;
-        }
-
-        let lms_hash_output_size = lms_parameter.get_hash_function_output_size();
-
-        if data.len()
-            < 12 + lmots_hash_output_size as usize * (max_hash_iterations as usize + 1)
-                + lms_hash_output_size as usize * tree_height as usize
-        {
-            return None;
-        }
-
-        let mut tree_slice = data;
-        let tree_start = 12
-            + lmots_parameter.get_hash_function_output_size() as usize
-                * (lmots_parameter.get_max_hash_iterations() as usize + 1);
-
-        tree_slice = &tree_slice[tree_start..];
-
-        let trees: &[u8] =
-            &tree_slice[..lms_parameter.get_hash_function_output_size() * tree_height as usize];
-
-        let signature = Self {
+        Some(Self {
             lms_parameter,
             lms_leaf_identifier,
             lmots_signature,
-            authentication_path: trees,
-        };
-
-        Some(signature)
+            authentication_path,
+        })
     }
 
     pub fn get_path(&self, index: usize) -> &[u8] {

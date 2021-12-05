@@ -34,19 +34,17 @@ mod lm_ots;
 mod lms;
 mod util;
 
-pub use hasher::Hasher;
+// Re-export the `signature` crate
+pub use signature::{self};
 
 #[doc(hidden)]
 pub use crate::constants::Seed;
 
-pub use crate::hasher::sha256::Sha256Hasher;
-pub use crate::hasher::shake256::Shake256Hasher;
+pub use crate::hasher::{sha256::Sha256Hasher, shake256::Shake256Hasher, Hasher};
 
 pub use crate::hss::parameter::HssParameter;
 pub use crate::lm_ots::parameters::LmotsAlgorithm;
 pub use crate::lms::parameters::LmsAlgorithm;
-
-pub use crate::hss::HssKeyPair;
 
 pub use crate::hss::hss_keygen as keygen;
 pub use crate::hss::hss_lifetime as lifetime;
@@ -54,3 +52,95 @@ pub use crate::hss::hss_sign as sign;
 #[cfg(feature = "fast_verify")]
 pub use crate::hss::hss_sign_mut as sign_mut;
 pub use crate::hss::hss_verify as verify;
+
+use arrayvec::ArrayVec;
+use core::{convert::TryFrom, marker::PhantomData};
+use signature::Error;
+
+use constants::MAX_HSS_SIGNATURE_LENGTH;
+
+#[derive(Debug)]
+pub struct Signature<H: Hasher> {
+    bytes: ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>,
+    phantom_data: PhantomData<H>,
+}
+
+impl<H: Hasher> AsRef<[u8]> for Signature<H> {
+    fn as_ref(&self) -> &[u8] {
+        self.bytes.as_ref()
+    }
+}
+
+impl<H: Hasher> signature::Signature for Signature<H> {
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+        let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
+
+        Ok(Self {
+            bytes,
+            phantom_data: PhantomData,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct VerifierSignature<'a, H: Hasher> {
+    bytes: &'a [u8],
+    phantom_data: PhantomData<H>,
+}
+
+#[allow(dead_code)]
+impl<'a, H: Hasher> VerifierSignature<'a, H> {
+    pub fn from_ref(bytes: &'a [u8]) -> Result<Self, Error> {
+        Ok(Self {
+            bytes,
+            phantom_data: PhantomData,
+        })
+    }
+}
+
+impl<'a, H: Hasher> AsRef<[u8]> for VerifierSignature<'a, H> {
+    fn as_ref(&self) -> &'a [u8] {
+        self.bytes
+    }
+}
+
+impl<'a, H: Hasher> signature::Signature for VerifierSignature<'a, H> {
+    fn from_bytes(_bytes: &[u8]) -> Result<Self, Error> {
+        Err(Error::new())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
+    use crate::{
+        signature::{SignerMut, Verifier},
+        Signature, VerifierSignature,
+    };
+
+    #[test]
+    fn signature_trait() {
+        let message = [
+            32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
+        ];
+
+        let mut keypair = keygen::<Sha256Hasher>(
+            &[
+                HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+                HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+            ],
+            None,
+            None,
+        )
+        .unwrap();
+
+        let signature: Signature<Sha256Hasher> = keypair.private_key.try_sign(&message).unwrap();
+
+        assert!(keypair.public_key.verify(&message, &signature).is_ok());
+
+        let ref_signature =
+            VerifierSignature::<Sha256Hasher>::from_ref(signature.as_ref()).unwrap();
+
+        assert!(keypair.public_key.verify(&message, &ref_signature).is_ok());
+    }
+}

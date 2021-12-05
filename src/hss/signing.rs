@@ -6,7 +6,7 @@ use crate::{
         MAX_HSS_SIGNATURE_LENGTH, MAX_LMS_PUBLIC_KEY_LENGTH, MAX_LMS_SIGNATURE_LENGTH,
     },
     extract_or_return,
-    hasher::Hasher,
+    Hasher,
     lms::{
         self,
         definitions::{InMemoryLmsPublicKey, LmsPublicKey},

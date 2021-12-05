@@ -7,44 +7,115 @@ pub mod signing;
 pub mod verify;
 
 use arrayvec::ArrayVec;
+use core::convert::TryFrom;
 
 use crate::{
-    constants::{MAX_HASH_SIZE, MAX_HSS_SIGNATURE_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE},
-    extract_or, extract_or_return,
-    hasher::Hasher,
-    hss::{definitions::InMemoryHssPublicKey, signing::InMemoryHssSignature},
+    constants::{
+        MAX_HSS_PUBLIC_KEY_LENGTH, MAX_HSS_SIGNATURE_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE,
+    },
+    extract_or,
+    signature::{Error, SignerMut, Verifier},
+    Hasher, Signature, VerifierSignature,
 };
 
 use self::{
-    definitions::HssPrivateKey, parameter::HssParameter,
-    reference_impl_private_key::ReferenceImplPrivateKey, signing::HssSignature,
+    definitions::{HssPrivateKey, InMemoryHssPublicKey},
+    parameter::HssParameter,
+    reference_impl_private_key::ReferenceImplPrivateKey,
+    signing::{HssSignature, InMemoryHssSignature},
 };
 
 /**
  * Describes a public and private key.
  * */
 pub struct HssKeyPair {
-    pub public_key: ArrayVec<u8, { 4 + 4 + 4 + 16 + MAX_HASH_SIZE }>,
-    pub private_key: ArrayVec<u8, REFERENCE_IMPL_PRIVATE_KEY_SIZE>,
+    pub public_key: VerifyingKey,
+    pub private_key: SigningKey,
 }
 
 impl HssKeyPair {
-    fn new(
-        public_key: ArrayVec<u8, { 4 + 4 + 4 + 16 + MAX_HASH_SIZE }>,
-        private_key: ArrayVec<u8, REFERENCE_IMPL_PRIVATE_KEY_SIZE>,
-    ) -> Self {
+    fn new(public_key: VerifyingKey, private_key: SigningKey) -> Self {
         Self {
             public_key,
             private_key,
         }
     }
+}
 
-    pub fn get_public_key(&self) -> &[u8] {
-        self.public_key.as_slice()
+#[derive(Clone)]
+pub struct SigningKey {
+    pub bytes: ArrayVec<u8, REFERENCE_IMPL_PRIVATE_KEY_SIZE>,
+}
+
+impl SigningKey {
+    pub fn as_slice(&self) -> &[u8] {
+        self.bytes.as_slice()
     }
 
-    pub fn get_private_key(&self) -> &[u8] {
-        self.private_key.as_slice()
+    pub fn as_mut_slice(&mut self) -> &mut [u8] {
+        self.bytes.as_mut_slice()
+    }
+}
+
+impl SigningKey {
+    fn try_sign_with_aux<H: Hasher>(
+        &mut self,
+        msg: &[u8],
+        aux_data: Option<&mut &mut [u8]>,
+    ) -> Result<Signature<H>, Error> {
+        let private_key = self.bytes.clone();
+        let mut private_key_update_function = |new_key: &[u8]| {
+            self.bytes.as_mut_slice().copy_from_slice(new_key);
+            true
+        };
+
+        let signature = hss_sign::<H>(
+            msg,
+            private_key.as_slice(),
+            &mut private_key_update_function,
+            aux_data,
+        );
+
+        if let Some(signature) = signature {
+            signature::Signature::from_bytes(&signature)
+        } else {
+            Err(Error::new())
+        }
+    }
+}
+
+impl<H: Hasher> SignerMut<Signature<H>> for SigningKey {
+    fn try_sign(&mut self, msg: &[u8]) -> Result<Signature<H>, Error> {
+        self.try_sign_with_aux(msg, None)
+    }
+}
+
+#[derive(Clone)]
+pub struct VerifyingKey {
+    pub bytes: ArrayVec<u8, { 4 + 4 + 4 + 16 + MAX_HASH_SIZE }>,
+}
+
+impl VerifyingKey {
+    pub fn as_slice(&self) -> &[u8] {
+        self.bytes.as_slice()
+    }
+}
+
+impl<H: Hasher> Verifier<Signature<H>> for VerifyingKey {
+    fn verify(&self, msg: &[u8], signature: &Signature<H>) -> Result<(), Error> {
+        if !hss_verify::<H>(msg, signature.as_ref(), &self.bytes) {
+            return Err(Error::new());
+        }
+        Ok(())
+    }
+}
+
+impl<'a, H: Hasher> Verifier<VerifierSignature<'a, H>> for VerifyingKey {
+    fn verify(&self, msg: &[u8], signature: &VerifierSignature<H>) -> Result<(), Error> {
+        if !hss_verify::<H>(msg, signature.as_ref(), &self.bytes) {
+            return Err(Error::new());
+        }
+        Ok(())
     }
 }
 
@@ -198,8 +269,12 @@ pub fn hss_keygen<H: Hasher>(
             Ok(x) => x,
         };
         Some(HssKeyPair::new(
-            hss_key.get_public_key().to_binary_representation(),
-            private_key.to_binary_representation(),
+            VerifyingKey {
+                bytes: hss_key.get_public_key().to_binary_representation(),
+            },
+            SigningKey {
+                bytes: private_key.to_binary_representation(),
+            },
         ))
     } else {
         None
@@ -292,10 +367,10 @@ mod tests {
             keypair.public_key.as_slice()
         ));
 
-        assert_ne!(keypair.private_key, private_key);
+        assert_ne!(keypair.private_key.as_slice(), private_key.as_slice());
         assert_eq!(
-            keypair.private_key[LMS_LEAF_IDENTIFIERS_SIZE..],
-            private_key[LMS_LEAF_IDENTIFIERS_SIZE..]
+            keypair.private_key.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..],
+            private_key.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..]
         );
     }
 
@@ -315,13 +390,13 @@ mod tests {
         let keypair_lifetime = hss_lifetime::<H>(keypair.private_key.as_slice(), None).unwrap();
 
         assert_ne!(
-            keypair.private_key[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
+            keypair.private_key.as_slice()[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
             [0u8; SEED_LEN],
         );
 
         for index in 0..keypair_lifetime {
             assert_eq!(
-                keypair.private_key[..LMS_LEAF_IDENTIFIERS_SIZE],
+                keypair.private_key.as_slice()[..LMS_LEAF_IDENTIFIERS_SIZE],
                 u64str(index),
             );
             assert_eq!(
@@ -351,7 +426,7 @@ mod tests {
             ));
         }
         assert_eq!(
-            keypair.private_key[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
+            keypair.private_key.as_slice()[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
             [0u8; SEED_LEN],
         );
     }
@@ -451,7 +526,7 @@ mod tests {
         assert!(hss_verify::<H>(
             &message,
             signature.as_slice(),
-            keypair.public_key.as_slice()
+            keypair.public_key.as_slice(),
         ));
 
         message[0] = 33;
@@ -459,7 +534,7 @@ mod tests {
         assert!(!hss_verify::<H>(
             &message,
             signature.as_slice(),
-            keypair.public_key.as_slice()
+            keypair.public_key.as_slice(),
         ));
     }
 

@@ -1,5 +1,5 @@
 use arrayvec::ArrayVec;
-use core::convert::TryFrom;
+use core::{convert::TryFrom, fmt::Debug};
 
 use crate::{
     constants::{winternitz_chain::*, MAX_HASH_SIZE},
@@ -20,7 +20,7 @@ pub struct HashChainData([u8; ITER_MAX_LEN]);
  * Implements PartialEq, although it makes no sense to compare two hasher.
  * But with that we can derive PartialEq automatically for our tests.
  * */
-pub trait Hasher: Default + Clone + PartialEq + Send + Sync {
+pub trait Hasher: Debug + Default + Clone + PartialEq + Send + Sync {
     const OUTPUT_SIZE: u16;
     const BLOCK_SIZE: u16;
     fn get_hasher() -> Self;

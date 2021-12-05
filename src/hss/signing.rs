@@ -27,41 +27,6 @@ pub struct HssSignature<H: Hasher> {
     pub signature: LmsSignature<H>,
 }
 
-/// To reduce memory footprint on verification we handle the signature in-memory using ```InMemoryHssSignature```.
-/// In order to reduce complexity we use ```HssSignature``` for key generation and signature generation.
-pub struct InMemoryHssSignature<'a, H: Hasher> {
-    pub level: usize,
-    pub signed_public_keys:
-        ArrayVec<Option<InMemoryHssSignedPublicKey<'a, H>>, MAX_ALLOWED_HSS_LEVELS>,
-    pub signature: InMemoryLmsSignature<'a, H>,
-}
-
-impl<'a, H: Hasher> PartialEq<HssSignature<H>> for InMemoryHssSignature<'a, H> {
-    fn eq(&self, other: &HssSignature<H>) -> bool {
-        let first_condition = self.level == other.level && self.signature == other.signature;
-
-        if !first_condition {
-            return false;
-        }
-
-        for (x, y) in self
-            .signed_public_keys
-            .iter()
-            .zip(other.signed_public_keys.iter())
-        {
-            if let Some(x) = x {
-                if x != y {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
-
-        true
-    }
-}
-
 impl<H: Hasher> HssSignature<H> {
     pub fn sign(
         private_key: &mut HssPrivateKey<H>,
@@ -129,6 +94,41 @@ impl<H: Hasher> HssSignature<H> {
             .unwrap();
 
         result
+    }
+}
+
+/// To reduce memory footprint on verification we handle the signature in-memory using ```InMemoryHssSignature```.
+/// In order to reduce complexity we use ```HssSignature``` for key generation and signature generation.
+pub struct InMemoryHssSignature<'a, H: Hasher> {
+    pub level: usize,
+    pub signed_public_keys:
+        ArrayVec<Option<InMemoryHssSignedPublicKey<'a, H>>, MAX_ALLOWED_HSS_LEVELS>,
+    pub signature: InMemoryLmsSignature<'a, H>,
+}
+
+impl<'a, H: Hasher> PartialEq<HssSignature<H>> for InMemoryHssSignature<'a, H> {
+    fn eq(&self, other: &HssSignature<H>) -> bool {
+        let first_condition = self.level == other.level && self.signature == other.signature;
+
+        if !first_condition {
+            return false;
+        }
+
+        for (x, y) in self
+            .signed_public_keys
+            .iter()
+            .zip(other.signed_public_keys.iter())
+        {
+            if let Some(x) = x {
+                if x != y {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        true
     }
 }
 

@@ -213,9 +213,7 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
             sig.lmots_signature
                 .lmots_parameter
                 .get_hash_function_output_size(),
-            sig.lmots_signature
-                .lmots_parameter
-                .get_max_hash_iterations() as usize,
+            sig.lmots_signature.lmots_parameter.get_hash_chain_count() as usize,
             sig.lms_parameter.get_hash_function_output_size(),
             sig.lms_parameter.get_tree_height() as usize,
         );
@@ -234,9 +232,7 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
             sig.lmots_signature
                 .lmots_parameter
                 .get_hash_function_output_size(),
-            sig.lmots_signature
-                .lmots_parameter
-                .get_max_hash_iterations() as usize,
+            sig.lmots_signature.lmots_parameter.get_hash_chain_count() as usize,
             sig.lms_parameter.get_hash_function_output_size(),
             sig.lms_parameter.get_tree_height() as usize,
         );

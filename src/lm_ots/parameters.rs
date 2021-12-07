@@ -3,7 +3,10 @@ use core::marker::PhantomData;
 use arrayvec::ArrayVec;
 
 use crate::{
-    constants::MAX_HASH_SIZE,
+    constants::{
+        HASH_CHAIN_COUNT_W1, HASH_CHAIN_COUNT_W2, HASH_CHAIN_COUNT_W4, HASH_CHAIN_COUNT_W8,
+        MAX_HASH_SIZE,
+    },
     hasher::{sha256::Sha256Hasher, Hasher},
     util::coef::coef,
 };
@@ -46,10 +49,10 @@ impl LmotsAlgorithm {
     pub fn construct_parameter<H: Hasher>(&self) -> Option<LmotsParameter<H>> {
         match *self {
             LmotsAlgorithm::LmotsReserved => None,
-            LmotsAlgorithm::LmotsW1 => Some(LmotsParameter::new(1, 1, 265, 7)),
-            LmotsAlgorithm::LmotsW2 => Some(LmotsParameter::new(2, 2, 133, 6)),
-            LmotsAlgorithm::LmotsW4 => Some(LmotsParameter::new(3, 4, 67, 4)),
-            LmotsAlgorithm::LmotsW8 => Some(LmotsParameter::new(4, 8, 34, 0)),
+            LmotsAlgorithm::LmotsW1 => Some(LmotsParameter::new(1, 1, HASH_CHAIN_COUNT_W1, 7)),
+            LmotsAlgorithm::LmotsW2 => Some(LmotsParameter::new(2, 2, HASH_CHAIN_COUNT_W2, 6)),
+            LmotsAlgorithm::LmotsW4 => Some(LmotsParameter::new(3, 4, HASH_CHAIN_COUNT_W4, 4)),
+            LmotsAlgorithm::LmotsW8 => Some(LmotsParameter::new(4, 8, HASH_CHAIN_COUNT_W8, 0)),
         }
     }
 
@@ -68,7 +71,7 @@ impl LmotsAlgorithm {
 pub struct LmotsParameter<H: Hasher = Sha256Hasher> {
     type_id: u32,
     winternitz: u8,
-    max_hash_iterations: u16,
+    hash_chain_count: u16,
     checksum_left_shift: u8,
     phantom_data: PhantomData<H>,
 }
@@ -83,13 +86,13 @@ impl<H: Hasher> LmotsParameter<H> {
     pub fn new(
         type_id: u32,
         winternitz: u8,
-        max_hash_iterations: u16,
+        hash_chain_count: u16,
         checksum_left_shift: u8,
     ) -> Self {
         Self {
             type_id,
             winternitz,
-            max_hash_iterations,
+            hash_chain_count,
             checksum_left_shift,
             phantom_data: PhantomData,
         }
@@ -103,8 +106,8 @@ impl<H: Hasher> LmotsParameter<H> {
         self.winternitz
     }
 
-    pub fn get_max_hash_iterations(&self) -> u16 {
-        self.max_hash_iterations
+    pub fn get_hash_chain_count(&self) -> u16 {
+        self.hash_chain_count
     }
 
     pub fn get_checksum_left_shift(&self) -> u8 {
@@ -123,7 +126,7 @@ impl<H: Hasher> LmotsParameter<H> {
 
         let mut coef_cached = ArrayVec::new();
 
-        for i in 0..self.get_max_hash_iterations() {
+        for i in 0..self.get_hash_chain_count() {
             let coef = coef_helper(i, self.get_winternitz());
             coef_cached.push(coef);
         }
@@ -149,7 +152,7 @@ impl<H: Hasher> LmotsParameter<H> {
         checksum <<= self.get_checksum_left_shift();
         let checksum = [(checksum >> 8 & 0xff) as u8, (checksum & 0xff) as u8];
 
-        for i in *max..self.get_max_hash_iterations() {
+        for i in *max..self.get_hash_chain_count() {
             let (index, shift, mask) = coef_cached[i as usize];
             let hash_chain_length = ((checksum[index - 32] as u64 >> shift) & mask) as u16;
             total_hash_chain_iterations += hash_chain_length;

@@ -166,7 +166,7 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
             LmotsAlgorithm::get_from_type::<H>(str32u(read(data, 4, &index))).unwrap();
         let lmots_signature = lm_ots::signing::InMemoryLmotsSignature::new(read_and_advance(
             data,
-            (4 + H::OUTPUT_SIZE * (1 + lmots_parameter.get_max_hash_iterations())) as usize,
+            (4 + H::OUTPUT_SIZE * (1 + lmots_parameter.get_hash_chain_count())) as usize,
             &mut index,
         ))
         .unwrap();

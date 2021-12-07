@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
 
 use crate::{
-    constants::{LmsLeafIdentifier, LmsTreeIdentifier, MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_SIZE},
+    constants::{LmsLeafIdentifier, LmsTreeIdentifier, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
     hasher::Hasher,
 };
 
@@ -11,7 +11,7 @@ use super::parameters::LmotsParameter;
 pub struct LmotsPrivateKey<H: Hasher> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lms_leaf_identifier: LmsLeafIdentifier,
-    pub key: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_ITERATIONS>, // [[0u8; n]; p];
+    pub key: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_COUNT>, // [[0u8; n]; p];
     pub lmots_parameter: LmotsParameter<H>,
 }
 
@@ -19,7 +19,7 @@ impl<H: Hasher> LmotsPrivateKey<H> {
     pub fn new(
         lms_tree_identifier: LmsTreeIdentifier,
         lms_leaf_identifier: LmsLeafIdentifier,
-        key: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_ITERATIONS>,
+        key: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_COUNT>,
         lmots_parameter: LmotsParameter<H>,
     ) -> Self {
         LmotsPrivateKey {
@@ -66,7 +66,7 @@ mod tests {
                 let parameter = $parameter.construct_parameter::<Sha256Hasher>().unwrap();
                 assert_eq!(parameter.get_hash_function_output_size(), $n);
                 assert_eq!(parameter.get_winternitz(), $w);
-                assert_eq!(parameter.get_max_hash_iterations(), $p);
+                assert_eq!(parameter.get_hash_chain_count(), $p);
                 assert_eq!(parameter.get_checksum_left_shift(), $ls);
                 assert_eq!(parameter.get_type_id(), $type);
             }

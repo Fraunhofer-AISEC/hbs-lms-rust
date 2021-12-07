@@ -38,7 +38,12 @@ pub const MAX_HASH_BLOCK_SIZE: usize = 64;
 
 pub const PRNG_MAX_LEN: usize = prng_len(MAX_HASH_SIZE);
 
-pub const MAX_HASH_CHAIN_ITERATIONS: usize = 265;
+pub const HASH_CHAIN_COUNT_W1: u16 = 265;
+pub const HASH_CHAIN_COUNT_W2: u16 = 133;
+pub const HASH_CHAIN_COUNT_W4: u16 = 67;
+pub const HASH_CHAIN_COUNT_W8: u16 = 34;
+pub const MAX_HASH_CHAIN_COUNT: usize = HASH_CHAIN_COUNT_W1 as usize;
+
 pub const MAX_TREE_HEIGHT: usize = 25;
 
 pub const LMS_LEAF_IDENTIFIERS_SIZE: usize = 8;
@@ -48,7 +53,7 @@ pub const REFERENCE_IMPL_PRIVATE_KEY_SIZE: usize =
 pub const MAX_LMS_PUBLIC_KEY_LENGTH: usize = lms_public_key_length(MAX_HASH_SIZE);
 pub const MAX_LMS_SIGNATURE_LENGTH: usize = lms_signature_length(
     MAX_HASH_SIZE,
-    MAX_HASH_CHAIN_ITERATIONS,
+    MAX_HASH_CHAIN_COUNT,
     MAX_HASH_SIZE,
     MAX_TREE_HEIGHT,
 );
@@ -73,7 +78,7 @@ pub const fn lms_public_key_length(lms_hash_output_size: usize) -> usize {
 pub const MAX_ALLOWED_HSS_LEVELS: usize = 8;
 
 pub const MAX_HSS_SIGNATURE_LENGTH: usize = (4
-    + (4 + MAX_HASH_SIZE + (MAX_HASH_SIZE * MAX_HASH_CHAIN_ITERATIONS))
+    + (4 + MAX_HASH_SIZE + (MAX_HASH_SIZE * MAX_HASH_CHAIN_COUNT))
     + 4
     + (MAX_HASH_SIZE * MAX_TREE_HEIGHT))
     * MAX_ALLOWED_HSS_LEVELS;

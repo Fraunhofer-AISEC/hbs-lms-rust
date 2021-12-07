@@ -53,10 +53,10 @@ pub fn generate_public_key_candiate<'a, H: Hasher>(
     let message_hash = hasher.finalize_reset();
     let message_hash_with_checksum = lmots_parameter.append_checksum_to(message_hash.as_slice());
 
-    let mut z: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_ITERATIONS> = ArrayVec::new();
+    let mut z: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_COUNT> = ArrayVec::new();
     let max_w = 2usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
 
-    for i in 0..lmots_parameter.get_max_hash_iterations() {
+    for i in 0..lmots_parameter.get_hash_chain_count() {
         let a = coef(
             message_hash_with_checksum.as_slice(),
             i,

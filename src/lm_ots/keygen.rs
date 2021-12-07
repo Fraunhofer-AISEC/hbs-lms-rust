@@ -3,7 +3,7 @@ use super::parameters::LmotsParameter;
 use crate::constants::*;
 use crate::hasher::Hasher;
 use crate::{
-    constants::{D_PBLC, MAX_HASH_CHAIN_ITERATIONS, MAX_HASH_SIZE},
+    constants::{D_PBLC, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
     util::ustr::*,
 };
 use arrayvec::ArrayVec;
@@ -18,7 +18,7 @@ pub fn generate_private_key<H: Hasher>(
 
     let mut hasher = lmots_parameter.get_hasher();
 
-    for index in 0..lmots_parameter.get_max_hash_iterations() {
+    for index in 0..lmots_parameter.get_hash_chain_count() {
         hasher.update(&lms_tree_identifier);
         hasher.update(&lms_leaf_identifier);
         hasher.update(&u16str(index as u16));
@@ -40,13 +40,13 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
     let lmots_parameter = &private_key.lmots_parameter;
     let mut hasher = lmots_parameter.get_hasher();
 
-    let hash_chain_iterations: usize = 2_usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
+    let hash_chain_count: usize = 2_usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
     let key = &private_key.key;
 
-    let mut public_key_data: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_ITERATIONS> =
+    let mut public_key_data: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_COUNT> =
         ArrayVec::new();
 
-    for i in 0..lmots_parameter.get_max_hash_iterations() as usize {
+    for i in 0..lmots_parameter.get_hash_chain_count() as usize {
         let mut hash_chain_data = H::prepare_hash_chain_data(
             &private_key.lms_tree_identifier,
             &private_key.lms_leaf_identifier,
@@ -56,7 +56,7 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
             i as u16,
             key[i].as_slice(),
             0,
-            hash_chain_iterations,
+            hash_chain_count,
         );
 
         public_key_data.push(result);

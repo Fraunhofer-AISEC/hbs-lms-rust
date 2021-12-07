@@ -32,6 +32,3 @@ hex = "0.4.3"
 default = ["std", "crossbeam"]
 std = ["rand"]
 fast_verify = []
-
-[profile.release]
-overflow-checks = true

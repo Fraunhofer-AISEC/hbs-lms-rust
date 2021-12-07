@@ -1,0 +1,9 @@
+[env]
+HBS_LMS_MAX_HASH_OPTIMIZATIONS = "10000"
+HBS_LMS_THREADS = "1"
+HBS_LMS_MAX_ALLOWED_HSS_LEVELS = "8"
+HBS_LMS_TREE_HEIGHTS = "25, 25, 25, 25, 25, 25, 25, 25"
+HBS_LMS_WINTERNITZ_PARAMETERS = "1, 1, 1, 1, 1, 1, 1, 1"
+
+[profile.release]
+overflow-checks = true

@@ -92,7 +92,7 @@ impl<H: Hasher> SignerMut<Signature<H>> for SigningKey {
 
 #[derive(Clone)]
 pub struct VerifyingKey {
-    pub bytes: ArrayVec<u8, { 4 + 4 + 4 + 16 + MAX_HASH_SIZE }>,
+    pub bytes: ArrayVec<u8, MAX_HSS_PUBLIC_KEY_LENGTH>,
 }
 
 impl VerifyingKey {
@@ -321,6 +321,8 @@ pub fn hss_lifetime<H: Hasher>(
 #[cfg(test)]
 mod tests {
 
+    #[cfg(feature = "fast_verify")]
+    use crate::constants::MAX_HASH_SIZE;
     use crate::hasher::sha256::Sha256Hasher;
     use crate::hasher::shake256::Shake256Hasher;
     use crate::hasher::Hasher;

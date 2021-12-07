@@ -3,10 +3,9 @@ use arrayvec::ArrayVec;
 use crate::{
     constants::{
         lms_public_key_length, lms_signature_length, MAX_ALLOWED_HSS_LEVELS,
-        MAX_HSS_SIGNATURE_LENGTH, MAX_LMS_PUBLIC_KEY_LENGTH, MAX_LMS_SIGNATURE_LENGTH,
+        MAX_HSS_SIGNATURE_LENGTH, MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH,
     },
     extract_or_return,
-    Hasher,
     lms::{
         self,
         definitions::{InMemoryLmsPublicKey, LmsPublicKey},
@@ -16,6 +15,7 @@ use crate::{
         helper::read_and_advance,
         ustr::{str32u, u32str},
     },
+    Hasher,
 };
 
 use super::definitions::HssPrivateKey;
@@ -186,9 +186,7 @@ impl<H: Hasher> HssSignedPublicKey<H> {
         }
     }
 
-    pub fn to_binary_representation(
-        &self,
-    ) -> ArrayVec<u8, { MAX_LMS_SIGNATURE_LENGTH + MAX_LMS_PUBLIC_KEY_LENGTH }> {
+    pub fn to_binary_representation(&self) -> ArrayVec<u8, MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH> {
         let mut result = ArrayVec::new();
 
         result
@@ -214,7 +212,6 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
                 .lmots_parameter
                 .get_hash_function_output_size(),
             sig.lmots_signature.lmots_parameter.get_hash_chain_count() as usize,
-            sig.lms_parameter.get_hash_function_output_size(),
             sig.lms_parameter.get_tree_height() as usize,
         );
 
@@ -233,7 +230,6 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
                 .lmots_parameter
                 .get_hash_function_output_size(),
             sig.lmots_signature.lmots_parameter.get_hash_chain_count() as usize,
-            sig.lms_parameter.get_hash_function_output_size(),
             sig.lms_parameter.get_tree_height() as usize,
         );
         let public_key_size =

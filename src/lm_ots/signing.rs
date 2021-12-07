@@ -3,7 +3,7 @@ use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::{
     constants::{
         D_MESG, MAX_HASH_CHAIN_COUNT, MAX_HASH_OPTIMIZATIONS, MAX_HASH_SIZE,
-        MAX_LMS_PUBLIC_KEY_LENGTH, THREADS,
+        MAX_LMOTS_SIGNATURE_LENGTH, MAX_LMS_PUBLIC_KEY_LENGTH, THREADS,
     },
     util::{
         coef::coef,
@@ -219,9 +219,7 @@ impl<H: Hasher> LmotsSignature<H> {
         }
     }
 
-    pub fn to_binary_representation(
-        &self,
-    ) -> ArrayVec<u8, { 4 + MAX_HASH_SIZE + (MAX_HASH_SIZE * MAX_HASH_CHAIN_COUNT) }> {
+    pub fn to_binary_representation(&self) -> ArrayVec<u8, MAX_LMOTS_SIGNATURE_LENGTH> {
         let mut result = ArrayVec::new();
 
         result

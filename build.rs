@@ -41,7 +41,7 @@ fn main() {
 
     let tree_heights = option_env!("HBS_LMS_TREE_HEIGHTS");
     let tree_heights: Vec<_> = tree_heights
-        .unwrap()
+        .unwrap_or("25, 25, 25, 25, 25, 25, 25, 25")
         .split(", ")
         .collect::<Vec<_>>()
         .iter()
@@ -66,7 +66,7 @@ fn main() {
 
     let winternitz_parameters = option_env!("HBS_LMS_WINTERNITZ_PARAMETERS");
     let winternitz_parameters: Vec<_> = winternitz_parameters
-        .unwrap()
+        .unwrap_or("1, 1, 1, 1, 1, 1, 1, 1")
         .split(", ")
         .collect::<Vec<_>>()
         .iter()

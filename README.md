@@ -19,7 +19,8 @@ cargo run --release --example lms-demo -- sign mykey message.txt
 
 # Signing (fast_verification)
 # Generates `message.txt_mut`, `message.txt_mut.sig`
-MAX_HASH_OPTIMIZATIONS=1000 THREADS=2 cargo run --release --example lms-demo --features fast_verify -- sign_mut mykey message.txt
+HBS_LMS_MAX_HASH_OPTIMIZATIONS=1000 HBS_LMS_THREADS=2 cargo run --release --example lms-demo \
+    --features fast_verify -- sign_mut mykey message.txt
 
 # Verification
 # Verifies `message.txt` with `message.txt.sig` against `mykey.pub`

@@ -2,7 +2,7 @@ use arrayvec::ArrayVec;
 use core::convert::TryFrom;
 
 use crate::{
-    constants::{MAX_ALLOWED_HSS_LEVELS, MAX_LMS_PUBLIC_KEY_LENGTH},
+    constants::{MAX_ALLOWED_HSS_LEVELS, MAX_HSS_PUBLIC_KEY_LENGTH},
     hasher::Hasher,
     hss::aux::{
         hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
@@ -204,7 +204,7 @@ impl<'a, H: Hasher> PartialEq<HssPublicKey<H>> for InMemoryHssPublicKey<'a, H> {
 }
 
 impl<H: Hasher> HssPublicKey<H> {
-    pub fn to_binary_representation(&self) -> ArrayVec<u8, { 4 + MAX_LMS_PUBLIC_KEY_LENGTH }> {
+    pub fn to_binary_representation(&self) -> ArrayVec<u8, MAX_HSS_PUBLIC_KEY_LENGTH> {
         let mut result = ArrayVec::new();
 
         result

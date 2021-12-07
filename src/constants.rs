@@ -33,6 +33,11 @@ pub const fn prng_len(seed_len: usize) -> usize {
     23 + seed_len
 }
 
+pub const LMS_LEAF_IDENTIFIERS_SIZE: usize = 8;
+pub const REF_IMPL_MAX_ALLOWED_HSS_LEVELS: usize = 8;
+pub const REFERENCE_IMPL_PRIVATE_KEY_SIZE: usize =
+    LMS_LEAF_IDENTIFIERS_SIZE + REF_IMPL_MAX_ALLOWED_HSS_LEVELS + size_of::<Seed>();
+
 pub const MAX_HASH_SIZE: usize = 32;
 pub const MAX_HASH_BLOCK_SIZE: usize = 64;
 
@@ -42,46 +47,84 @@ pub const HASH_CHAIN_COUNT_W1: u16 = 265;
 pub const HASH_CHAIN_COUNT_W2: u16 = 133;
 pub const HASH_CHAIN_COUNT_W4: u16 = 67;
 pub const HASH_CHAIN_COUNT_W8: u16 = 34;
-pub const MAX_HASH_CHAIN_COUNT: usize = HASH_CHAIN_COUNT_W1 as usize;
+pub const MAX_HASH_CHAIN_COUNT: usize = get_hash_chain_count(MIN_WINTERNITZ_PARAMETER);
 
-pub const MAX_TREE_HEIGHT: usize = 25;
-
-pub const LMS_LEAF_IDENTIFIERS_SIZE: usize = 8;
-pub const REFERENCE_IMPL_PRIVATE_KEY_SIZE: usize =
-    LMS_LEAF_IDENTIFIERS_SIZE + MAX_ALLOWED_HSS_LEVELS + size_of::<Seed>();
+pub const MAX_LMOTS_SIGNATURE_LENGTH: usize =
+    lmots_signature_length(MAX_HASH_SIZE, MAX_HASH_CHAIN_COUNT);
 
 pub const MAX_LMS_PUBLIC_KEY_LENGTH: usize = lms_public_key_length(MAX_HASH_SIZE);
-pub const MAX_LMS_SIGNATURE_LENGTH: usize = lms_signature_length(
-    MAX_HASH_SIZE,
-    MAX_HASH_CHAIN_COUNT,
-    MAX_HASH_SIZE,
-    MAX_TREE_HEIGHT,
-);
+pub const MAX_LMS_SIGNATURE_LENGTH: usize =
+    lms_signature_length(MAX_HASH_SIZE, MAX_HASH_CHAIN_COUNT, MAX_TREE_HEIGHT);
+
+pub const MAX_HSS_PUBLIC_KEY_LENGTH: usize = size_of::<u32>()       // HSS Level
+        + lms_public_key_length(MAX_HASH_SIZE); // Root LMS PublicKey
+pub const MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH: usize =
+    hss_signed_public_key_length(MAX_HASH_SIZE, MAX_HASH_CHAIN_COUNT, MAX_TREE_HEIGHT);
+pub const MAX_HSS_SIGNATURE_LENGTH: usize = get_hss_signature_length();
+
+pub const fn get_hash_chain_count(winternitz_parameter: usize) -> usize {
+    match winternitz_parameter {
+        1 => HASH_CHAIN_COUNT_W1 as usize,
+        2 => HASH_CHAIN_COUNT_W2 as usize,
+        4 => HASH_CHAIN_COUNT_W4 as usize,
+        8 => HASH_CHAIN_COUNT_W8 as usize,
+        _ => panic!("Invalid Winternitz parameter. Allowed is: 1, 2, 4 or 8"),
+    }
+}
+
+pub const fn lmots_signature_length(hash_size: usize, hash_chain_count: usize) -> usize {
+    size_of::<u32>()                                                // LMOTS Parameter TypeId
+        + hash_size                                                 // Signature Randomizer
+        + (hash_size * hash_chain_count) // Signature Data
+}
+
+pub const fn lms_public_key_length(hash_size: usize) -> usize {
+    size_of::<u32>()                                                // LMS Parameter TypeId
+        + size_of::<u32>()                                          // LMOTS Parameter TypeId
+        + size_of::<LmsTreeIdentifier>()                            // LMS TreeIdentifier
+        + hash_size // PublicKey
+}
 
 pub const fn lms_signature_length(
-    lm_ots_hash_function_output_size: usize,
-    max_hash_iterations: usize,
-    lms_hash_function_output_size: usize,
+    hash_size: usize,
+    hash_chain_count: usize,
     tree_height: usize,
 ) -> usize {
-    4 + (4
-        + lm_ots_hash_function_output_size
-        + (lm_ots_hash_function_output_size * max_hash_iterations))
-        + 4
-        + (lms_hash_function_output_size * tree_height)
+    size_of::<u32>()                                                // LMS Leaf Identifier
+        + lmots_signature_length(hash_size, hash_chain_count)       // LMOTS Signature
+        + size_of::<u32>()                                          // LMS Parameter TypeId
+        + (hash_size * tree_height) // Authentication Path
 }
 
-pub const fn lms_public_key_length(lms_hash_output_size: usize) -> usize {
-    4 + 4 + 16 + lms_hash_output_size
+pub const fn hss_signed_public_key_length(
+    hash_size: usize,
+    hash_chain_count: usize,
+    tree_height: usize,
+) -> usize {
+    lms_signature_length(hash_size, hash_chain_count, tree_height)  // LMS Signature
+        + MAX_LMS_PUBLIC_KEY_LENGTH // LMS PublicKey
 }
 
-pub const MAX_ALLOWED_HSS_LEVELS: usize = 8;
+pub const fn get_hss_signature_length() -> usize {
+    let mut length = size_of::<u32>();
 
-pub const MAX_HSS_SIGNATURE_LENGTH: usize = (4
-    + (4 + MAX_HASH_SIZE + (MAX_HASH_SIZE * MAX_HASH_CHAIN_COUNT))
-    + 4
-    + (MAX_HASH_SIZE * MAX_TREE_HEIGHT))
-    * MAX_ALLOWED_HSS_LEVELS;
+    let mut level = MAX_ALLOWED_HSS_LEVELS - 1;
+    while level > 0 {
+        length += hss_signed_public_key_length(
+            MAX_HASH_SIZE,
+            get_hash_chain_count(WINTERNITZ_PARAMETERS[level]),
+            TREE_HEIGHTS[level],
+        );
+        level -= 1;
+    }
+
+    length
+        + lms_signature_length(
+            MAX_HASH_SIZE,
+            get_hash_chain_count(WINTERNITZ_PARAMETERS[0]),
+            TREE_HEIGHTS[0],
+        )
+}
 
 pub const MIN_SUBTREE: usize = 2; /* All subtrees (other than the root subtree) have at least 2 levels */
 

@@ -186,7 +186,7 @@ fn own_signing(
 
     let mut update_private_key = |new_key: &[u8]| {
         private_key.copy_from_slice(new_key);
-        true
+        Ok(())
     };
 
     let result = hbs_lms::sign::<Sha256Hasher>(

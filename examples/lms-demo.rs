@@ -131,8 +131,12 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let aux_data_name = get_aux_name(&keyname);
     let mut aux_data = read(aux_data_name).ok();
 
-    let mut private_key_update_function =
-        |new_key: &[u8]| write(&private_key_name, new_key).is_ok();
+    let mut private_key_update_function = |new_key: &[u8]| {
+        if write(&private_key_name, new_key).is_ok() {
+            return Ok(());
+        }
+        Err(())
+    };
 
     let result = if let Some(aux_data) = aux_data.as_mut() {
         let aux_slice = &mut &mut aux_data[..];
@@ -179,8 +183,12 @@ fn sign_mut(args: &ArgMatches) -> Result<(), std::io::Error> {
     let aux_data_name = get_aux_name(&keyname);
     let mut aux_data = read(aux_data_name).ok();
 
-    let mut private_key_update_function =
-        |new_key: &[u8]| write(&private_key_name, new_key).is_ok();
+    let mut private_key_update_function = |new_key: &[u8]| {
+        if write(&private_key_name, new_key).is_ok() {
+            return Ok(());
+        }
+        Err(())
+    };
 
     let signature_result = if let Some(aux_data) = aux_data.as_mut() {
         let aux_slice = &mut &mut aux_data[..];

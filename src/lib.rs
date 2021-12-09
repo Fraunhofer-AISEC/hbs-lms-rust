@@ -16,7 +16,7 @@
 //!
 //! let mut private_key_update_function = |new_private_key: &[u8]| {
 //!     // Update private key and save it to disk
-//!     true // Report successful result
+//!     Ok(()) // Report successful result
 //! };
 //!
 //! let sig = hbs_lms::sign::<Sha256Hasher>(&message, private_key.as_slice(), &mut private_key_update_function, None).unwrap();

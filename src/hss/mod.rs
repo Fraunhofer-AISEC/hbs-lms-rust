@@ -66,7 +66,7 @@ impl SigningKey {
         let private_key = self.bytes.clone();
         let mut private_key_update_function = |new_key: &[u8]| {
             self.bytes.as_mut_slice().copy_from_slice(new_key);
-            true
+            Ok(())
         };
 
         let signature = hss_sign::<H>(
@@ -146,7 +146,7 @@ pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]
 pub fn hss_sign<H: Hasher>(
     message: &[u8],
     private_key: &[u8],
-    private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
+    private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
 ) -> Result<ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Error> {
     let (signature, _) = hss_sign_core::<H>(
@@ -165,7 +165,7 @@ pub fn hss_sign<H: Hasher>(
 pub fn hss_sign_mut<H: Hasher>(
     message_mut: &mut [u8],
     private_key: &[u8],
-    private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
+    private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
 ) -> Result<(ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Option<u16>), Error> {
     if message_mut.len() <= H::OUTPUT_SIZE.into() {
@@ -190,7 +190,7 @@ fn hss_sign_core<H: Hasher>(
     message: Option<&[u8]>,
     message_mut: Option<&mut [u8]>,
     private_key: &[u8],
-    private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
+    private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
 ) -> Result<(ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Option<u16>), Error> {
     let mut rfc_private_key = ReferenceImplPrivateKey::from_binary_representation(private_key)
@@ -204,12 +204,8 @@ fn hss_sign_core<H: Hasher>(
 
     // Advance private key
     rfc_private_key.increment(&parsed_private_key);
-    let updated_key = rfc_private_key.to_binary_representation();
-    let update_successful = private_key_update_function(updated_key.as_slice());
-
-    if !update_successful {
-        return Err(Error::new());
-    }
+    private_key_update_function(&rfc_private_key.to_binary_representation())
+        .map_err(|_| Error::new())?;
 
     let hash_iterations = if cfg!(feature = "fast_verify") {
         let mut hash_iterations = 0;
@@ -335,7 +331,7 @@ mod tests {
 
         let mut update_private_key = |new_key: &[u8]| {
             keypair.private_key.as_mut_slice().copy_from_slice(new_key);
-            true
+            Ok(())
         };
 
         let signature = hss_sign::<H>(
@@ -393,7 +389,7 @@ mod tests {
 
             let mut update_private_key = |new_key: &[u8]| {
                 keypair.private_key.as_mut_slice().copy_from_slice(new_key);
-                true
+                Ok(())
             };
 
             let signature = hss_sign::<H>(
@@ -437,7 +433,7 @@ mod tests {
 
             let mut update_private_key = |new_key: &[u8]| {
                 keypair.private_key.as_mut_slice().copy_from_slice(new_key);
-                true
+                Ok(())
             };
 
             let signature = hss_sign::<H>(
@@ -494,7 +490,7 @@ mod tests {
 
         let mut update_private_key = |new_key: &[u8]| {
             keypair.private_key.as_mut_slice().copy_from_slice(new_key);
-            true
+            Ok(())
         };
 
         let signature = hss_sign::<H>(
@@ -546,7 +542,7 @@ mod tests {
 
         let mut update_private_key = |new_key: &[u8]| {
             keypair.private_key.as_mut_slice().copy_from_slice(new_key);
-            true
+            Ok(())
         };
 
         let (signature, _) = hss_sign_mut::<H>(

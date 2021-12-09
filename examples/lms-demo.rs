@@ -151,15 +151,12 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
         )
     };
 
-    let result = match result {
-        None => {
-            println!("Could not sign message.");
-            exit(-1)
-        }
-        Some(x) => x,
-    };
+    if result.is_err() {
+        println!("Could not sign message.");
+        exit(-1)
+    }
 
-    write(&signature_name, result.as_slice())?;
+    write(&signature_name, result.unwrap().as_slice())?;
 
     Ok(())
 }
@@ -202,13 +199,11 @@ fn sign_mut(args: &ArgMatches) -> Result<(), std::io::Error> {
         )
     };
 
-    let signature = match signature_result {
-        None => {
-            println!("Could not sign message.");
-            exit(-1)
-        }
-        Some(x) => x,
-    };
+    if signature_result.is_err() {
+        println!("Could not sign message.");
+        exit(-1)
+    }
+    let signature = signature_result.unwrap();
 
     write(&signature_name_mut, signature.0.as_slice())?;
     write(&message_name_mut, &message_data)?;

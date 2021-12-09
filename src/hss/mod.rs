@@ -74,13 +74,10 @@ impl SigningKey {
             private_key.as_slice(),
             &mut private_key_update_function,
             aux_data,
-        );
+        )
+        .map_err(|_| Error::new())?;
 
-        if let Some(signature) = signature {
-            signature::Signature::from_bytes(&signature)
-        } else {
-            Err(Error::new())
-        }
+        signature::Signature::from_bytes(&signature)
     }
 }
 
@@ -151,16 +148,17 @@ pub fn hss_sign<H: Hasher>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
     aux_data: Option<&mut &mut [u8]>,
-) -> Option<ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>> {
+) -> Result<ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Error> {
     let (signature, _) = hss_sign_core::<H>(
         Some(message),
         None,
         private_key,
         private_key_update_function,
         aux_data,
-    )?;
+    )
+    .map_err(|_| Error::new())?;
 
-    Some(signature)
+    Ok(signature)
 }
 
 #[cfg(feature = "fast_verify")]
@@ -169,14 +167,14 @@ pub fn hss_sign_mut<H: Hasher>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
     aux_data: Option<&mut &mut [u8]>,
-) -> Option<(ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Option<u16>)> {
+) -> Result<(ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Option<u16>), Error> {
     if message_mut.len() <= H::OUTPUT_SIZE.into() {
-        return None;
+        return Err(Error::new());
     }
 
     let (_, message_randomizer) = message_mut.split_at(message_mut.len() - H::OUTPUT_SIZE as usize);
     if !message_randomizer.iter().all(|&byte| byte == 0u8) {
-        return None;
+        return Err(Error::new());
     }
 
     hss_sign_core::<H>(
@@ -194,21 +192,15 @@ fn hss_sign_core<H: Hasher>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> bool,
     aux_data: Option<&mut &mut [u8]>,
-) -> Option<(ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Option<u16>)> {
-    let mut rfc_private_key = extract_or_return!(
-        ReferenceImplPrivateKey::from_binary_representation(private_key)
-    );
+) -> Result<(ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Option<u16>), Error> {
+    let mut rfc_private_key = ReferenceImplPrivateKey::from_binary_representation(private_key)
+        .map_err(|_| Error::new())?;
 
-    let mut parsed_private_key: HssPrivateKey<H> =
-        match HssPrivateKey::from(&rfc_private_key, aux_data) {
-            Ok(x) => x,
-            Err(_) => return None,
-        };
+    let mut parsed_private_key =
+        HssPrivateKey::<H>::from(&rfc_private_key, aux_data).map_err(|_| Error::new())?;
 
-    let signature = match HssSignature::sign(&mut parsed_private_key, message, message_mut) {
-        Err(_) => return None,
-        Ok(x) => x,
-    };
+    let signature = HssSignature::sign(&mut parsed_private_key, message, message_mut)
+        .map_err(|_| Error::new())?;
 
     // Advance private key
     rfc_private_key.increment(&parsed_private_key);
@@ -216,7 +208,7 @@ fn hss_sign_core<H: Hasher>(
     let update_successful = private_key_update_function(updated_key.as_slice());
 
     if !update_successful {
-        return None;
+        return Err(Error::new());
     }
 
     let hash_iterations = if cfg!(feature = "fast_verify") {
@@ -229,7 +221,7 @@ fn hss_sign_core<H: Hasher>(
         None
     };
 
-    Some((signature.to_binary_representation(), hash_iterations))
+    Ok((signature.to_binary_representation(), hash_iterations))
 }
 
 /**
@@ -256,29 +248,24 @@ pub fn hss_keygen<H: Hasher>(
     parameters: &[HssParameter<H>],
     seed: Option<&[u8]>,
     aux_data: Option<&mut &mut [u8]>,
-) -> Option<HssKeyPair> {
+) -> Result<HssKeyPair, Error> {
     let private_key = if let Some(seed) = seed {
         ReferenceImplPrivateKey::generate_with_seed(parameters, seed)
     } else {
         ReferenceImplPrivateKey::generate(parameters)
-    };
-
-    if let Some(private_key) = private_key {
-        let hss_key: HssPrivateKey<H> = match HssPrivateKey::from(&private_key, aux_data) {
-            Err(_) => return None,
-            Ok(x) => x,
-        };
-        Some(HssKeyPair::new(
-            VerifyingKey {
-                bytes: hss_key.get_public_key().to_binary_representation(),
-            },
-            SigningKey {
-                bytes: private_key.to_binary_representation(),
-            },
-        ))
-    } else {
-        None
     }
+    .map_err(|_| Error::new())?;
+
+    let hss_key = HssPrivateKey::from(&private_key, aux_data).map_err(|_| Error::new())?;
+
+    Ok(HssKeyPair::new(
+        VerifyingKey {
+            bytes: hss_key.get_public_key().to_binary_representation(),
+        },
+        SigningKey {
+            bytes: private_key.to_binary_representation(),
+        },
+    ))
 }
 
 /**
@@ -304,18 +291,14 @@ pub fn hss_keygen<H: Hasher>(
 pub fn hss_lifetime<H: Hasher>(
     private_key: &[u8],
     aux_data: Option<&mut &mut [u8]>,
-) -> Option<u64> {
-    let rfc_private_key = extract_or_return!(ReferenceImplPrivateKey::from_binary_representation(
-        private_key
-    ));
+) -> Result<u64, Error> {
+    let rfc_private_key = ReferenceImplPrivateKey::from_binary_representation(private_key)
+        .map_err(|_| Error::new())?;
 
-    let parsed_private_key: HssPrivateKey<H> = match HssPrivateKey::from(&rfc_private_key, aux_data)
-    {
-        Ok(x) => x,
-        Err(_) => return None,
-    };
+    let parsed_private_key =
+        HssPrivateKey::<H>::from(&rfc_private_key, aux_data).map_err(|_| Error::new())?;
 
-    Some(parsed_private_key.get_lifetime())
+    Ok(parsed_private_key.get_lifetime())
 }
 
 #[cfg(test)]
@@ -463,14 +446,11 @@ mod tests {
                 &mut update_private_key,
                 None,
             )
-            .unwrap_or_else(|| {
+            .unwrap_or_else(|_| {
                 if index < keypair_lifetime {
                     panic!("Signing should complete without error.");
                 } else {
-                    assert_eq!(
-                        hss_lifetime::<H>(keypair.private_key.as_slice(), None),
-                        None
-                    );
+                    assert!(hss_lifetime::<H>(keypair.private_key.as_slice(), None).is_err());
                     panic!("Signing should panic!");
                 }
             });

@@ -45,7 +45,7 @@ The following table shows the mapping between the RFC and the library naming inc
 | m          | hash_function_output_size | Number of bytes that the lms hash functions generates         |
 
 ## Minimum Supported Rust Version
-The crate in this repository supports Rust **1.53** or higher.
+The crate in this repository supports Rust **1.57** or higher.
 
 Minimum supported Rust version can be changed in the future, but it will be done with a minor version bump.
 

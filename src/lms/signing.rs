@@ -1,6 +1,6 @@
-use crate::constants::LmsLeafIdentifier;
-use crate::constants::MAX_HASH_SIZE;
-use crate::constants::MAX_LMS_SIGNATURE_LENGTH;
+use crate::constants::{
+    LmsLeafIdentifier, MAX_HASH_SIZE, MAX_LMS_SIGNATURE_LENGTH, MAX_TREE_HEIGHT,
+};
 use crate::hasher::Hasher;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
@@ -22,7 +22,7 @@ use super::parameters::LmsParameter;
 pub struct LmsSignature<H: Hasher> {
     pub lms_leaf_identifier: LmsLeafIdentifier,
     pub lmots_signature: LmotsSignature<H>,
-    pub authentication_path: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_SIZE>,
+    pub authentication_path: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_TREE_HEIGHT>,
     pub lms_parameter: LmsParameter<H>,
 }
 
@@ -63,7 +63,7 @@ impl<H: Hasher> LmsSignature<H> {
     fn build_authentication_path(
         lms_private_key: &mut LmsPrivateKey<H>,
         lm_ots_private_key: &LmotsPrivateKey<H>,
-    ) -> Result<ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_SIZE>, ()> {
+    ) -> Result<ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_TREE_HEIGHT>, ()> {
         let tree_height = lms_private_key.lms_parameter.get_tree_height();
         let signature_leaf_index = 2usize.pow(tree_height as u32)
             + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;

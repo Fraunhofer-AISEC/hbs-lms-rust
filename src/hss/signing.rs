@@ -23,7 +23,7 @@ use super::definitions::HssPrivateKey;
 #[derive(PartialEq)]
 pub struct HssSignature<H: Hasher> {
     pub level: usize,
-    pub signed_public_keys: ArrayVec<HssSignedPublicKey<H>, MAX_ALLOWED_HSS_LEVELS>,
+    pub signed_public_keys: ArrayVec<HssSignedPublicKey<H>, { MAX_ALLOWED_HSS_LEVELS - 1 }>,
     pub signature: LmsSignature<H>,
 }
 
@@ -102,7 +102,7 @@ impl<H: Hasher> HssSignature<H> {
 pub struct InMemoryHssSignature<'a, H: Hasher> {
     pub level: usize,
     pub signed_public_keys:
-        ArrayVec<Option<InMemoryHssSignedPublicKey<'a, H>>, MAX_ALLOWED_HSS_LEVELS>,
+        ArrayVec<Option<InMemoryHssSignedPublicKey<'a, H>>, { MAX_ALLOWED_HSS_LEVELS - 1 }>,
     pub signature: InMemoryLmsSignature<'a, H>,
 }
 

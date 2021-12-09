@@ -39,6 +39,11 @@ impl<H: Hasher> HssSignature<H> {
         let public = &mut private_key.public_key;
         let sig = &mut private_key.signatures;
 
+        // Raise error, if array already contains a signature at index max_level - 1.
+        if sig.get_mut(max_level - 1).is_some() {
+            return Err(());
+        }
+
         // Sign the message
         let new_signature = if cfg!(feature = "fast_verify") && message_mut.is_some() {
             lms::signing::LmsSignature::sign_fast_verify(
@@ -50,11 +55,6 @@ impl<H: Hasher> HssSignature<H> {
         } else {
             lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message.unwrap(), None)
         }?;
-
-        // Raise error, if array already contains a signature at index max_level - 1.
-        if sig.get_mut(max_level - 1).is_some() {
-            return Err(());
-        }
         sig.push(new_signature);
 
         // Create list of signed keys
@@ -66,13 +66,11 @@ impl<H: Hasher> HssSignature<H> {
             ));
         }
 
-        let signature = HssSignature {
+        Ok(HssSignature {
             level: max_level - 1,
             signed_public_keys,
             signature: sig[max_level - 1].clone(),
-        };
-
-        Ok(signature)
+        })
     }
 
     pub fn to_binary_representation(&self) -> ArrayVec<u8, { MAX_HSS_SIGNATURE_LENGTH }> {

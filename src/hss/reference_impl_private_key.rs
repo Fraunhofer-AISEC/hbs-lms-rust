@@ -8,7 +8,6 @@ use crate::{
         MAX_HASH_SIZE, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_CHILD_SEED, SEED_LEN,
         SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
     },
-    extract_or_return,
     hasher::Hasher,
     hss::{definitions::HssPrivateKey, seed_derive::SeedDerive},
     util::{
@@ -61,23 +60,23 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         self.compressed_used_leafs_indexes = CompressedUsedLeafsIndexes::new(0);
     }
 
-    pub fn generate_with_seed(parameters: &[HssParameter<H>], seed: &[u8]) -> Option<Self> {
+    pub fn generate_with_seed(parameters: &[HssParameter<H>], seed: &[u8]) -> Result<Self, ()> {
         let mut private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
             compressed_used_leafs_indexes: CompressedUsedLeafsIndexes { count: 0 },
-            compressed_parameter: extract_or_return!(CompressedParameterSet::from(parameters)),
+            compressed_parameter: CompressedParameterSet::from(parameters)?,
             ..Default::default()
         };
 
         if seed.len() < 32 {
-            return None;
+            return Err(());
         }
 
         private_key.seed.copy_from_slice(&seed[..32]);
 
-        Some(private_key)
+        Ok(private_key)
     }
 
-    pub fn generate(parameters: &[HssParameter<H>]) -> Option<Self> {
+    pub fn generate(parameters: &[HssParameter<H>]) -> Result<Self, ()> {
         let mut seed: Seed = Default::default();
         get_random(&mut seed);
 
@@ -98,9 +97,9 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         result
     }
 
-    pub fn from_binary_representation(data: &[u8]) -> Option<Self> {
+    pub fn from_binary_representation(data: &[u8]) -> Result<Self, ()> {
         if data.len() != REFERENCE_IMPL_PRIVATE_KEY_SIZE {
-            return None;
+            return Err(());
         }
 
         let mut result = Self::default();
@@ -112,14 +111,13 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
             CompressedUsedLeafsIndexes::from_slice(compressed_used_leafs_indexes);
 
         let compressed_parameter = read_and_advance(data, MAX_ALLOWED_HSS_LEVELS, &mut index);
-        result.compressed_parameter =
-            extract_or_return!(CompressedParameterSet::from_slice(compressed_parameter));
+        result.compressed_parameter = CompressedParameterSet::from_slice(compressed_parameter)?;
 
         result
             .seed
             .copy_from_slice(read_and_advance(data, size_of::<Seed>(), &mut index));
 
-        Some(result)
+        Ok(result)
     }
 
     pub fn generate_root_seed_and_lms_tree_identifier(&self) -> SeedAndLmsTreeIdentifier {
@@ -196,18 +194,18 @@ pub fn generate_child_signature_randomizer(
 pub struct CompressedParameterSet([u8; MAX_ALLOWED_HSS_LEVELS]);
 
 impl CompressedParameterSet {
-    pub fn from_slice(data: &[u8]) -> Option<Self> {
+    pub fn from_slice(data: &[u8]) -> Result<Self, ()> {
         if data.len() != MAX_ALLOWED_HSS_LEVELS {
-            return None;
+            return Err(());
         }
 
         let mut result = CompressedParameterSet::default();
         result.0.copy_from_slice(data);
 
-        Some(result)
+        Ok(result)
     }
 
-    pub fn from<H: Hasher>(parameters: &[HssParameter<H>]) -> Option<Self> {
+    pub fn from<H: Hasher>(parameters: &[HssParameter<H>]) -> Result<Self, ()> {
         let mut result = [PARAM_SET_END; MAX_ALLOWED_HSS_LEVELS];
 
         for (i, parameter) in parameters.iter().enumerate() {
@@ -220,7 +218,7 @@ impl CompressedParameterSet {
             result[i] = (lms_type << 4) + lmots_type;
         }
 
-        Some(Self(result))
+        Ok(Self(result))
     }
 
     pub fn to<H: Hasher>(&self) -> Result<ArrayVec<HssParameter<H>, MAX_ALLOWED_HSS_LEVELS>, ()> {

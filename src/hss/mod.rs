@@ -93,6 +93,12 @@ pub struct VerifyingKey {
 }
 
 impl VerifyingKey {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+        let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
+
+        Ok(Self { bytes })
+    }
+
     pub fn as_slice(&self) -> &[u8] {
         self.bytes.as_slice()
     }
@@ -255,9 +261,7 @@ pub fn hss_keygen<H: Hasher>(
     let hss_key = HssPrivateKey::from(&private_key, aux_data).map_err(|_| Error::new())?;
 
     Ok(HssKeyPair::new(
-        VerifyingKey {
-            bytes: hss_key.get_public_key().to_binary_representation(),
-        },
+        VerifyingKey::from_bytes(&hss_key.get_public_key().to_binary_representation())?,
         SigningKey {
             bytes: private_key.to_binary_representation(),
         },

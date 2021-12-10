@@ -18,8 +18,6 @@ use crate::{
     HssParameter, LmotsAlgorithm, LmsAlgorithm,
 };
 
-const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set
-
 /**
 To be compatible with the reference implementation
  */
@@ -55,8 +53,7 @@ impl SeedAndLmsTreeIdentifier {
 impl<H: Hasher> ReferenceImplPrivateKey<H> {
     fn wipe(&mut self) {
         self.seed = [0u8; SEED_LEN] as Seed;
-        self.compressed_parameter =
-            CompressedParameterSet::from_slice(&[PARAM_SET_END; MAX_ALLOWED_HSS_LEVELS]).unwrap();
+        self.compressed_parameter = CompressedParameterSet::default();
         self.compressed_used_leafs_indexes = CompressedUsedLeafsIndexes::new(0);
     }
 
@@ -190,8 +187,18 @@ pub fn generate_child_signature_randomizer(
     derive.seed_derive(false)
 }
 
-#[derive(Default, PartialEq)]
+const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set
+
+#[derive(PartialEq)]
 pub struct CompressedParameterSet([u8; MAX_ALLOWED_HSS_LEVELS]);
+
+impl Default for CompressedParameterSet {
+    fn default() -> Self {
+        Self {
+            0: [PARAM_SET_END; MAX_ALLOWED_HSS_LEVELS],
+        }
+    }
+}
 
 impl CompressedParameterSet {
     pub fn from_slice(data: &[u8]) -> Result<Self, ()> {
@@ -206,7 +213,7 @@ impl CompressedParameterSet {
     }
 
     pub fn from<H: Hasher>(parameters: &[HssParameter<H>]) -> Result<Self, ()> {
-        let mut result = [PARAM_SET_END; MAX_ALLOWED_HSS_LEVELS];
+        let mut result = CompressedParameterSet::default();
 
         for (i, parameter) in parameters.iter().enumerate() {
             let lmots = parameter.get_lmots_parameter();
@@ -215,10 +222,10 @@ impl CompressedParameterSet {
             let lmots_type = lmots.get_type_id() as u8;
             let lms_type = lms.get_type_id() as u8;
 
-            result[i] = (lms_type << 4) + lmots_type;
+            result.0[i] = (lms_type << 4) + lmots_type;
         }
 
-        Ok(Self(result))
+        Ok(result)
     }
 
     pub fn to<H: Hasher>(&self) -> Result<ArrayVec<HssParameter<H>, MAX_ALLOWED_HSS_LEVELS>, ()> {

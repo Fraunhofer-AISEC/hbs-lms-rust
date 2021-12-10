@@ -269,25 +269,14 @@ pub fn hss_keygen<H: Hasher>(
 }
 
 /**
- * This function is used to generate a public and private key.
+ * This function is used to get the lifetime of a private key.
  * # Arguments
  *
  * * `Hasher` - The hasher implementation that should be used. ```Sha256Hasher``` is a standard software implementation.
  * * `private_key` - The private key that should be used.
  * * `aux_data` - The reference to a slice to auxiliary data. This can be used to speedup signature generation.
  *
- * # Example
- * ```
- * use hbs_lms::*;
- *
- * let parameters = [HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5), HssParameter::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5)];
- * let mut aux_data = vec![0u8; 10_000];
- * let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
- *
- * let key_pair = keygen::<Sha256Hasher>(&parameters, None, Some(aux_slice));
- * ```
  */
-
 pub fn hss_lifetime<H: Hasher>(
     private_key: &[u8],
     aux_data: Option<&mut &mut [u8]>,

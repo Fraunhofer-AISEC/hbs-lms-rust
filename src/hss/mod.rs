@@ -67,15 +67,12 @@ impl SigningKey {
             Ok(())
         };
 
-        let signature = hss_sign::<H>(
+        hss_sign::<H>(
             msg,
             private_key.as_slice(),
             &mut private_key_update_function,
             aux_data,
         )
-        .map_err(|_| Error::new())?;
-
-        signature::Signature::from_bytes(&signature)
     }
 }
 
@@ -330,7 +327,7 @@ mod tests {
 
         assert!(hss_verify::<H>(
             &message,
-            signature.as_slice(),
+            signature.as_ref(),
             keypair.public_key.as_slice()
         ));
 
@@ -388,7 +385,7 @@ mod tests {
 
             assert!(hss_verify::<H>(
                 &message,
-                signature.as_slice(),
+                signature.as_ref(),
                 keypair.public_key.as_slice()
             ));
         }
@@ -439,7 +436,7 @@ mod tests {
 
             assert!(hss_verify::<H>(
                 &message,
-                signature.as_slice(),
+                signature.as_ref(),
                 keypair.public_key.as_slice()
             ));
         }
@@ -489,7 +486,7 @@ mod tests {
 
         assert!(hss_verify::<H>(
             &message,
-            signature.as_slice(),
+            signature.as_ref(),
             keypair.public_key.as_slice(),
         ));
 
@@ -497,7 +494,7 @@ mod tests {
 
         assert!(!hss_verify::<H>(
             &message,
-            signature.as_slice(),
+            signature.as_ref(),
             keypair.public_key.as_slice(),
         ));
     }
@@ -531,7 +528,7 @@ mod tests {
             Ok(())
         };
 
-        let (signature, _) = hss_sign_mut::<H>(
+        let signature = hss_sign_mut::<H>(
             &mut message,
             private_key.as_slice(),
             &mut update_private_key,
@@ -547,7 +544,7 @@ mod tests {
 
         assert!(hss_verify::<H>(
             &message,
-            signature.as_slice(),
+            signature.as_ref(),
             keypair.public_key.as_slice()
         ));
     }

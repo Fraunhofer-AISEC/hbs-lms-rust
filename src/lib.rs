@@ -20,9 +20,9 @@
 //! };
 //!
 //! let sig = hbs_lms::sign::<Sha256Hasher>(&message, private_key.as_slice(), &mut private_key_update_function, None).unwrap();
-//! let sig_slice = sig.as_slice();
+//! let sig_ref = sig.as_ref();
 //!
-//! let verify_result = hbs_lms::verify::<Sha256Hasher>(&message, sig_slice, public_key.as_slice());
+//! let verify_result = hbs_lms::verify::<Sha256Hasher>(&message, sig_ref, public_key.as_slice());
 //!
 //! assert!(verify_result == true);
 //! ```

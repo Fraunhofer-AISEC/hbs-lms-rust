@@ -160,7 +160,7 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
         exit(-1)
     }
 
-    write(&signature_name, result.unwrap().as_slice())?;
+    write(&signature_name, result.unwrap().as_ref())?;
 
     Ok(())
 }
@@ -213,12 +213,14 @@ fn sign_mut(args: &ArgMatches) -> Result<(), std::io::Error> {
     }
     let signature = signature_result.unwrap();
 
-    write(&signature_name_mut, signature.0.as_slice())?;
+    write(&signature_name_mut, signature.as_ref())?;
     write(&message_name_mut, &message_data)?;
 
-    if let Some(iterations) = signature.1 {
-        println!("fast_verify needed {} iterations.", iterations);
-    }
+    #[cfg(feature = "verbose")]
+    println!(
+        "fast_verify needed {} iterations.",
+        signature.hash_iterations
+    );
 
     Ok(())
 }

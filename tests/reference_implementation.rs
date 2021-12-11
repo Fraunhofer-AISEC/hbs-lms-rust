@@ -198,7 +198,7 @@ fn own_signing(
     .expect("Signing should succed.");
     save_file(
         temp_path.path().join(SIGNATURE_FILE_NAME).to_str().unwrap(),
-        result.as_slice(),
+        result.as_ref(),
     );
 }
 

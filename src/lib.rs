@@ -63,6 +63,21 @@ use constants::MAX_HSS_SIGNATURE_LENGTH;
 pub struct Signature<H: Hasher> {
     bytes: ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>,
     phantom_data: PhantomData<H>,
+    #[cfg(feature = "verbose")]
+    pub hash_iterations: u32,
+}
+
+impl<H: Hasher> Signature<H> {
+    pub(crate) fn from_bytes_verbose(bytes: &[u8], _hash_iterations: u32) -> Result<Self, Error> {
+        let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
+
+        Ok(Self {
+            bytes,
+            phantom_data: PhantomData,
+            #[cfg(feature = "verbose")]
+            hash_iterations: _hash_iterations,
+        })
+    }
 }
 
 impl<H: Hasher> AsRef<[u8]> for Signature<H> {
@@ -73,12 +88,7 @@ impl<H: Hasher> AsRef<[u8]> for Signature<H> {
 
 impl<H: Hasher> signature::Signature for Signature<H> {
     fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
-
-        Ok(Self {
-            bytes,
-            phantom_data: PhantomData,
-        })
+        Signature::from_bytes_verbose(bytes, 0)
     }
 }
 

@@ -10,9 +10,7 @@ use arrayvec::ArrayVec;
 use core::convert::TryFrom;
 
 use crate::{
-    constants::{
-        MAX_HSS_PUBLIC_KEY_LENGTH, MAX_HSS_SIGNATURE_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE,
-    },
+    constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE},
     extract_or,
     signature::{Error, SignerMut, Verifier},
     Hasher, Signature, VerifierSignature,
@@ -154,17 +152,14 @@ pub fn hss_sign<H: Hasher>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
-) -> Result<ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Error> {
-    let (signature, _) = hss_sign_core::<H>(
+) -> Result<Signature<H>, Error> {
+    hss_sign_core::<H>(
         Some(message),
         None,
         private_key,
         private_key_update_function,
         aux_data,
     )
-    .map_err(|_| Error::new())?;
-
-    Ok(signature)
 }
 
 #[cfg(feature = "fast_verify")]
@@ -173,7 +168,7 @@ pub fn hss_sign_mut<H: Hasher>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
-) -> Result<(ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Option<u16>), Error> {
+) -> Result<Signature<H>, Error> {
     if message_mut.len() <= H::OUTPUT_SIZE.into() {
         return Err(Error::new());
     }
@@ -198,14 +193,14 @@ fn hss_sign_core<H: Hasher>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
-) -> Result<(ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>, Option<u16>), Error> {
+) -> Result<Signature<H>, Error> {
     let mut rfc_private_key = ReferenceImplPrivateKey::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
 
     let mut parsed_private_key =
         HssPrivateKey::<H>::from(&rfc_private_key, aux_data).map_err(|_| Error::new())?;
 
-    let signature = HssSignature::sign(&mut parsed_private_key, message, message_mut)
+    let hss_signature = HssSignature::sign(&mut parsed_private_key, message, message_mut)
         .map_err(|_| Error::new())?;
 
     // Advance private key
@@ -213,17 +208,15 @@ fn hss_sign_core<H: Hasher>(
     private_key_update_function(&rfc_private_key.to_binary_representation())
         .map_err(|_| Error::new())?;
 
-    let hash_iterations = if cfg!(feature = "fast_verify") {
-        let mut hash_iterations = 0;
-        for signed_public_key in signature.signed_public_keys.iter() {
-            hash_iterations += signed_public_key.sig.lmots_signature.hash_iterations;
+    let hash_iterations = {
+        let mut hash_iterations: u32 = 0;
+        for signed_public_key in hss_signature.signed_public_keys.iter() {
+            hash_iterations += signed_public_key.sig.lmots_signature.hash_iterations as u32;
         }
-        Some(hash_iterations + signature.signature.lmots_signature.hash_iterations)
-    } else {
-        None
+        hash_iterations + hss_signature.signature.lmots_signature.hash_iterations as u32
     };
 
-    Ok((signature.to_binary_representation(), hash_iterations))
+    Signature::from_bytes_verbose(&hss_signature.to_binary_representation(), hash_iterations)
 }
 
 /**

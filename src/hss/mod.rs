@@ -23,23 +23,6 @@ use self::{
     signing::{HssSignature, InMemoryHssSignature},
 };
 
-/**
- * Describes a public and private key.
- * */
-pub struct HssKeyPair {
-    pub public_key: VerifyingKey,
-    pub private_key: SigningKey,
-}
-
-impl HssKeyPair {
-    fn new(public_key: VerifyingKey, private_key: SigningKey) -> Self {
-        Self {
-            public_key,
-            private_key,
-        }
-    }
-}
-
 #[derive(Clone)]
 pub struct SigningKey {
     pub bytes: ArrayVec<u8, REFERENCE_IMPL_PRIVATE_KEY_SIZE>,
@@ -240,7 +223,7 @@ pub fn hss_keygen<H: Hasher>(
     parameters: &[HssParameter<H>],
     seed: Option<&[u8]>,
     aux_data: Option<&mut &mut [u8]>,
-) -> Result<HssKeyPair, Error> {
+) -> Result<(SigningKey, VerifyingKey), Error> {
     let private_key = if let Some(seed) = seed {
         ReferenceImplPrivateKey::generate_with_seed(parameters, seed)
     } else {
@@ -250,12 +233,12 @@ pub fn hss_keygen<H: Hasher>(
 
     let hss_key = HssPrivateKey::from(&private_key, aux_data).map_err(|_| Error::new())?;
 
-    Ok(HssKeyPair::new(
-        VerifyingKey::from_bytes(&hss_key.get_public_key().to_binary_representation())?,
-        SigningKey {
-            bytes: private_key.to_binary_representation(),
-        },
-    ))
+    let signing_key = SigningKey {
+        bytes: private_key.to_binary_representation(),
+    };
+    let verifying_key =
+        VerifyingKey::from_bytes(&hss_key.get_public_key().to_binary_representation())?;
+    Ok((signing_key, verifying_key))
 }
 
 /**

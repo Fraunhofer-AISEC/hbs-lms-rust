@@ -1,6 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-//! This library implements the Leighton-Micali-Signature scheme <https://datatracker.ietf.org/doc/html/rfc8554>
+//! This library implements the Leighton-Micali-Signature scheme, as defined in the
+//! [RFC 8554](<https://datatracker.ietf.org/doc/html/rfc8554>).
+//!
+//! It is a post-quantum secure algorithm that can be used to
+//! generate digital signatures. NIST has published recommendations for this algorithm in:
+//! [NIST Recommendations for Stateful Hash-Based Signatures](https://doi.org/10.6028/NIST.SP.800-208)
 //!
 //! # Example
 //! ```
@@ -28,6 +33,49 @@
 //!
 //! assert_eq!(valid_signature.is_ok(), true);
 //! ```
+//!
+//! # Environment Variables
+//!
+//! To adapt the internals of the crate, the user can set the following environment variables:
+//!
+//! ## Adapting the crate in general
+//!
+//! These three environment variables listed below, adapt the internals of the crate and can be used
+//! to reduce the required stack size. The values are used to set the maximum size of the arrays
+//! used for computation and storing intermediate values.
+//!
+//! Any change limits the functionality of this crate, as no longer all possible parameters are
+//! supported! (For example setting `HBS_LMS_MAX_ALLOWED_HSS_LEVELS` to 1 allows only for a single
+//! tree.)
+//!
+//! The length of the tree height and the winternitz parameter arrays must match the value of the
+//! HSS levels.
+//!
+//! | Name                           | Default | Description                             |
+//! |--------------------------------|---------|-----------------------------------------|
+//! | HBS_LMS_MAX_ALLOWED_HSS_LEVELS | 8       | Max. tree count for HSS                 |
+//! | HBS_LMS_TREE_HEIGHTS           | [25; 8] | Max. tree height for each tree          |
+//! | HBS_LMS_WINTERNITZ_PARAMETERS  | [1; 8]  | Min. Winternitz parameter for each tree |
+//!
+//! Reducing the HSS levels or the values of the tree heights lead to a reduced stack usage. For the
+//! values of the Winternitz parameter the inverse must be applied, as higher Winternitz parameters
+//! reduce the stack usage.
+//!
+//! Possible values for the Winternitz parameter are: 1, 2, 4 or 8.
+//!
+//! ## Adapting wrt the 'fast_verify' feature
+//!
+//! The 'fast_verify' features enables this crate to sign fast verifiable signatures. The drawback
+//! is more computative effort on the side of the signer. With the these two environment variables
+//! listed below, the user can adapt effect.
+//!
+//! | Name                           | Default | Description                      |
+//! |--------------------------------|---------|----------------------------------|
+//! | HBS_LMS_MAX_HASH_OPTIMIZATIONS | 10_000  | Try count to optimize the hash   |
+//! | HBS_LMS_THREADS                | 1       | Thread count to split the effort |
+//!
+//! If the crate is compiled with the std library, the effort of the generation of fast verifiable
+//! signatures can be split to multiple threads using the `HBS_LMS_THREADS`.
 
 mod constants;
 mod hasher;

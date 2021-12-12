@@ -7,7 +7,7 @@ pub mod signing;
 pub mod verify;
 
 use arrayvec::ArrayVec;
-use core::convert::TryFrom;
+use core::{convert::TryFrom, marker::PhantomData};
 
 use crate::{
     constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE},
@@ -24,11 +24,12 @@ use self::{
 };
 
 #[derive(Clone)]
-pub struct SigningKey {
+pub struct SigningKey<H: Hasher> {
     pub bytes: ArrayVec<u8, REFERENCE_IMPL_PRIVATE_KEY_SIZE>,
+    phantom_data: PhantomData<H>,
 }
 
-impl SigningKey {
+impl<H: Hasher> SigningKey<H> {
     pub fn as_slice(&self) -> &[u8] {
         self.bytes.as_slice()
     }
@@ -37,7 +38,7 @@ impl SigningKey {
         self.bytes.as_mut_slice()
     }
 
-    pub fn get_lifetime<H: Hasher>(&self, aux_data: Option<&mut &mut [u8]>) -> Result<u64, Error> {
+    pub fn get_lifetime(&self, aux_data: Option<&mut &mut [u8]>) -> Result<u64, Error> {
         let rfc_sk = ReferenceImplPrivateKey::from_binary_representation(&self.bytes)
             .map_err(|_| Error::new())?;
 
@@ -46,11 +47,11 @@ impl SigningKey {
         Ok(parsed_sk.get_lifetime())
     }
 
-    pub fn try_sign_with_aux<H: Hasher>(
+    pub fn try_sign_with_aux(
         &mut self,
         msg: &[u8],
         aux_data: Option<&mut &mut [u8]>,
-    ) -> Result<Signature<H>, Error> {
+    ) -> Result<Signature, Error> {
         let private_key = self.bytes.clone();
         let mut private_key_update_function = |new_key: &[u8]| {
             self.bytes.as_mut_slice().copy_from_slice(new_key);
@@ -66,22 +67,26 @@ impl SigningKey {
     }
 }
 
-impl<H: Hasher> SignerMut<Signature<H>> for SigningKey {
-    fn try_sign(&mut self, msg: &[u8]) -> Result<Signature<H>, Error> {
+impl<H: Hasher> SignerMut<Signature> for SigningKey<H> {
+    fn try_sign(&mut self, msg: &[u8]) -> Result<Signature, Error> {
         self.try_sign_with_aux(msg, None)
     }
 }
 
 #[derive(Clone)]
-pub struct VerifyingKey {
+pub struct VerifyingKey<H: Hasher> {
     pub bytes: ArrayVec<u8, MAX_HSS_PUBLIC_KEY_LENGTH>,
+    phantom_data: PhantomData<H>,
 }
 
-impl VerifyingKey {
+impl<H: Hasher> VerifyingKey<H> {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
 
-        Ok(Self { bytes })
+        Ok(Self {
+            bytes,
+            phantom_data: PhantomData,
+        })
     }
 
     pub fn as_slice(&self) -> &[u8] {
@@ -89,8 +94,8 @@ impl VerifyingKey {
     }
 }
 
-impl<H: Hasher> Verifier<Signature<H>> for VerifyingKey {
-    fn verify(&self, msg: &[u8], signature: &Signature<H>) -> Result<(), Error> {
+impl<H: Hasher> Verifier<Signature> for VerifyingKey<H> {
+    fn verify(&self, msg: &[u8], signature: &Signature) -> Result<(), Error> {
         if !hss_verify::<H>(msg, signature.as_ref(), &self.bytes) {
             return Err(Error::new());
         }
@@ -98,8 +103,8 @@ impl<H: Hasher> Verifier<Signature<H>> for VerifyingKey {
     }
 }
 
-impl<'a, H: Hasher> Verifier<VerifierSignature<'a, H>> for VerifyingKey {
-    fn verify(&self, msg: &[u8], signature: &VerifierSignature<H>) -> Result<(), Error> {
+impl<'a, H: Hasher> Verifier<VerifierSignature<'a>> for VerifyingKey<H> {
+    fn verify(&self, msg: &[u8], signature: &VerifierSignature) -> Result<(), Error> {
         if !hss_verify::<H>(msg, signature.as_ref(), &self.bytes) {
             return Err(Error::new());
         }
@@ -139,7 +144,7 @@ pub fn hss_sign<H: Hasher>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
-) -> Result<Signature<H>, Error> {
+) -> Result<Signature, Error> {
     hss_sign_core::<H>(
         Some(message),
         None,
@@ -155,7 +160,7 @@ pub fn hss_sign_mut<H: Hasher>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
-) -> Result<Signature<H>, Error> {
+) -> Result<Signature, Error> {
     if message_mut.len() <= H::OUTPUT_SIZE.into() {
         return Err(Error::new());
     }
@@ -180,7 +185,7 @@ fn hss_sign_core<H: Hasher>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
-) -> Result<Signature<H>, Error> {
+) -> Result<Signature, Error> {
     let mut rfc_private_key = ReferenceImplPrivateKey::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
 
@@ -230,7 +235,7 @@ pub fn hss_keygen<H: Hasher>(
     parameters: &[HssParameter<H>],
     seed: Option<&[u8]>,
     aux_data: Option<&mut &mut [u8]>,
-) -> Result<(SigningKey, VerifyingKey), Error> {
+) -> Result<(SigningKey<H>, VerifyingKey<H>), Error> {
     let private_key = if let Some(seed) = seed {
         ReferenceImplPrivateKey::generate_with_seed(parameters, seed)
     } else {
@@ -242,6 +247,7 @@ pub fn hss_keygen<H: Hasher>(
 
     let signing_key = SigningKey {
         bytes: private_key.to_binary_representation(),
+        phantom_data: PhantomData,
     };
     let verifying_key =
         VerifyingKey::from_bytes(&hss_key.get_public_key().to_binary_representation())?;

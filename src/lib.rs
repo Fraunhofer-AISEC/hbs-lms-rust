@@ -51,67 +51,61 @@ pub use crate::hss::hss_verify as verify;
 pub use crate::hss::{SigningKey, VerifyingKey};
 
 use arrayvec::ArrayVec;
-use core::{convert::TryFrom, marker::PhantomData};
+use core::convert::TryFrom;
 use signature::Error;
 
 use constants::MAX_HSS_SIGNATURE_LENGTH;
 
 #[derive(Debug)]
-pub struct Signature<H: Hasher> {
+pub struct Signature {
     bytes: ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>,
-    phantom_data: PhantomData<H>,
     #[cfg(feature = "verbose")]
     pub hash_iterations: u32,
 }
 
-impl<H: Hasher> Signature<H> {
+impl Signature {
     pub(crate) fn from_bytes_verbose(bytes: &[u8], _hash_iterations: u32) -> Result<Self, Error> {
         let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
 
         Ok(Self {
             bytes,
-            phantom_data: PhantomData,
             #[cfg(feature = "verbose")]
             hash_iterations: _hash_iterations,
         })
     }
 }
 
-impl<H: Hasher> AsRef<[u8]> for Signature<H> {
+impl AsRef<[u8]> for Signature {
     fn as_ref(&self) -> &[u8] {
         self.bytes.as_ref()
     }
 }
 
-impl<H: Hasher> signature::Signature for Signature<H> {
+impl signature::Signature for Signature {
     fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Signature::from_bytes_verbose(bytes, 0)
     }
 }
 
 #[derive(Debug)]
-pub struct VerifierSignature<'a, H: Hasher> {
+pub struct VerifierSignature<'a> {
     bytes: &'a [u8],
-    phantom_data: PhantomData<H>,
 }
 
 #[allow(dead_code)]
-impl<'a, H: Hasher> VerifierSignature<'a, H> {
+impl<'a> VerifierSignature<'a> {
     pub fn from_ref(bytes: &'a [u8]) -> Result<Self, Error> {
-        Ok(Self {
-            bytes,
-            phantom_data: PhantomData,
-        })
+        Ok(Self { bytes })
     }
 }
 
-impl<'a, H: Hasher> AsRef<[u8]> for VerifierSignature<'a, H> {
+impl<'a> AsRef<[u8]> for VerifierSignature<'a> {
     fn as_ref(&self) -> &'a [u8] {
         self.bytes
     }
 }
 
-impl<'a, H: Hasher> signature::Signature for VerifierSignature<'a, H> {
+impl<'a> signature::Signature for VerifierSignature<'a> {
     fn from_bytes(_bytes: &[u8]) -> Result<Self, Error> {
         Err(Error::new())
     }

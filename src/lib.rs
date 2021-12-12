@@ -4,24 +4,29 @@
 //!
 //! # Example
 //! ```
-//! use hbs_lms::*;
-//!
-//! let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32]; // Some message that needs to be signed
-//!
-//! // Generate keys for a 2-level HSS system (first Level W8/H5, second level W4/H15) using the standard software hashing implementation
-//! let (signing_key, verifying_key) = hbs_lms::keygen::<Sha256Hasher>(&[HssParameter::new(LmotsAlgorithm::LmotsW8, LmsAlgorithm::LmsH5), HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5)], None, None).unwrap();
-//!
-//! let mut private_key_update_function = |new_private_key: &[u8]| {
-//!     // Update private key and save it to disk
-//!     Ok(()) // Report successful result
+//! use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm,
+//!     Signature, signature::{SignerMut, Verifier},
+//!     Sha256Hasher,
 //! };
 //!
-//! let sig = hbs_lms::sign::<Sha256Hasher>(&message, signing_key.as_slice(), &mut private_key_update_function, None).unwrap();
-//! let sig_ref = sig.as_ref();
+//! let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32];
 //!
-//! let verify_result = hbs_lms::verify::<Sha256Hasher>(&message, sig_ref, verifying_key.as_slice());
+//! // Generate keys for a 2-level HSS system (RootTree W1/H5, ChildTree W2/H5)
+//! let hss_parameter = [
+//!         HssParameter::<Sha256Hasher>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5),
+//!         HssParameter::<Sha256Hasher>::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+//! ];
+//! let seed = None;
+//! let aux_data = None;
 //!
-//! assert!(verify_result == true);
+//! let (mut signing_key, verifying_key) =
+//!     hbs_lms::keygen::<Sha256Hasher>(&hss_parameter, seed, aux_data).unwrap();
+//!
+//! let signature = signing_key.try_sign(&message).unwrap();
+//!
+//! let valid_signature = verifying_key.verify(&message, &signature);
+//!
+//! assert_eq!(valid_signature.is_ok(), true);
 //! ```
 
 mod constants;
@@ -116,12 +121,14 @@ mod tests {
     use crate::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
     use crate::{
         signature::{SignerMut, Verifier},
-        Signature, SigningKey, VerifierSignature, VerifyingKey,
+        SigningKey, VerifierSignature, VerifyingKey,
     };
 
     #[test]
     fn get_signing_and_verifying_key() {
-        let (signing_key, verifying_key) = keygen::<Sha256Hasher>(
+        type H = Sha256Hasher;
+
+        let (signing_key, verifying_key) = keygen::<H>(
             &[HssParameter::new(
                 LmotsAlgorithm::LmotsW2,
                 LmsAlgorithm::LmsH5,
@@ -131,8 +138,8 @@ mod tests {
         )
         .unwrap();
 
-        let _: SigningKey = signing_key;
-        let _: VerifyingKey = verifying_key;
+        let _: SigningKey<H> = signing_key;
+        let _: VerifyingKey<H> = verifying_key;
     }
 
     #[test]
@@ -151,12 +158,11 @@ mod tests {
         )
         .unwrap();
 
-        let signature: Signature<Sha256Hasher> = signing_key.try_sign(&message).unwrap();
+        let signature = signing_key.try_sign(&message).unwrap();
 
         assert!(verifying_key.verify(&message, &signature).is_ok());
 
-        let ref_signature =
-            VerifierSignature::<Sha256Hasher>::from_ref(signature.as_ref()).unwrap();
+        let ref_signature = VerifierSignature::from_ref(signature.as_ref()).unwrap();
 
         assert!(verifying_key.verify(&message, &ref_signature).is_ok());
     }

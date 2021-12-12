@@ -222,13 +222,17 @@ fn hss_sign_core<H: Hasher>(
  *
  * # Example
  * ```
- * use hbs_lms::*;
+ * use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
  *
- * let parameters = [HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5), HssParameter::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5)];
+ * let parameters = [
+ *      HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5),
+ *      HssParameter::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5),
+ * ];
  * let mut aux_data = vec![0u8; 10_000];
  * let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
  *
- * let key_pair = keygen::<Sha256Hasher>(&parameters, None, Some(aux_slice));
+ * let (signing_key, verifying_key) =
+ *      keygen::<Sha256Hasher>(&parameters, None, Some(aux_slice)).unwrap();
  * ```
  */
 pub fn hss_keygen<H: Hasher>(
@@ -325,7 +329,7 @@ mod tests {
 
         let (mut signing_key, verifying_key) =
             hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
-        let keypair_lifetime = signing_key.get_lifetime::<H>(None).unwrap();
+        let keypair_lifetime = signing_key.get_lifetime(None).unwrap();
 
         assert_ne!(
             signing_key.as_slice()[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
@@ -338,7 +342,7 @@ mod tests {
                 u64str(index),
             );
             assert_eq!(
-                keypair_lifetime - signing_key.get_lifetime::<H>(None).unwrap(),
+                keypair_lifetime - signing_key.get_lifetime(None).unwrap(),
                 index
             );
 
@@ -383,7 +387,7 @@ mod tests {
 
         let (mut signing_key, verifying_key) =
             hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
-        let keypair_lifetime = signing_key.get_lifetime::<H>(None).unwrap();
+        let keypair_lifetime = signing_key.get_lifetime(None).unwrap();
 
         for index in 0..(1u64 + keypair_lifetime) {
             let signing_key_const = signing_key.clone();
@@ -403,7 +407,7 @@ mod tests {
                 if index < keypair_lifetime {
                     panic!("Signing should complete without error.");
                 } else {
-                    assert!(signing_key.get_lifetime::<H>(None).is_err());
+                    assert!(signing_key.get_lifetime(None).is_err());
                     panic!("Signing should panic!");
                 }
             });

@@ -303,14 +303,10 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let mut aux_data = vec![0u8; genkey_parameter.aux_data];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    let keys = keygen(&parameter, seed_slice, Some(aux_slice));
+    let (signing_key, verifying_key) = keygen(&parameter, seed_slice, Some(aux_slice))
+        .unwrap_or_else(|_| panic!("Could not generate keys"));
 
-    let keys = keys.unwrap();
-
-    let public_key_binary = keys.public_key;
     let public_key_filename = get_public_key_name(&keyname);
-
-    let private_key_binary = keys.private_key;
     let private_key_filename = get_private_key_name(&keyname);
 
     let aux_name = get_aux_name(&keyname);
@@ -319,8 +315,8 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         write(&aux_name, aux_slice)?;
     }
 
-    write(public_key_filename.as_str(), public_key_binary.as_slice())?;
-    write(private_key_filename.as_str(), private_key_binary.as_slice())?;
+    write(public_key_filename.as_str(), verifying_key.as_slice())?;
+    write(private_key_filename.as_str(), signing_key.as_slice())?;
 
     Ok(())
 }

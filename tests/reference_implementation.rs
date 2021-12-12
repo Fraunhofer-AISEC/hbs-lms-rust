@@ -46,7 +46,7 @@ fn create_signature_with_own_implementation() {
     let mut aux_data = vec![0u8; 2000];
     let aux_slice = &mut &mut aux_data[..];
 
-    let mut keys = hbs_lms::keygen::<Sha256Hasher>(
+    let (mut signing_key, verifying_key) = hbs_lms::keygen::<Sha256Hasher>(
         &[
             HssParameter::construct_default_parameters(),
             HssParameter::construct_default_parameters(),
@@ -58,7 +58,7 @@ fn create_signature_with_own_implementation() {
 
     save_file(
         path.join(PUBLIC_KEY_NAME).to_str().unwrap(),
-        keys.public_key.as_slice(),
+        verifying_key.as_slice(),
     );
 
     create_message_file(&tempdir);
@@ -67,7 +67,7 @@ fn create_signature_with_own_implementation() {
     own_signing(
         &tempdir,
         &mut message_data,
-        keys.private_key.as_mut_slice(),
+        signing_key.as_mut_slice(),
         aux_slice,
     );
 
@@ -76,7 +76,7 @@ fn create_signature_with_own_implementation() {
     own_signing(
         &tempdir,
         &mut message_data,
-        keys.private_key.as_mut_slice(),
+        signing_key.as_mut_slice(),
         aux_slice,
     );
 
@@ -112,13 +112,13 @@ fn should_produce_same_private_key() {
     let parameters =
         HssParameter::<Sha256Hasher>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
 
-    let key = hbs_lms::keygen(&[parameters, parameters], Some(&TEST_SEED), None).unwrap();
+    let (sk, vk) = hbs_lms::keygen(&[parameters, parameters], Some(&TEST_SEED), None).unwrap();
 
-    let ref_private_key = read_private_key(path);
-    let ref_public_key = read_public_key(path);
+    let ref_signing_key = read_private_key(path);
+    let ref_verifying_key = read_public_key(path);
 
-    assert!(ref_private_key == key.private_key.as_slice());
-    assert!(ref_public_key == key.public_key.as_slice());
+    assert!(ref_signing_key == sk.as_slice());
+    assert!(ref_verifying_key == vk.as_slice());
 }
 
 #[test]

@@ -290,19 +290,19 @@ mod tests {
         let lms = LmsAlgorithm::LmsH5;
         let parameters = [HssParameter::new(lmots, lms)];
 
-        let mut keypair =
+        let (mut signing_key, verifying_key) =
             hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
 
-        let private_key = keypair.private_key.clone();
+        let signing_key_const = signing_key.clone();
 
         let mut update_private_key = |new_key: &[u8]| {
-            keypair.private_key.as_mut_slice().copy_from_slice(new_key);
+            signing_key.as_mut_slice().copy_from_slice(new_key);
             Ok(())
         };
 
         let signature = hss_sign::<H>(
             &message,
-            private_key.as_slice(),
+            signing_key_const.as_slice(),
             &mut update_private_key,
             None,
         )
@@ -311,13 +311,13 @@ mod tests {
         assert!(hss_verify::<H>(
             &message,
             signature.as_ref(),
-            keypair.public_key.as_slice()
+            verifying_key.as_slice()
         ));
 
-        assert_ne!(keypair.private_key.as_slice(), private_key.as_slice());
+        assert_ne!(signing_key.as_slice(), signing_key_const.as_slice());
         assert_eq!(
-            keypair.private_key.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..],
-            private_key.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..]
+            signing_key.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..],
+            signing_key_const.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..]
         );
     }
 
@@ -332,35 +332,35 @@ mod tests {
         let lms = LmsAlgorithm::LmsH2;
         let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
 
-        let mut keypair =
+        let (mut signing_key, verifying_key) =
             hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
-        let keypair_lifetime = hss_lifetime::<H>(keypair.private_key.as_slice(), None).unwrap();
+        let keypair_lifetime = hss_lifetime::<H>(signing_key.as_slice(), None).unwrap();
 
         assert_ne!(
-            keypair.private_key.as_slice()[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
+            signing_key.as_slice()[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
             [0u8; SEED_LEN],
         );
 
         for index in 0..keypair_lifetime {
             assert_eq!(
-                keypair.private_key.as_slice()[..LMS_LEAF_IDENTIFIERS_SIZE],
+                signing_key.as_slice()[..LMS_LEAF_IDENTIFIERS_SIZE],
                 u64str(index),
             );
             assert_eq!(
-                keypair_lifetime - hss_lifetime::<H>(keypair.private_key.as_slice(), None).unwrap(),
+                keypair_lifetime - hss_lifetime::<H>(signing_key.as_slice(), None).unwrap(),
                 index
             );
 
-            let private_key = keypair.private_key.clone();
+            let signing_key_const = signing_key.clone();
 
             let mut update_private_key = |new_key: &[u8]| {
-                keypair.private_key.as_mut_slice().copy_from_slice(new_key);
+                signing_key.as_mut_slice().copy_from_slice(new_key);
                 Ok(())
             };
 
             let signature = hss_sign::<H>(
                 &message,
-                private_key.as_slice(),
+                signing_key_const.as_slice(),
                 &mut update_private_key,
                 None,
             )
@@ -369,11 +369,11 @@ mod tests {
             assert!(hss_verify::<H>(
                 &message,
                 signature.as_ref(),
-                keypair.public_key.as_slice()
+                verifying_key.as_slice()
             ));
         }
         assert_eq!(
-            keypair.private_key.as_slice()[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
+            signing_key.as_slice()[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
             [0u8; SEED_LEN],
         );
     }
@@ -390,21 +390,21 @@ mod tests {
         let lms = LmsAlgorithm::LmsH2;
         let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
 
-        let mut keypair =
+        let (mut signing_key, verifying_key) =
             hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
-        let keypair_lifetime = hss_lifetime::<H>(keypair.private_key.as_slice(), None).unwrap();
+        let keypair_lifetime = hss_lifetime::<H>(signing_key.as_slice(), None).unwrap();
 
         for index in 0..(1u64 + keypair_lifetime) {
-            let private_key = keypair.private_key.clone();
+            let signing_key_const = signing_key.clone();
 
             let mut update_private_key = |new_key: &[u8]| {
-                keypair.private_key.as_mut_slice().copy_from_slice(new_key);
+                signing_key.as_mut_slice().copy_from_slice(new_key);
                 Ok(())
             };
 
             let signature = hss_sign::<H>(
                 &message,
-                private_key.as_slice(),
+                signing_key_const.as_slice(),
                 &mut update_private_key,
                 None,
             )
@@ -412,7 +412,7 @@ mod tests {
                 if index < keypair_lifetime {
                     panic!("Signing should complete without error.");
                 } else {
-                    assert!(hss_lifetime::<H>(keypair.private_key.as_slice(), None).is_err());
+                    assert!(hss_lifetime::<H>(signing_key.as_slice(), None).is_err());
                     panic!("Signing should panic!");
                 }
             });
@@ -420,7 +420,7 @@ mod tests {
             assert!(hss_verify::<H>(
                 &message,
                 signature.as_ref(),
-                keypair.public_key.as_slice()
+                verifying_key.as_slice()
             ));
         }
     }
@@ -435,7 +435,7 @@ mod tests {
     }
 
     fn test_signing_core<H: Hasher>() {
-        let mut keypair = hss_keygen::<H>(
+        let (mut signing_key, verifying_key) = hss_keygen::<H>(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
@@ -452,16 +452,16 @@ mod tests {
         let mut message = [0u8; 64];
         message[..message_values.len()].copy_from_slice(&message_values);
 
-        let private_key = keypair.private_key.clone();
+        let signing_key_const = signing_key.clone();
 
         let mut update_private_key = |new_key: &[u8]| {
-            keypair.private_key.as_mut_slice().copy_from_slice(new_key);
+            signing_key.as_mut_slice().copy_from_slice(new_key);
             Ok(())
         };
 
         let signature = hss_sign::<H>(
             &message,
-            private_key.as_slice(),
+            signing_key_const.as_slice(),
             &mut update_private_key,
             None,
         )
@@ -470,7 +470,7 @@ mod tests {
         assert!(hss_verify::<H>(
             &message,
             signature.as_ref(),
-            keypair.public_key.as_slice(),
+            verifying_key.as_slice(),
         ));
 
         message[0] = 33;
@@ -478,7 +478,7 @@ mod tests {
         assert!(!hss_verify::<H>(
             &message,
             signature.as_ref(),
-            keypair.public_key.as_slice(),
+            verifying_key.as_slice(),
         ));
     }
 
@@ -487,7 +487,7 @@ mod tests {
     fn test_signing_fast_verify() {
         type H = Sha256Hasher;
 
-        let mut keypair = hss_keygen::<H>(
+        let (mut signing_key, verifying_key) = hss_keygen::<H>(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
@@ -504,16 +504,16 @@ mod tests {
         let mut message = [0u8; 64];
         message[..message_values.len()].copy_from_slice(&message_values);
 
-        let private_key = keypair.private_key.clone();
+        let signing_key_const = signing_key.clone();
 
         let mut update_private_key = |new_key: &[u8]| {
-            keypair.private_key.as_mut_slice().copy_from_slice(new_key);
+            signing_key.as_mut_slice().copy_from_slice(new_key);
             Ok(())
         };
 
         let signature = hss_sign_mut::<H>(
             &mut message,
-            private_key.as_slice(),
+            signing_key_const.as_slice(),
             &mut update_private_key,
             None,
         )
@@ -528,7 +528,7 @@ mod tests {
         assert!(hss_verify::<H>(
             &message,
             signature.as_ref(),
-            keypair.public_key.as_slice()
+            verifying_key.as_slice()
         ));
     }
 }

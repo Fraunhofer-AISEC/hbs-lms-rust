@@ -9,20 +9,17 @@
 //! let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32]; // Some message that needs to be signed
 //!
 //! // Generate keys for a 2-level HSS system (first Level W8/H5, second level W4/H15) using the standard software hashing implementation
-//! let key_pair = hbs_lms::keygen::<Sha256Hasher>(&[HssParameter::new(LmotsAlgorithm::LmotsW8, LmsAlgorithm::LmsH5), HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5)], None, None).unwrap();
-//!
-//! let private_key = key_pair.private_key;
-//! let public_key = key_pair.public_key;
+//! let (signing_key, verifying_key) = hbs_lms::keygen::<Sha256Hasher>(&[HssParameter::new(LmotsAlgorithm::LmotsW8, LmsAlgorithm::LmsH5), HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5)], None, None).unwrap();
 //!
 //! let mut private_key_update_function = |new_private_key: &[u8]| {
 //!     // Update private key and save it to disk
 //!     Ok(()) // Report successful result
 //! };
 //!
-//! let sig = hbs_lms::sign::<Sha256Hasher>(&message, private_key.as_slice(), &mut private_key_update_function, None).unwrap();
+//! let sig = hbs_lms::sign::<Sha256Hasher>(&message, signing_key.as_slice(), &mut private_key_update_function, None).unwrap();
 //! let sig_ref = sig.as_ref();
 //!
-//! let verify_result = hbs_lms::verify::<Sha256Hasher>(&message, sig_ref, public_key.as_slice());
+//! let verify_result = hbs_lms::verify::<Sha256Hasher>(&message, sig_ref, verifying_key.as_slice());
 //!
 //! assert!(verify_result == true);
 //! ```
@@ -126,8 +123,24 @@ mod tests {
     use crate::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
     use crate::{
         signature::{SignerMut, Verifier},
-        Signature, VerifierSignature,
+        Signature, SigningKey, VerifierSignature, VerifyingKey,
     };
+
+    #[test]
+    fn get_signing_and_verifying_key() {
+        let (signing_key, verifying_key) = keygen::<Sha256Hasher>(
+            &[HssParameter::new(
+                LmotsAlgorithm::LmotsW2,
+                LmsAlgorithm::LmsH5,
+            )],
+            None,
+            None,
+        )
+        .unwrap();
+
+        let _: SigningKey = signing_key;
+        let _: VerifyingKey = verifying_key;
+    }
 
     #[test]
     fn signature_trait() {
@@ -135,7 +148,7 @@ mod tests {
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
 
-        let mut keypair = keygen::<Sha256Hasher>(
+        let (mut signing_key, verifying_key) = keygen::<Sha256Hasher>(
             &[
                 HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
                 HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
@@ -145,13 +158,13 @@ mod tests {
         )
         .unwrap();
 
-        let signature: Signature<Sha256Hasher> = keypair.private_key.try_sign(&message).unwrap();
+        let signature: Signature<Sha256Hasher> = signing_key.try_sign(&message).unwrap();
 
-        assert!(keypair.public_key.verify(&message, &signature).is_ok());
+        assert!(verifying_key.verify(&message, &signature).is_ok());
 
         let ref_signature =
             VerifierSignature::<Sha256Hasher>::from_ref(signature.as_ref()).unwrap();
 
-        assert!(keypair.public_key.verify(&message, &ref_signature).is_ok());
+        assert!(verifying_key.verify(&message, &ref_signature).is_ok());
     }
 }

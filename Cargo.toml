@@ -18,8 +18,8 @@ categories = ["cryptography", "no-std"]
 arrayvec = { version = "0.7.1", default-features = false }
 crossbeam = {version = "0.8", optional = true }
 signature = { version = "1.4.0", default-features = false}
-sha2 = { version = "0.9.5", default-features = false }
-sha3 = { version = "0.9.1", default-features = false }
+sha2 = { version = "0.10.0", default-features = false }
+sha3 = { version = "0.10.0", default-features = false }
 rand = { version = "0.8.3", optional = true }
 
 

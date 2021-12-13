@@ -2,7 +2,7 @@ use arrayvec::ArrayVec;
 use core::convert::TryFrom;
 
 use sha3::{
-    digest::{ExtendableOutput, Update, XofReader},
+    digest::{ExtendableOutput, ExtendableOutputReset, Update, XofReader},
     Shake256,
 };
 
@@ -45,13 +45,13 @@ impl Hasher for Shake256Hasher {
     }
 
     fn finalize(self) -> ArrayVec<u8, MAX_HASH_SIZE> {
-        let mut digest = [0u8; 32];
+        let mut digest = [0u8; Self::OUTPUT_SIZE as usize];
         self.hasher.finalize_xof().read(&mut digest);
         ArrayVec::try_from(digest).unwrap()
     }
 
     fn finalize_reset(&mut self) -> ArrayVec<u8, MAX_HASH_SIZE> {
-        let mut digest = [0u8; 32];
+        let mut digest = [0u8; Self::OUTPUT_SIZE as usize];
         self.hasher.finalize_xof_reset().read(&mut digest);
         ArrayVec::try_from(digest).unwrap()
     }

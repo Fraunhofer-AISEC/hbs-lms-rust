@@ -37,7 +37,7 @@ impl Hasher for Sha256Hasher {
 
     fn chain(self, data: &[u8]) -> Self {
         Sha256Hasher {
-            hasher: self.hasher.chain(data),
+            hasher: self.hasher.chain_update(data),
         }
     }
 

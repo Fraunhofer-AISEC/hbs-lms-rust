@@ -16,10 +16,10 @@ categories = ["cryptography", "no-std"]
 
 [dependencies]
 tinyvec = { version = "1.5.1", features = ["rustc_1_55"] }
-crossbeam = {version = "0.8", optional = true }
 signature = { version = "1.4.0", default-features = false}
 sha2 = { version = "0.10.0", default-features = false }
 sha3 = { version = "0.10.0", default-features = false }
+crossbeam = {version = "0.8", optional = true }
 rand = { version = "0.8.3", optional = true }
 
 
@@ -29,7 +29,7 @@ tempfile = "3.2.0"
 hex = "0.4.3"
 
 [features]
-default = ["std", "crossbeam"]
-std = ["rand"]
+default = ["std"]
+std = ["rand", "crossbeam"]
 fast_verify = []
 verbose = []

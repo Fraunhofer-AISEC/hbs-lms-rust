@@ -39,6 +39,18 @@ check-for-todos:
   tags:
     - asprunner
 
+msrv:
+  stage: lint
+  image: rust:latest
+  before_script:
+    - cargo install cargo-msrv
+  script:
+    - make check-msrv
+    - cargo msrv --verify
+  allow_failure: true
+  tags:
+    - asprunner
+
 default-latest:
   stage: build
   image: rust:latest

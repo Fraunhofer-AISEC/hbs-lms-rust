@@ -28,7 +28,20 @@ check-for-todos:
 	    exit 1; \
 	fi
 
-run-pipeline-local: check-for-todos
+check-msrv:
+	@$(eval readme=$(shell grep "Rust \*\*....\*\*" README.md | cut -d'*' -f3-3))
+	@$(eval cargo=$(shell grep rust-version Cargo.toml | cut -d'"' -f2-2))
+	@echo README.md :  $(readme)
+	@echo Cargo.toml: $(cargo)
+
+	@if [ "$(readme)" = "$(cargo)" ]; then \
+	    echo "Success: MSRVs match."; \
+	else \
+	    echo "Failure: MSRVs don't match."; \
+	    exit 1; \
+	fi
+
+run-pipeline-local: check-for-todos check-msrv
 	gitlab-runner exec shell fmt
 	gitlab-runner exec shell clippy
 

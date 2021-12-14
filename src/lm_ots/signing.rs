@@ -2,7 +2,7 @@ use crate::hasher::Hasher;
 use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::{
     constants::{
-        D_MESG, MAX_HASH_CHAIN_COUNT, MAX_HASH_OPTIMIZATIONS, MAX_HASH_SIZE,
+        FastVerifyCached, D_MESG, MAX_HASH_CHAIN_COUNT, MAX_HASH_OPTIMIZATIONS, MAX_HASH_SIZE,
         MAX_LMOTS_SIGNATURE_LENGTH, MAX_LMS_PUBLIC_KEY_LENGTH, THREADS,
     },
     util::{
@@ -327,7 +327,7 @@ fn optimize_message_hash<H: Hasher>(
 fn thread_optimize_message_hash<H: Hasher>(
     hasher: &H,
     lmots_parameter: &LmotsParameter<H>,
-    fast_verify_cached: &(u16, u16, ArrayVec<[(usize, u16, u64); 300]>),
+    fast_verify_cached: &FastVerifyCached,
     message: &ArrayVec<[u8; MAX_LMS_PUBLIC_KEY_LENGTH]>,
 ) -> (u16, ArrayVec<[u8; MAX_HASH_SIZE]>) {
     let mut max_hash_iterations = 0;

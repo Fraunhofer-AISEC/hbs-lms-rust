@@ -4,8 +4,8 @@ use tinyvec::ArrayVec;
 
 use crate::{
     constants::{
-        HASH_CHAIN_COUNT_W1, HASH_CHAIN_COUNT_W2, HASH_CHAIN_COUNT_W4, HASH_CHAIN_COUNT_W8,
-        MAX_HASH_SIZE,
+        FastVerifyCached, HASH_CHAIN_COUNT_W1, HASH_CHAIN_COUNT_W2, HASH_CHAIN_COUNT_W4,
+        HASH_CHAIN_COUNT_W8, MAX_HASH_SIZE,
     },
     hasher::{sha256::Sha256Hasher, Hasher},
     util::coef::coef,
@@ -118,32 +118,30 @@ impl<H: Hasher> LmotsParameter<H> {
         Self::HASH_FUNCTION_OUTPUT_SIZE as usize
     }
 
-    pub fn fast_verify_eval_init(&self) -> (u16, u16, ArrayVec<[(usize, u16, u64); 300]>) {
+    pub fn fast_verify_eval_init(&self) -> FastVerifyCached {
         let max = (Self::HASH_FUNCTION_OUTPUT_SIZE * 8) / self.get_winternitz() as u16;
 
         let max_word_size = (1 << self.get_winternitz()) - 1;
         let sum = max * max_word_size;
 
-        let mut coef_cached = ArrayVec::new();
-
+        let mut coef = ArrayVec::new();
         for i in 0..self.get_hash_chain_count() {
-            let coef = coef_helper(i, self.get_winternitz());
-            coef_cached.push(coef);
+            coef.push(coef_helper(i, self.get_winternitz()));
         }
 
-        (max, sum, coef_cached)
+        (max, sum, coef)
     }
 
     pub fn fast_verify_eval(
         &self,
         byte_string: &[u8],
-        fast_verify_cached: &(u16, u16, ArrayVec<[(usize, u16, u64); 300]>),
+        fast_verify_cached: &FastVerifyCached,
     ) -> u16 {
-        let (max, sum, coef_cached) = fast_verify_cached;
+        let (max, sum, coef) = fast_verify_cached;
         let mut total_hash_chain_iterations = 0;
 
         for i in 0..*max {
-            let (index, shift, mask) = coef_cached[i as usize];
+            let (index, shift, mask) = coef[i as usize];
             let hash_chain_length = ((byte_string[index] as u64 >> shift) & mask) as u16;
             total_hash_chain_iterations += hash_chain_length;
         }
@@ -153,7 +151,7 @@ impl<H: Hasher> LmotsParameter<H> {
         let checksum = [(checksum >> 8 & 0xff) as u8, (checksum & 0xff) as u8];
 
         for i in *max..self.get_hash_chain_count() {
-            let (index, shift, mask) = coef_cached[i as usize];
+            let (index, shift, mask) = coef[i as usize];
             let hash_chain_length = ((checksum[index - 32] as u64 >> shift) & mask) as u16;
             total_hash_chain_iterations += hash_chain_length;
         }

@@ -1,4 +1,5 @@
 use core::mem::size_of;
+use tinyvec::ArrayVec;
 
 include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 
@@ -8,6 +9,11 @@ pub const SEED_LEN: usize = 32;
 pub type LmsTreeIdentifier = [u8; ILEN];
 pub type Seed = [u8; SEED_LEN];
 pub type LmsLeafIdentifier = [u8; 4];
+
+type FvcMax = u16;
+type FvcSum = u16;
+type FvcCoef = (usize, u16, u64); // (index, shift, mask)
+pub type FastVerifyCached = (FvcMax, FvcSum, ArrayVec<[FvcCoef; MAX_HASH_CHAIN_COUNT]>);
 
 pub const D_PBLC: [u8; 2] = [0x80, 0x80];
 pub const D_MESG: [u8; 2] = [0x81, 0x81];

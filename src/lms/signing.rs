@@ -13,7 +13,7 @@ use crate::util::{
     helper::{read, read_and_advance},
     ustr::{str32u, u32str},
 };
-use arrayvec::ArrayVec;
+use tinyvec::ArrayVec;
 
 use super::helper::get_tree_element;
 use super::parameters::LmsParameter;
@@ -22,7 +22,7 @@ use super::parameters::LmsParameter;
 pub struct LmsSignature<H: Hasher> {
     pub lms_leaf_identifier: LmsLeafIdentifier,
     pub lmots_signature: LmotsSignature<H>,
-    pub authentication_path: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_TREE_HEIGHT>,
+    pub authentication_path: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_TREE_HEIGHT]>,
     pub lms_parameter: LmsParameter<H>,
 }
 
@@ -63,7 +63,7 @@ impl<H: Hasher> LmsSignature<H> {
     fn build_authentication_path(
         lms_private_key: &mut LmsPrivateKey<H>,
         lm_ots_private_key: &LmotsPrivateKey<H>,
-    ) -> Result<ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_TREE_HEIGHT>, ()> {
+    ) -> Result<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_TREE_HEIGHT]>, ()> {
         let tree_height = lms_private_key.lms_parameter.get_tree_height();
         let signature_leaf_index = 2usize.pow(tree_height as u32)
             + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
@@ -82,7 +82,7 @@ impl<H: Hasher> LmsSignature<H> {
         lms_private_key: &mut LmsPrivateKey<H>,
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
-        signature_randomizer: Option<ArrayVec<u8, MAX_HASH_SIZE>>,
+        signature_randomizer: Option<ArrayVec<[u8; MAX_HASH_SIZE]>>,
     ) -> Result<LmsSignature<H>, ()> {
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
@@ -109,7 +109,7 @@ impl<H: Hasher> LmsSignature<H> {
     pub fn sign(
         lms_private_key: &mut LmsPrivateKey<H>,
         message: &[u8],
-        signature_randomizer: Option<ArrayVec<u8, MAX_HASH_SIZE>>,
+        signature_randomizer: Option<ArrayVec<[u8; MAX_HASH_SIZE]>>,
     ) -> Result<LmsSignature<H>, ()> {
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
@@ -129,25 +129,19 @@ impl<H: Hasher> LmsSignature<H> {
         Ok(signature)
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<u8, MAX_LMS_SIGNATURE_LENGTH> {
+    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_LMS_SIGNATURE_LENGTH]> {
         let mut result = ArrayVec::new();
 
-        result
-            .try_extend_from_slice(&self.lms_leaf_identifier)
-            .unwrap();
+        result.extend_from_slice(&self.lms_leaf_identifier);
 
         let lmots_signature = self.lmots_signature.to_binary_representation();
 
-        result
-            .try_extend_from_slice(lmots_signature.as_slice())
-            .unwrap();
+        result.extend_from_slice(lmots_signature.as_slice());
 
-        result
-            .try_extend_from_slice(&u32str(self.lms_parameter.get_type_id() as u32))
-            .unwrap();
+        result.extend_from_slice(&u32str(self.lms_parameter.get_type_id() as u32));
 
         for element in self.authentication_path.iter() {
-            result.try_extend_from_slice(element.as_slice()).unwrap();
+            result.extend_from_slice(element.as_slice());
         }
 
         result

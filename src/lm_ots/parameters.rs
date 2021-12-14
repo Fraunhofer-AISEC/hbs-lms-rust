@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use arrayvec::ArrayVec;
+use tinyvec::ArrayVec;
 
 use crate::{
     constants::{
@@ -118,7 +118,7 @@ impl<H: Hasher> LmotsParameter<H> {
         Self::HASH_FUNCTION_OUTPUT_SIZE as usize
     }
 
-    pub fn fast_verify_eval_init(&self) -> (u16, u16, ArrayVec<(usize, u16, u64), 300>) {
+    pub fn fast_verify_eval_init(&self) -> (u16, u16, ArrayVec<[(usize, u16, u64); 300]>) {
         let max = (Self::HASH_FUNCTION_OUTPUT_SIZE * 8) / self.get_winternitz() as u16;
 
         let max_word_size = (1 << self.get_winternitz()) - 1;
@@ -137,7 +137,7 @@ impl<H: Hasher> LmotsParameter<H> {
     pub fn fast_verify_eval(
         &self,
         byte_string: &[u8],
-        fast_verify_cached: &(u16, u16, ArrayVec<(usize, u16, u64), 300>),
+        fast_verify_cached: &(u16, u16, ArrayVec<[(usize, u16, u64); 300]>),
     ) -> u16 {
         let (max, sum, coef_cached) = fast_verify_cached;
         let mut total_hash_chain_iterations = 0;
@@ -175,19 +175,15 @@ impl<H: Hasher> LmotsParameter<H> {
         sum << self.get_checksum_left_shift()
     }
 
-    pub fn append_checksum_to(&self, byte_string: &[u8]) -> ArrayVec<u8, { MAX_HASH_SIZE + 2 }> {
+    pub fn append_checksum_to(&self, byte_string: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE + 2]> {
         let mut result = ArrayVec::new();
 
         let checksum = self.checksum(byte_string);
 
-        result.try_extend_from_slice(byte_string).unwrap();
+        result.extend_from_slice(byte_string);
 
-        result
-            .try_extend_from_slice(&[(checksum >> 8 & 0xff) as u8])
-            .unwrap();
-        result
-            .try_extend_from_slice(&[(checksum & 0xff) as u8])
-            .unwrap();
+        result.extend_from_slice(&[(checksum >> 8 & 0xff) as u8]);
+        result.extend_from_slice(&[(checksum & 0xff) as u8]);
 
         result
     }

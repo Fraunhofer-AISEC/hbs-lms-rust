@@ -104,15 +104,15 @@ pub use crate::hss::hss_sign_mut as sign_mut;
 pub use crate::hss::hss_verify as verify;
 pub use crate::hss::{SigningKey, VerifyingKey};
 
-use arrayvec::ArrayVec;
 use core::convert::TryFrom;
 use signature::Error;
+use tinyvec::ArrayVec;
 
 use constants::MAX_HSS_SIGNATURE_LENGTH;
 
 #[derive(Debug)]
 pub struct Signature {
-    bytes: ArrayVec<u8, MAX_HSS_SIGNATURE_LENGTH>,
+    bytes: ArrayVec<[u8; MAX_HSS_SIGNATURE_LENGTH]>,
     #[cfg(feature = "verbose")]
     pub hash_iterations: u32,
 }

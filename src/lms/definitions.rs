@@ -9,7 +9,7 @@ use crate::lms::parameters::LmsAlgorithm;
 use crate::util::helper::read_and_advance;
 use crate::util::ustr::str32u;
 use crate::util::ustr::u32str;
-use arrayvec::ArrayVec;
+use tinyvec::ArrayVec;
 
 use super::parameters::LmsParameter;
 
@@ -60,7 +60,7 @@ impl<H: Hasher> LmsPrivateKey<H> {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct LmsPublicKey<H: Hasher> {
-    pub key: ArrayVec<u8, MAX_HASH_SIZE>,
+    pub key: ArrayVec<[u8; MAX_HASH_SIZE]>,
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
@@ -87,7 +87,7 @@ impl<'a, H: Hasher> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H> {
 
 impl<H: Hasher> LmsPublicKey<H> {
     pub fn new(
-        public_key: ArrayVec<u8, MAX_HASH_SIZE>,
+        public_key: ArrayVec<[u8; MAX_HASH_SIZE]>,
         lms_tree_identifier: LmsTreeIdentifier,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
@@ -100,21 +100,15 @@ impl<H: Hasher> LmsPublicKey<H> {
         }
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<u8, MAX_LMS_PUBLIC_KEY_LENGTH> {
+    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_LMS_PUBLIC_KEY_LENGTH]> {
         let mut result = ArrayVec::new();
 
-        result
-            .try_extend_from_slice(&u32str(self.lms_parameter.get_type_id()))
-            .unwrap();
-        result
-            .try_extend_from_slice(&u32str(self.lmots_parameter.get_type_id()))
-            .unwrap();
+        result.extend_from_slice(&u32str(self.lms_parameter.get_type_id()));
+        result.extend_from_slice(&u32str(self.lmots_parameter.get_type_id()));
 
-        result
-            .try_extend_from_slice(&self.lms_tree_identifier)
-            .unwrap();
+        result.extend_from_slice(&self.lms_tree_identifier);
 
-        result.try_extend_from_slice(self.key.as_slice()).unwrap();
+        result.extend_from_slice(self.key.as_slice());
 
         result
     }

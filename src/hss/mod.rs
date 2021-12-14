@@ -6,8 +6,8 @@ mod seed_derive;
 pub mod signing;
 pub mod verify;
 
-use arrayvec::ArrayVec;
 use core::{convert::TryFrom, marker::PhantomData};
+use tinyvec::ArrayVec;
 
 use crate::{
     constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE},
@@ -25,7 +25,7 @@ use self::{
 
 #[derive(Clone)]
 pub struct SigningKey<H: Hasher> {
-    pub bytes: ArrayVec<u8, REFERENCE_IMPL_PRIVATE_KEY_SIZE>,
+    pub bytes: ArrayVec<[u8; REFERENCE_IMPL_PRIVATE_KEY_SIZE]>,
     phantom_data: PhantomData<H>,
 }
 
@@ -52,7 +52,7 @@ impl<H: Hasher> SigningKey<H> {
         msg: &[u8],
         aux_data: Option<&mut &mut [u8]>,
     ) -> Result<Signature, Error> {
-        let private_key = self.bytes.clone();
+        let private_key = self.bytes;
         let mut private_key_update_function = |new_key: &[u8]| {
             self.bytes.as_mut_slice().copy_from_slice(new_key);
             Ok(())
@@ -75,7 +75,7 @@ impl<H: Hasher> SignerMut<Signature> for SigningKey<H> {
 
 #[derive(Clone)]
 pub struct VerifyingKey<H: Hasher> {
-    pub bytes: ArrayVec<u8, MAX_HSS_PUBLIC_KEY_LENGTH>,
+    pub bytes: ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]>,
     phantom_data: PhantomData<H>,
 }
 

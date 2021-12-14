@@ -8,9 +8,6 @@ use crate::{
     Sha256Hasher,
 };
 
-use arrayvec::ArrayVec;
-use core::convert::TryFrom;
-
 pub struct SeedDerive<'a> {
     master_seed: &'a Seed,
     lms_tree_identifier: &'a LmsTreeIdentifier,
@@ -50,9 +47,6 @@ impl<'a> SeedDerive<'a> {
         }
 
         // We always use SHA256 to derive seeds
-        ArrayVec::try_from(Sha256Hasher::new().chain(&buffer).finalize().as_slice())
-            .unwrap()
-            .into_inner()
-            .unwrap()
+        Sha256Hasher::new().chain(&buffer).finalize().into_inner()
     }
 }

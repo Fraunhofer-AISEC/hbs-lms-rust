@@ -1,5 +1,5 @@
-use arrayvec::ArrayVec;
 use core::convert::TryFrom;
+use tinyvec::ArrayVec;
 
 use sha2::{Digest, Sha256};
 
@@ -41,12 +41,12 @@ impl Hasher for Sha256Hasher {
         }
     }
 
-    fn finalize(self) -> ArrayVec<u8, MAX_HASH_SIZE> {
+    fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
         let result = ArrayVec::try_from(self.hasher.finalize().iter().as_slice()).unwrap();
         result
     }
 
-    fn finalize_reset(&mut self) -> ArrayVec<u8, MAX_HASH_SIZE> {
+    fn finalize_reset(&mut self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
         let result = ArrayVec::try_from(self.hasher.finalize_reset().iter().as_slice()).unwrap();
         result
     }

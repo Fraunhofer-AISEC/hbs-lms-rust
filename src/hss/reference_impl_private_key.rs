@@ -1,6 +1,6 @@
 use core::{marker::PhantomData, mem::size_of};
 
-use arrayvec::ArrayVec;
+use tinyvec::ArrayVec;
 
 use crate::{
     constants::{
@@ -80,16 +80,12 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         ReferenceImplPrivateKey::generate_with_seed(parameters, &seed)
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<u8, REFERENCE_IMPL_PRIVATE_KEY_SIZE> {
+    pub fn to_binary_representation(&self) -> ArrayVec<[u8; REFERENCE_IMPL_PRIVATE_KEY_SIZE]> {
         let mut result = ArrayVec::new();
 
-        result
-            .try_extend_from_slice(&u64str(self.compressed_used_leafs_indexes.count))
-            .unwrap();
-        result
-            .try_extend_from_slice(&self.compressed_parameter.0)
-            .unwrap();
-        result.try_extend_from_slice(&self.seed).unwrap();
+        result.extend_from_slice(&u64str(self.compressed_used_leafs_indexes.count));
+        result.extend_from_slice(&self.compressed_parameter.0);
+        result.extend_from_slice(&self.seed);
 
         result
     }
@@ -228,7 +224,7 @@ impl CompressedParameterSet {
         Ok(result)
     }
 
-    pub fn to<H: Hasher>(&self) -> Result<ArrayVec<HssParameter<H>, MAX_ALLOWED_HSS_LEVELS>, ()> {
+    pub fn to<H: Hasher>(&self) -> Result<ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>, ()> {
         let mut result = ArrayVec::new();
 
         for level in 0..MAX_ALLOWED_HSS_LEVELS {
@@ -244,9 +240,7 @@ impl CompressedParameterSet {
             let lms = LmsAlgorithm::from(lms_type as u32);
             let lmots = LmotsAlgorithm::from(lmots_type as u32);
 
-            result
-                .try_extend_from_slice(&[HssParameter::new(lmots, lms)])
-                .unwrap();
+            result.extend_from_slice(&[HssParameter::new(lmots, lms)]);
         }
 
         if result.is_empty() {
@@ -275,7 +269,7 @@ impl CompressedUsedLeafsIndexes {
 
     pub fn to<H: Hasher>(
         &self,
-        parameters: &ArrayVec<HssParameter<H>, MAX_ALLOWED_HSS_LEVELS>,
+        parameters: &ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>,
     ) -> [u32; MAX_ALLOWED_HSS_LEVELS] {
         let mut lms_leaf_identifier_set = [0u32; MAX_ALLOWED_HSS_LEVELS];
         let mut compressed_used_leafs_indexes = self.count;
@@ -291,7 +285,7 @@ impl CompressedUsedLeafsIndexes {
 
     pub fn increment(
         &mut self,
-        tree_heights: &ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>,
+        tree_heights: &ArrayVec<[u8; MAX_ALLOWED_HSS_LEVELS]>,
     ) -> Result<(), ()> {
         let total_tree_height: u32 = tree_heights.iter().sum::<u8>().into();
 
@@ -313,7 +307,7 @@ mod tests {
         LmotsAlgorithm, LmsAlgorithm, Sha256Hasher,
     };
 
-    use arrayvec::ArrayVec;
+    use tinyvec::ArrayVec;
 
     type Hasher = Sha256Hasher;
 
@@ -332,7 +326,7 @@ mod tests {
         let tree_heights = parameters
             .iter()
             .map(|parameter| parameter.get_lms_parameter().get_tree_height())
-            .collect::<ArrayVec<u8, MAX_ALLOWED_HSS_LEVELS>>();
+            .collect::<ArrayVec<[u8; MAX_ALLOWED_HSS_LEVELS]>>();
 
         for _ in 0..2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into()) {
             assert_eq!(rfc_private_key.seed, seed);

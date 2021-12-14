@@ -1,5 +1,4 @@
-use arrayvec::ArrayVec;
-use core::convert::TryFrom;
+use tinyvec::ArrayVec;
 
 use crate::{
     constants::{MAX_ALLOWED_HSS_LEVELS, MAX_HSS_PUBLIC_KEY_LENGTH},
@@ -35,9 +34,9 @@ use super::{
 
 #[derive(Debug, Default, PartialEq)]
 pub struct HssPrivateKey<H: Hasher> {
-    pub private_key: ArrayVec<LmsPrivateKey<H>, MAX_ALLOWED_HSS_LEVELS>,
-    pub public_key: ArrayVec<LmsPublicKey<H>, MAX_ALLOWED_HSS_LEVELS>,
-    pub signatures: ArrayVec<LmsSignature<H>, { MAX_ALLOWED_HSS_LEVELS - 1 }>, // Only L - 1 signatures needed
+    pub private_key: ArrayVec<[LmsPrivateKey<H>; MAX_ALLOWED_HSS_LEVELS]>,
+    pub public_key: ArrayVec<[LmsPublicKey<H>; MAX_ALLOWED_HSS_LEVELS]>,
+    pub signatures: ArrayVec<[LmsSignature<H>; MAX_ALLOWED_HSS_LEVELS - 1]>, // Only L - 1 signatures needed
 }
 
 impl<H: Hasher> HssPrivateKey<H> {
@@ -102,13 +101,10 @@ impl<H: Hasher> HssPrivateKey<H> {
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);
 
-            let signature_randomizer = Some(
-                ArrayVec::try_from(generate_child_signature_randomizer(
-                    &current_seed,
-                    &parent_used_leafs_index,
-                ))
-                .unwrap(),
-            );
+            let signature_randomizer = Some(ArrayVec::from(generate_child_signature_randomizer(
+                &current_seed,
+                &parent_used_leafs_index,
+            )));
             let signature = lms::signing::LmsSignature::sign(
                 &mut hss_private_key.private_key[i - 1],
                 hss_private_key.public_key[i]
@@ -164,7 +160,7 @@ impl<H: Hasher> HssPrivateKey<H> {
 
     pub fn get_lifetime(&self) -> u64 {
         let mut lifetime: u64 = 0;
-        let mut trees_total_lmots_keys: ArrayVec<u64, MAX_ALLOWED_HSS_LEVELS> = ArrayVec::new();
+        let mut trees_total_lmots_keys: ArrayVec<[u64; MAX_ALLOWED_HSS_LEVELS]> = ArrayVec::new();
 
         for lms_private_key in (&self.private_key).into_iter().rev() {
             let total_lmots_keys = lms_private_key.lms_parameter.number_of_lm_ots_keys() as u64;
@@ -204,15 +200,11 @@ impl<'a, H: Hasher> PartialEq<HssPublicKey<H>> for InMemoryHssPublicKey<'a, H> {
 }
 
 impl<H: Hasher> HssPublicKey<H> {
-    pub fn to_binary_representation(&self) -> ArrayVec<u8, MAX_HSS_PUBLIC_KEY_LENGTH> {
+    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]> {
         let mut result = ArrayVec::new();
 
-        result
-            .try_extend_from_slice(&u32str(self.level as u32))
-            .unwrap();
-        result
-            .try_extend_from_slice(self.public_key.to_binary_representation().as_slice())
-            .unwrap();
+        result.extend_from_slice(&u32str(self.level as u32));
+        result.extend_from_slice(self.public_key.to_binary_representation().as_slice());
 
         result
     }

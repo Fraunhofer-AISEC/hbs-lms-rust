@@ -1,4 +1,4 @@
-use arrayvec::ArrayVec;
+use tinyvec::ArrayVec;
 
 use crate::{
     constants::{
@@ -23,7 +23,7 @@ use super::definitions::HssPrivateKey;
 #[derive(PartialEq)]
 pub struct HssSignature<H: Hasher> {
     pub level: usize,
-    pub signed_public_keys: ArrayVec<HssSignedPublicKey<H>, { MAX_ALLOWED_HSS_LEVELS - 1 }>,
+    pub signed_public_keys: ArrayVec<[HssSignedPublicKey<H>; MAX_ALLOWED_HSS_LEVELS - 1]>,
     pub signature: LmsSignature<H>,
 }
 
@@ -73,23 +73,17 @@ impl<H: Hasher> HssSignature<H> {
         })
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<u8, { MAX_HSS_SIGNATURE_LENGTH }> {
+    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_SIGNATURE_LENGTH]> {
         let mut result = ArrayVec::new();
 
-        result
-            .try_extend_from_slice(&u32str(self.level as u32))
-            .unwrap();
+        result.extend_from_slice(&u32str(self.level as u32));
 
         for signed_public_key in self.signed_public_keys.iter() {
             let binary_representation = signed_public_key.to_binary_representation();
-            result
-                .try_extend_from_slice(binary_representation.as_slice())
-                .unwrap();
+            result.extend_from_slice(binary_representation.as_slice());
         }
 
-        result
-            .try_extend_from_slice(self.signature.to_binary_representation().as_slice())
-            .unwrap();
+        result.extend_from_slice(self.signature.to_binary_representation().as_slice());
 
         result
     }
@@ -100,7 +94,7 @@ impl<H: Hasher> HssSignature<H> {
 pub struct InMemoryHssSignature<'a, H: Hasher> {
     pub level: usize,
     pub signed_public_keys:
-        ArrayVec<Option<InMemoryHssSignedPublicKey<'a, H>>, { MAX_ALLOWED_HSS_LEVELS - 1 }>,
+        ArrayVec<[Option<InMemoryHssSignedPublicKey<'a, H>>; MAX_ALLOWED_HSS_LEVELS - 1]>,
     pub signature: InMemoryLmsSignature<'a, H>,
 }
 
@@ -184,15 +178,11 @@ impl<H: Hasher> HssSignedPublicKey<H> {
         }
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<u8, MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH> {
+    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH]> {
         let mut result = ArrayVec::new();
 
-        result
-            .try_extend_from_slice(self.sig.to_binary_representation().as_slice())
-            .unwrap();
-        result
-            .try_extend_from_slice(self.public_key.to_binary_representation().as_slice())
-            .unwrap();
+        result.extend_from_slice(self.sig.to_binary_representation().as_slice());
+        result.extend_from_slice(self.public_key.to_binary_representation().as_slice());
 
         result
     }

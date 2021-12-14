@@ -1,5 +1,4 @@
-use arrayvec::ArrayVec;
-use core::convert::TryFrom;
+use tinyvec::ArrayVec;
 
 use crate::{
     constants::{
@@ -106,8 +105,8 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     expanded_aux_data.level = str32u(read_and_advance(aux_data, 4, &mut index));
 
     const LEN_LAYER_SIZES: usize = 1 + MAX_TREE_HEIGHT;
-    let mut layer_sizes: ArrayVec<usize, LEN_LAYER_SIZES> =
-        ArrayVec::try_from([0usize; LEN_LAYER_SIZES]).unwrap();
+    let mut layer_sizes: ArrayVec<[usize; LEN_LAYER_SIZES]> =
+        ArrayVec::from([0usize; LEN_LAYER_SIZES]);
     for index in 0..layer_sizes.capacity() {
         if (expanded_aux_data.level >> index) & 1 == 0 {
             continue;
@@ -203,7 +202,7 @@ pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed:
 pub fn hss_extract_aux_data<H: Hasher>(
     aux: &MutableExpandedAuxData,
     index: usize,
-) -> Option<ArrayVec<u8, MAX_HASH_SIZE>> {
+) -> Option<ArrayVec<[u8; MAX_HASH_SIZE]>> {
     // We need to calculate the level of the tree and the offset from the beginning
     let level = core::mem::size_of::<usize>() * 8 - index.leading_zeros() as usize - 1;
     let lms_leaf_identifier: u32 = index as u32 - 2u32.pow(level as u32);
@@ -223,14 +222,12 @@ pub fn hss_extract_aux_data<H: Hasher>(
 
     let mut result = ArrayVec::new();
 
-    result
-        .try_extend_from_slice(&src[start_index..end_index])
-        .unwrap();
+    result.extend_from_slice(&src[start_index..end_index]);
 
     Some(result)
 }
 
-fn compute_seed_derive<H: Hasher>(seed: &[u8]) -> ArrayVec<u8, MAX_HASH_SIZE> {
+fn compute_seed_derive<H: Hasher>(seed: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
     let mut prefix = [0u8; DAUX_PREFIX_LEN];
 
     prefix[DAUX_D] = (D_DAUX >> 8) as u8;
@@ -245,14 +242,14 @@ fn compute_hmac_ipad<H: Hasher>(key: &[u8]) -> H {
     let key = key
         .iter()
         .map(|byte| byte ^ IPAD)
-        .collect::<ArrayVec<u8, MAX_HASH_SIZE>>();
+        .collect::<ArrayVec<[u8; MAX_HASH_SIZE]>>();
 
     H::get_hasher()
         .chain(&key)
         .chain(&IPAD_ARRAY[H::OUTPUT_SIZE.into()..H::BLOCK_SIZE.into()])
 }
 
-fn compute_hmac_opad<H: Hasher>(hasher: &mut H, key: &[u8]) -> ArrayVec<u8, MAX_HASH_SIZE> {
+fn compute_hmac_opad<H: Hasher>(hasher: &mut H, key: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
     const OPAD_ARRAY: [u8; MAX_HASH_BLOCK_SIZE] = [OPAD; MAX_HASH_BLOCK_SIZE];
 
     let buffer = hasher.finalize_reset();
@@ -260,7 +257,7 @@ fn compute_hmac_opad<H: Hasher>(hasher: &mut H, key: &[u8]) -> ArrayVec<u8, MAX_
     let key = key
         .iter()
         .map(|byte| byte ^ OPAD)
-        .collect::<ArrayVec<u8, MAX_HASH_SIZE>>();
+        .collect::<ArrayVec<[u8; MAX_HASH_SIZE]>>();
 
     H::get_hasher()
         .chain(&key)
@@ -269,7 +266,7 @@ fn compute_hmac_opad<H: Hasher>(hasher: &mut H, key: &[u8]) -> ArrayVec<u8, MAX_
         .finalize_reset()
 }
 
-fn compute_hmac<H: Hasher>(key: &[u8], data: &[u8]) -> ArrayVec<u8, MAX_HASH_SIZE> {
+fn compute_hmac<H: Hasher>(key: &[u8], data: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
     let mut hasher = compute_hmac_ipad::<H>(key).chain(data);
     compute_hmac_opad::<H>(&mut hasher, key)
 }

@@ -6,7 +6,7 @@ use crate::{
     constants::{D_PBLC, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
     util::ustr::*,
 };
-use arrayvec::ArrayVec;
+use tinyvec::ArrayVec;
 
 pub fn generate_private_key<H: Hasher>(
     lms_tree_identifier: LmsTreeIdentifier,
@@ -43,7 +43,7 @@ pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> Lmots
     let hash_chain_count: usize = 2_usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
     let key = &private_key.key;
 
-    let mut public_key_data: ArrayVec<ArrayVec<u8, MAX_HASH_SIZE>, MAX_HASH_CHAIN_COUNT> =
+    let mut public_key_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]> =
         ArrayVec::new();
 
     for i in 0..lmots_parameter.get_hash_chain_count() as usize {

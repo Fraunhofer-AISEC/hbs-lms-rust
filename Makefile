@@ -19,6 +19,7 @@ check-for-todos:
 	@git grep -n -i -e todo -e fixme -- \
 	    :^Makefile \
 	    :^.gitlab-ci.yml \
+	    :^.github/ \
 	    2>&1 | tee check_for_todos_results.txt
 
 	@if [ ! -s check_for_todos_results.txt ]; then \

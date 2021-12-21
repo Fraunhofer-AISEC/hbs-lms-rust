@@ -23,6 +23,7 @@ const TEST_SEED: [u8; 32] = [
 ];
 
 #[test]
+#[ignore]
 fn create_signature_with_reference_implementation() {
     let tempdir = tempfile::tempdir().unwrap();
 
@@ -39,6 +40,7 @@ fn create_signature_with_reference_implementation() {
 }
 
 #[test]
+#[ignore]
 fn create_signature_with_own_implementation() {
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();
@@ -84,6 +86,7 @@ fn create_signature_with_own_implementation() {
 }
 
 #[test]
+#[ignore]
 fn test_private_key_format() {
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();
@@ -103,6 +106,7 @@ fn test_private_key_format() {
 }
 
 #[test]
+#[ignore]
 fn should_produce_same_private_key() {
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();
@@ -122,6 +126,7 @@ fn should_produce_same_private_key() {
 }
 
 #[test]
+#[ignore]
 fn should_produce_same_aux_data() {
     let tempdir = tempfile::tempdir().unwrap();
     let path = tempdir.path();

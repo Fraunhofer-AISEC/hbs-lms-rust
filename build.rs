@@ -5,24 +5,31 @@ fn main() {
     let dest_path = Path::new(&out_dir).join("constants.rs");
     let mut f = File::create(&dest_path).expect("Could not create file");
 
-    let max_hash_optimizations = option_env!("HBS_LMS_MAX_HASH_OPTIMIZATIONS");
-    let max_hash_optimizations: usize = max_hash_optimizations
-        .map_or(Ok(10_000), str::parse)
-        .expect("Could not parse HBS_LMS_MAX_HASH_OPTIMIZATIONS");
-    writeln!(
-        &mut f,
-        "pub const MAX_HASH_OPTIMIZATIONS: usize = {};\n",
-        max_hash_optimizations
-    )
-    .expect("Could not write file");
-    println!("cargo:rerun-if-env-changed=HBS_LMS_MAX_HASH_OPTIMIZATIONS");
+    #[cfg(feature = "fast_verify")]
+    {
+        let max_hash_optimizations = option_env!("HBS_LMS_MAX_HASH_OPTIMIZATIONS");
+        let max_hash_optimizations: usize = max_hash_optimizations
+            .map_or(Ok(10_000), str::parse)
+            .expect("Could not parse HBS_LMS_MAX_HASH_OPTIMIZATIONS");
+        writeln!(
+            &mut f,
+            "pub const MAX_HASH_OPTIMIZATIONS: usize = {};\n",
+            max_hash_optimizations
+        )
+        .expect("Could not write file");
+        println!("cargo:rerun-if-env-changed=HBS_LMS_MAX_HASH_OPTIMIZATIONS");
+    }
 
-    let threads = option_env!("HBS_LMS_THREADS");
-    let threads = threads
-        .map_or(Ok(1), str::parse)
-        .expect("Could not parse HBS_LMS_THREADS");
-    writeln!(&mut f, "pub const THREADS: usize = {};\n", threads).expect("Could not write file");
-    println!("cargo:rerun-if-env-changed=HBS_LMS_THREADS");
+    #[cfg(all(feature = "fast_verify", feature = "std"))]
+    {
+        let threads = option_env!("HBS_LMS_THREADS");
+        let threads = threads
+            .map_or(Ok(1), str::parse)
+            .expect("Could not parse HBS_LMS_THREADS");
+        writeln!(&mut f, "pub const THREADS: usize = {};\n", threads)
+            .expect("Could not write file");
+        println!("cargo:rerun-if-env-changed=HBS_LMS_THREADS");
+    }
 
     let max_allowed_hss_levels = option_env!("HBS_LMS_MAX_ALLOWED_HSS_LEVELS");
     let max_allowed_hss_levels = max_allowed_hss_levels

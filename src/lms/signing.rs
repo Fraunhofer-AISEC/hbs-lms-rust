@@ -195,6 +195,8 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
 
 #[cfg(test)]
 mod tests {
+    use tinyvec::ArrayVec;
+
     use crate::{
         lm_ots::parameters::LmotsAlgorithm,
         lms::{
@@ -212,9 +214,10 @@ mod tests {
         );
 
         let message = "Hi, what up?".as_bytes();
+        let signature_randomizer = Some(ArrayVec::from([0u8; 32]));
 
-        let signature =
-            LmsSignature::sign(&mut private_key, message, None).expect("Signing must succeed.");
+        let signature = LmsSignature::sign(&mut private_key, message, signature_randomizer)
+            .expect("Signing must succeed.");
 
         let binary = signature.to_binary_representation();
 

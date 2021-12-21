@@ -84,14 +84,17 @@ pub fn generate_public_key_candiate<'a, H: Hasher>(
 
 #[cfg(test)]
 mod tests {
-    use crate::constants::*;
+    use tinyvec::ArrayVec;
+
+    use crate::constants::Seed;
     use crate::hasher::sha256::Sha256Hasher;
-    use crate::lm_ots::parameters;
     use crate::lm_ots::{
         definitions::LmotsPublicKey,
         keygen::{generate_private_key, generate_public_key},
+        parameters,
         signing::{InMemoryLmotsSignature, LmotsSignature},
         verify::verify_signature_inmemory,
+        LmsLeafIdentifier, LmsTreeIdentifier,
     };
 
     macro_rules! generate_test {
@@ -111,8 +114,9 @@ mod tests {
                 let public_key: LmotsPublicKey<Sha256Hasher> = generate_public_key(&private_key);
 
                 let mut message = [1, 3, 5, 9, 0];
+                let signature_randomizer = Some(ArrayVec::from([0u8; 32]));
 
-                let signature = LmotsSignature::sign(&private_key, None, &message);
+                let signature = LmotsSignature::sign(&private_key, signature_randomizer, &message);
 
                 let bin_representation = signature.to_binary_representation();
 

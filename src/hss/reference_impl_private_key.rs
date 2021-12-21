@@ -171,7 +171,7 @@ pub fn generate_child_seed_and_lms_tree_identifier(
     SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier[..16])
 }
 
-pub fn generate_child_signature_randomizer(
+pub fn generate_signature_randomizer(
     child_seed: &SeedAndLmsTreeIdentifier,
     parent_lms_leaf_identifier: &u32,
 ) -> [u8; MAX_HASH_SIZE] {

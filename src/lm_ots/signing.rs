@@ -67,14 +67,7 @@ impl<H: Hasher> LmotsSignature<H> {
     ) -> (H, ArrayVec<[u8; MAX_HASH_SIZE]>) {
         let lmots_parameter = private_key.lmots_parameter;
 
-        let signature_randomizer = signature_randomizer.unwrap_or_else(|| {
-            let mut randomizer = ArrayVec::new();
-            for _ in 0..lmots_parameter.get_hash_function_output_size() {
-                randomizer.push(0u8);
-            }
-            get_random(randomizer.as_mut_slice());
-            randomizer
-        });
+        let signature_randomizer = signature_randomizer.unwrap();
 
         let hasher = lmots_parameter
             .get_hasher()

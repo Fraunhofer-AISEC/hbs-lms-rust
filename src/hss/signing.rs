@@ -6,6 +6,7 @@ use crate::{
         MAX_HSS_SIGNATURE_LENGTH, MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH,
     },
     extract_or_return,
+    hss::reference_impl_private_key::{generate_signature_randomizer, SeedAndLmsTreeIdentifier},
     lms::{
         self,
         definitions::{InMemoryLmsPublicKey, LmsPublicKey},
@@ -53,7 +54,18 @@ impl<H: Hasher> HssSignature<H> {
                 None,
             )
         } else {
-            lms::signing::LmsSignature::sign(&mut prv[max_level - 1], message.unwrap(), None)
+            let signature_randomizer = Some(ArrayVec::from(generate_signature_randomizer(
+                &SeedAndLmsTreeIdentifier {
+                    seed: prv[max_level - 1].seed,
+                    lms_tree_identifier: prv[max_level - 1].lms_tree_identifier,
+                },
+                &prv[max_level - 1].used_leafs_index,
+            )));
+            lms::signing::LmsSignature::sign(
+                &mut prv[max_level - 1],
+                message.unwrap(),
+                signature_randomizer,
+            )
         }?;
         sig.push(new_signature);
 
@@ -229,16 +241,19 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
 
 #[cfg(test)]
 mod tests {
-    use crate::hasher::sha256::Sha256Hasher;
-    use crate::hss::reference_impl_private_key::ReferenceImplPrivateKey;
-    use crate::hss::signing::InMemoryHssSignature;
-    use crate::hss::signing::InMemoryHssSignedPublicKey;
-    use crate::lms::signing::LmsSignature;
-    use crate::HssParameter;
+    use tinyvec::ArrayVec;
 
-    use super::HssPrivateKey;
-    use super::HssSignature;
-    use super::HssSignedPublicKey;
+    use crate::HssParameter;
+    use crate::{
+        hasher::sha256::Sha256Hasher,
+        hss::{
+            reference_impl_private_key::ReferenceImplPrivateKey,
+            signing::{InMemoryHssSignature, InMemoryHssSignedPublicKey, LmsSignature},
+        },
+        lms,
+    };
+
+    use super::{HssPrivateKey, HssSignature, HssSignedPublicKey};
 
     #[test]
     #[should_panic(expected = "Signing should panic!")]
@@ -262,13 +277,14 @@ mod tests {
 
     #[test]
     fn test_signed_public_key_binary_representation() {
-        let mut keypair = crate::lms::generate_key_pair::<Sha256Hasher>(
-            &HssParameter::construct_default_parameters(),
-        );
+        let mut keypair =
+            lms::generate_key_pair::<Sha256Hasher>(&HssParameter::construct_default_parameters());
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
-        let signature = LmsSignature::sign(&mut keypair.private_key, &message, None)
-            .expect("Signing should work");
+        let signature_randomizer = Some(ArrayVec::from([0u8; 32]));
+        let signature =
+            LmsSignature::sign(&mut keypair.private_key, &message, signature_randomizer)
+                .expect("Signing should work");
 
         let signed_public_key = HssSignedPublicKey {
             public_key: keypair.public_key,

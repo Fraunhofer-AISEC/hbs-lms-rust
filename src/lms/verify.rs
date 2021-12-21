@@ -81,6 +81,8 @@ fn generate_public_key_candiate<'a, H: Hasher>(
 
 #[cfg(test)]
 mod tests {
+    use tinyvec::ArrayVec;
+
     use crate::{
         lm_ots::parameters::LmotsAlgorithm,
         lms::{
@@ -107,13 +109,16 @@ mod tests {
 
         let mut first_message = [0u8, 4, 2, 7, 4, 2, 58, 3, 69, 3];
         let mut second_message = [1u8, 2, 3, 4, 5, 6, 7, 0];
+        let signature_randomizer = Some(ArrayVec::from([0u8; 32]));
 
-        let first_signature = LmsSignature::sign(&mut private_key, &first_message, None)
-            .unwrap()
-            .to_binary_representation();
-        let second_signature = LmsSignature::sign(&mut private_key, &second_message, None)
-            .unwrap()
-            .to_binary_representation();
+        let first_signature =
+            LmsSignature::sign(&mut private_key, &first_message, signature_randomizer)
+                .unwrap()
+                .to_binary_representation();
+        let second_signature =
+            LmsSignature::sign(&mut private_key, &second_message, signature_randomizer)
+                .unwrap()
+                .to_binary_representation();
 
         let first_signature = InMemoryLmsSignature::new(first_signature.as_slice()).unwrap();
         let second_signature = InMemoryLmsSignature::new(second_signature.as_slice()).unwrap();

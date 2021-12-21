@@ -28,7 +28,7 @@ use super::reference_impl_private_key::ReferenceImplPrivateKey;
 use super::{
     aux::{hss_is_aux_data_used, MutableExpandedAuxData},
     reference_impl_private_key::{
-        generate_child_seed_and_lms_tree_identifier, generate_child_signature_randomizer,
+        generate_child_seed_and_lms_tree_identifier, generate_signature_randomizer,
     },
 };
 
@@ -101,7 +101,7 @@ impl<H: Hasher> HssPrivateKey<H> {
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);
 
-            let signature_randomizer = Some(ArrayVec::from(generate_child_signature_randomizer(
+            let signature_randomizer = Some(ArrayVec::from(generate_signature_randomizer(
                 &current_seed,
                 &parent_used_leafs_index,
             )));

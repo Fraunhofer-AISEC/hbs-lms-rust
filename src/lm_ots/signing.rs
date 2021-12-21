@@ -1,22 +1,26 @@
-use crate::hasher::Hasher;
-use crate::lm_ots::parameters::LmotsAlgorithm;
 use crate::{
-    constants::{
-        FastVerifyCached, D_MESG, MAX_HASH_CHAIN_COUNT, MAX_HASH_OPTIMIZATIONS, MAX_HASH_SIZE,
-        MAX_LMOTS_SIGNATURE_LENGTH, MAX_LMS_PUBLIC_KEY_LENGTH, THREADS,
-    },
+    constants::{D_MESG, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE, MAX_LMOTS_SIGNATURE_LENGTH},
+    hasher::Hasher,
+    lm_ots::parameters::LmotsAlgorithm,
     util::{
         coef::coef,
         helper::read_and_advance,
-        random::get_random,
         ustr::{str32u, u32str},
     },
 };
-use core::convert::TryFrom;
 use tinyvec::ArrayVec;
 
-#[cfg(feature = "std")]
-use crossbeam::{channel::unbounded, scope};
+#[cfg(all(feature = "fast_verify", feature = "std"))]
+use {
+    crate::constants::THREADS,
+    crossbeam::{channel::unbounded, scope},
+};
+#[cfg(feature = "fast_verify")]
+use {
+    crate::constants::{FastVerifyCached, MAX_HASH_OPTIMIZATIONS, MAX_LMS_PUBLIC_KEY_LENGTH},
+    crate::util::random::get_random,
+    core::convert::TryFrom,
+};
 
 use super::definitions::LmotsPrivateKey;
 use super::parameters::LmotsParameter;
@@ -80,6 +84,7 @@ impl<H: Hasher> LmotsSignature<H> {
         (hasher, signature_randomizer)
     }
 
+    #[cfg(feature = "fast_verify")]
     fn calculate_message_hash_fast_verify(
         private_key: &LmotsPrivateKey<H>,
         signature_randomizer: Option<ArrayVec<[u8; MAX_HASH_SIZE]>>,
@@ -166,6 +171,7 @@ impl<H: Hasher> LmotsSignature<H> {
         LmotsSignature::<H>::sign_core(private_key, &mut hasher, signature_randomizer)
     }
 
+    #[cfg(feature = "fast_verify")]
     pub fn sign_fast_verify(
         private_key: &LmotsPrivateKey<H>,
         signature_randomizer: Option<ArrayVec<[u8; MAX_HASH_SIZE]>>,
@@ -259,6 +265,7 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
     }
 }
 
+#[cfg(feature = "fast_verify")]
 fn optimize_message_hash<H: Hasher>(
     hasher: &H,
     lmots_parameter: &LmotsParameter<H>,
@@ -317,6 +324,7 @@ fn optimize_message_hash<H: Hasher>(
     }
 }
 
+#[cfg(feature = "fast_verify")]
 fn thread_optimize_message_hash<H: Hasher>(
     hasher: &H,
     lmots_parameter: &LmotsParameter<H>,

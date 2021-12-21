@@ -47,12 +47,16 @@ impl<H: Hasher> HssSignature<H> {
 
         // Sign the message
         let new_signature = if cfg!(feature = "fast_verify") && message_mut.is_some() {
-            lms::signing::LmsSignature::sign_fast_verify(
+            #[cfg(feature = "fast_verify")]
+            let lms_sig = lms::signing::LmsSignature::sign_fast_verify(
                 &mut prv[max_level - 1],
                 None,
                 message_mut,
                 None,
-            )
+            );
+            #[cfg(not(feature = "fast_verify"))]
+            let lms_sig = Err(());
+            lms_sig
         } else {
             let signature_randomizer = Some(ArrayVec::from(generate_signature_randomizer(
                 &SeedAndLmsTreeIdentifier {

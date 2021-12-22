@@ -1,10 +1,11 @@
+use rand::{rngs::OsRng, RngCore};
 use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
     process::Command,
 };
 
-use hbs_lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
+use hbs_lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256Hasher};
 use tempfile::TempDir;
 
 const MESSAGE_FILE_NAME: &str = "message.txt";
@@ -48,12 +49,14 @@ fn create_signature_with_own_implementation() {
     let mut aux_data = vec![0u8; 2000];
     let aux_slice = &mut &mut aux_data[..];
 
+    let mut seed = Seed::default();
+    OsRng.fill_bytes(&mut seed);
     let (mut signing_key, verifying_key) = hbs_lms::keygen::<Sha256Hasher>(
         &[
             HssParameter::construct_default_parameters(),
             HssParameter::construct_default_parameters(),
         ],
-        None,
+        &seed,
         Some(aux_slice),
     )
     .expect("Should create HSS keys");
@@ -116,7 +119,7 @@ fn should_produce_same_private_key() {
     let parameters =
         HssParameter::<Sha256Hasher>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
 
-    let (sk, vk) = hbs_lms::keygen(&[parameters, parameters], Some(&TEST_SEED), None).unwrap();
+    let (sk, vk) = hbs_lms::keygen(&[parameters, parameters], &TEST_SEED, None).unwrap();
 
     let ref_signing_key = read_private_key(path);
     let ref_verifying_key = read_public_key(path);
@@ -139,7 +142,7 @@ fn should_produce_same_aux_data() {
     let mut aux_data = vec![0u8; 2000];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    let _ = hbs_lms::keygen(&[parameters, parameters], Some(&TEST_SEED), Some(aux_slice)).unwrap();
+    let _ = hbs_lms::keygen(&[parameters, parameters], &TEST_SEED, Some(aux_slice)).unwrap();
 
     let ref_aux_data = read_aux_data(path);
 

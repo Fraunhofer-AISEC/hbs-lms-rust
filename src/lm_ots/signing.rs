@@ -10,16 +10,14 @@ use crate::{
 };
 use tinyvec::ArrayVec;
 
-#[cfg(all(feature = "fast_verify", feature = "std"))]
-use {
-    crate::constants::THREADS,
-    crossbeam::{channel::unbounded, scope},
-};
 #[cfg(feature = "fast_verify")]
 use {
-    crate::constants::{FastVerifyCached, MAX_HASH_OPTIMIZATIONS, MAX_LMS_PUBLIC_KEY_LENGTH},
-    crate::util::random::get_random,
+    crate::constants::{
+        FastVerifyCached, MAX_HASH_OPTIMIZATIONS, MAX_LMS_PUBLIC_KEY_LENGTH, THREADS,
+    },
     core::convert::TryFrom,
+    crossbeam::{channel::unbounded, scope},
+    rand::{rngs::OsRng, RngCore},
 };
 
 use super::definitions::LmotsPrivateKey;
@@ -260,48 +258,33 @@ fn optimize_message_hash<H: Hasher>(
     assert_eq!(message, ArrayVec::new());
     let fast_verify_cached = lmots_parameter.fast_verify_eval_init();
 
-    #[cfg(feature = "std")]
-    {
-        let rx = {
-            let (tx, rx) = unbounded();
+    let rx = {
+        let (tx, rx) = unbounded();
 
-            scope(|s| {
-                for _ in 0..THREADS {
-                    let tx = tx.clone();
-                    s.spawn(move |_| {
-                        tx.send(thread_optimize_message_hash::<H>(
-                            hasher,
-                            lmots_parameter,
-                            &fast_verify_cached,
-                            &message,
-                        ))
-                        .unwrap()
-                    });
-                }
-            })
-            .unwrap();
-            rx
-        };
-
-        let mut max_hash_iterations = 0;
-        for (hash_iterations, trial_randomizer) in rx.iter() {
-            if hash_iterations > max_hash_iterations {
-                max_hash_iterations = hash_iterations;
-                randomizer.copy_from_slice(trial_randomizer.as_slice());
+        scope(|s| {
+            for _ in 0..THREADS {
+                let tx = tx.clone();
+                s.spawn(move |_| {
+                    tx.send(thread_optimize_message_hash::<H>(
+                        hasher,
+                        lmots_parameter,
+                        &fast_verify_cached,
+                        &message,
+                    ))
+                    .unwrap()
+                });
             }
+        })
+        .unwrap();
+        rx
+    };
+
+    let mut max_hash_iterations = 0;
+    for (hash_iterations, trial_randomizer) in rx.iter() {
+        if hash_iterations > max_hash_iterations {
+            max_hash_iterations = hash_iterations;
+            randomizer.copy_from_slice(trial_randomizer.as_slice());
         }
-    }
-
-    #[cfg(not(feature = "std"))]
-    {
-        let (_, trial_randomizer) = thread_optimize_message_hash::<H>(
-            hasher,
-            lmots_parameter,
-            &fast_verify_cached,
-            &message,
-        );
-
-        randomizer.copy_from_slice(trial_randomizer.as_slice());
     }
 }
 
@@ -322,7 +305,7 @@ fn thread_optimize_message_hash<H: Hasher>(
         randomizer.push(0u8);
     }
 
-    get_random(trial_randomizer.as_mut_slice());
+    OsRng.fill_bytes(trial_randomizer.as_mut_slice());
 
     for _ in 0..MAX_HASH_OPTIMIZATIONS / THREADS {
         trial_randomizer = lmots_parameter

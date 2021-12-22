@@ -28,9 +28,10 @@ rand = { version = "0.8.3", optional = true }
 clap = "2.33.3"
 tempfile = "3.2.0"
 hex = "0.4.3"
+rand = "0.8.3"
 
 [features]
 default = ["std"]
-std = ["rand", "crossbeam"]
-fast_verify = []
+std = []
+fast_verify = ["std", "rand", "crossbeam"]
 verbose = []

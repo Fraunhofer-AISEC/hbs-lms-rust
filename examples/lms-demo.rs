@@ -288,32 +288,29 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let genkey_parameter = parse_genkey_parameter(&get_parameter(PARAMETER_PARAMETER, args));
     let parameter = genkey_parameter.parameter;
 
-    let seed = if let Some(seed) = args.value_of(SEED_PARAMETER) {
+    let seed: Seed = if let Some(seed) = args.value_of(SEED_PARAMETER) {
         let decoded = hex::decode(seed)?;
         if decoded.len() < size_of::<Seed>() {
             return DemoError::raise("Seed is too short");
         }
-        Some(decoded)
+        let mut seed = Seed::default();
+        seed.copy_from_slice(&decoded[..]);
+        seed
     } else {
-        None
+        return DemoError::raise("Seed was not given");
     };
-
-    let seed_slice: Option<&[u8]> = seed.as_deref();
 
     let mut aux_data = vec![0u8; genkey_parameter.aux_data];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    let (signing_key, verifying_key) = keygen(&parameter, seed_slice, Some(aux_slice))
+    let (signing_key, verifying_key) = keygen(&parameter, &seed, Some(aux_slice))
         .unwrap_or_else(|_| panic!("Could not generate keys"));
 
     let public_key_filename = get_public_key_name(&keyname);
     let private_key_filename = get_private_key_name(&keyname);
 
     let aux_name = get_aux_name(&keyname);
-
-    if seed.is_some() {
-        write(&aux_name, aux_slice)?;
-    }
+    write(&aux_name, aux_slice)?;
 
     write(public_key_filename.as_str(), verifying_key.as_slice())?;
     write(private_key_filename.as_str(), signing_key.as_slice())?;

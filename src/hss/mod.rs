@@ -230,22 +230,20 @@ fn hss_sign_core<H: Hasher>(
  * ];
  * let mut aux_data = vec![0u8; 10_000];
  * let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+ * let mut seed = Seed::default();
+ * OsRng.fill_bytes(&mut seed);
  *
  * let (signing_key, verifying_key) =
- *      keygen::<Sha256Hasher>(&parameters, None, Some(aux_slice)).unwrap();
+ *      keygen::<Sha256Hasher>(&parameters, &seed, Some(aux_slice)).unwrap();
  * ```
  */
 pub fn hss_keygen<H: Hasher>(
     parameters: &[HssParameter<H>],
-    seed: Option<&[u8]>,
+    seed: &[u8; SEED_LEN],
     aux_data: Option<&mut &mut [u8]>,
 ) -> Result<(SigningKey<H>, VerifyingKey<H>), Error> {
-    let private_key = if let Some(seed) = seed {
-        ReferenceImplPrivateKey::generate_with_seed(parameters, seed)
-    } else {
-        ReferenceImplPrivateKey::generate(parameters)
-    }
-    .map_err(|_| Error::new())?;
+    let private_key =
+        ReferenceImplPrivateKey::generate(parameters, seed).map_err(|_| Error::new())?;
 
     let hss_key = HssPrivateKey::from(&private_key, aux_data).map_err(|_| Error::new())?;
 
@@ -269,16 +267,20 @@ mod tests {
     use crate::{
         constants::{LMS_LEAF_IDENTIFIERS_SIZE, SEED_LEN},
         util::ustr::u64str,
-        LmotsAlgorithm, LmsAlgorithm,
+        LmotsAlgorithm, LmsAlgorithm, Seed,
     };
 
     use super::*;
+
+    use rand::{rngs::OsRng, RngCore};
 
     #[test]
     fn update_keypair() {
         let message = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
         type H = Sha256Hasher;
 
         let lmots = LmotsAlgorithm::LmotsW4;
@@ -286,7 +288,7 @@ mod tests {
         let parameters = [HssParameter::new(lmots, lms)];
 
         let (mut signing_key, verifying_key) =
-            hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
+            hss_keygen::<H>(&parameters, &seed, None).expect("Should generate HSS keys");
 
         let signing_key_const = signing_key.clone();
 
@@ -321,6 +323,8 @@ mod tests {
         let message = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
         type H = Sha256Hasher;
 
         let lmots = LmotsAlgorithm::LmotsW2;
@@ -328,7 +332,7 @@ mod tests {
         let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
 
         let (mut signing_key, verifying_key) =
-            hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
+            hss_keygen::<H>(&parameters, &seed, None).expect("Should generate HSS keys");
         let keypair_lifetime = signing_key.get_lifetime(None).unwrap();
 
         assert_ne!(
@@ -379,6 +383,8 @@ mod tests {
         let message = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
         type H = Sha256Hasher;
 
         let lmots = LmotsAlgorithm::LmotsW2;
@@ -386,7 +392,7 @@ mod tests {
         let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
 
         let (mut signing_key, verifying_key) =
-            hss_keygen::<H>(&parameters, None, None).expect("Should generate HSS keys");
+            hss_keygen::<H>(&parameters, &seed, None).expect("Should generate HSS keys");
         let keypair_lifetime = signing_key.get_lifetime(None).unwrap();
 
         for index in 0..(1u64 + keypair_lifetime) {
@@ -430,13 +436,15 @@ mod tests {
     }
 
     fn test_signing_core<H: Hasher>() {
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
         let (mut signing_key, verifying_key) = hss_keygen::<H>(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
             ],
-            None,
+            &seed,
             None,
         )
         .expect("Should generate HSS keys");
@@ -481,6 +489,8 @@ mod tests {
     #[test]
     fn test_signing_fast_verify() {
         type H = Sha256Hasher;
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
 
         let (mut signing_key, verifying_key) = hss_keygen::<H>(
             &[
@@ -488,7 +498,7 @@ mod tests {
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
             ],
-            None,
+            &seed,
             None,
         )
         .expect("Should generate HSS keys");

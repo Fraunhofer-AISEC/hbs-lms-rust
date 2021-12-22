@@ -4,9 +4,10 @@ use tinyvec::ArrayVec;
 
 use crate::{
     constants::{
-        LmsTreeIdentifier, Seed, D_TOPSEED, LMS_LEAF_IDENTIFIERS_SIZE, MAX_ALLOWED_HSS_LEVELS,
-        MAX_HASH_SIZE, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_CHILD_SEED, SEED_LEN,
-        SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
+        LmsTreeIdentifier, Seed, D_TOPSEED, ILEN, LMS_LEAF_IDENTIFIERS_SIZE,
+        MAX_ALLOWED_HSS_LEVELS, MAX_HASH_SIZE, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_CHILD_SEED,
+        SEED_LEN, SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED,
+        TOPSEED_WHICH,
     },
     hasher::Hasher,
     hss::{definitions::HssPrivateKey, seed_derive::SeedDerive},
@@ -21,32 +22,31 @@ use crate::{
 To be compatible with the reference implementation
  */
 
-#[derive(Default, PartialEq)]
-pub struct ReferenceImplPrivateKey<H: Hasher> {
-    pub compressed_used_leafs_indexes: CompressedUsedLeafsIndexes,
-    pub compressed_parameter: CompressedParameterSet,
-    pub seed: Seed,
-    phantom: PhantomData<H>,
-}
-
+#[derive(Default)]
 pub struct SeedAndLmsTreeIdentifier {
     pub seed: Seed,
     pub lms_tree_identifier: LmsTreeIdentifier,
 }
 
 impl SeedAndLmsTreeIdentifier {
-    pub fn new(seed: &[u8], lms_leaf_identifier: &[u8]) -> Self {
-        let mut local_seed: Seed = Default::default();
-        let mut local_lms_leaf_identifier: LmsTreeIdentifier = Default::default();
+    pub fn new(seed: &[u8; SEED_LEN], lms_tree_identifier: &[u8; ILEN]) -> Self {
+        let mut result = SeedAndLmsTreeIdentifier::default();
 
-        local_seed.copy_from_slice(seed);
-        local_lms_leaf_identifier.copy_from_slice(&lms_leaf_identifier[..16]);
+        result.seed.copy_from_slice(seed);
+        result
+            .lms_tree_identifier
+            .copy_from_slice(lms_tree_identifier);
 
-        Self {
-            seed: local_seed,
-            lms_tree_identifier: local_lms_leaf_identifier,
-        }
+        result
     }
+}
+
+#[derive(Default, PartialEq)]
+pub struct ReferenceImplPrivateKey<H: Hasher> {
+    pub compressed_used_leafs_indexes: CompressedUsedLeafsIndexes,
+    pub compressed_parameter: CompressedParameterSet,
+    pub seed: Seed,
+    phantom: PhantomData<H>,
 }
 
 impl<H: Hasher> ReferenceImplPrivateKey<H> {
@@ -122,14 +122,15 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         hash_preimage[TOPSEED_WHICH] = 0x01;
         hasher.update(&hash_preimage);
 
-        let seed = hasher.finalize_reset();
+        let seed = hasher.finalize_reset().into_inner();
 
         hash_preimage[TOPSEED_WHICH] = 0x02;
         hasher.update(&hash_preimage);
 
-        let lms_tree_identifier = hasher.finalize_reset();
+        let mut lms_tree_identifier: LmsTreeIdentifier = [0u8; ILEN];
+        lms_tree_identifier.copy_from_slice(&hasher.finalize_reset()[..ILEN]);
 
-        SeedAndLmsTreeIdentifier::new(seed.as_slice(), lms_tree_identifier.as_slice())
+        SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier)
     }
 
     pub fn increment(&mut self, hss_private_key: &HssPrivateKey<H>) {
@@ -154,9 +155,10 @@ pub fn generate_child_seed_and_lms_tree_identifier(
     derive.set_child_seed(SEED_CHILD_SEED);
 
     let seed = derive.seed_derive(true);
-    let lms_tree_identifier = derive.seed_derive(false);
+    let mut lms_tree_identifier: LmsTreeIdentifier = [0u8; ILEN];
+    lms_tree_identifier.copy_from_slice(&derive.seed_derive(false)[..ILEN]);
 
-    SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier[..16])
+    SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier)
 }
 
 pub fn generate_signature_randomizer(

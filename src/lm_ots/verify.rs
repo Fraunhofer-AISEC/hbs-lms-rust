@@ -97,6 +97,8 @@ mod tests {
         LmsLeafIdentifier, LmsTreeIdentifier,
     };
 
+    use rand::{rngs::OsRng, RngCore};
+
     macro_rules! generate_test {
         ($name:ident, $type:expr) => {
             #[test]
@@ -114,9 +116,10 @@ mod tests {
                 let public_key: LmotsPublicKey<Sha256Hasher> = generate_public_key(&private_key);
 
                 let mut message = [1, 3, 5, 9, 0];
-                let signature_randomizer = Some(ArrayVec::from([0u8; 32]));
+                let mut signature_randomizer = ArrayVec::from([0u8; 32]);
+                OsRng.fill_bytes(&mut signature_randomizer);
 
-                let signature = LmotsSignature::sign(&private_key, signature_randomizer, &message);
+                let signature = LmotsSignature::sign(&private_key, &signature_randomizer, &message);
 
                 let bin_representation = signature.to_binary_representation();
 

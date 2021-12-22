@@ -30,6 +30,15 @@ pub struct SigningKey<H: Hasher> {
 }
 
 impl<H: Hasher> SigningKey<H> {
+    pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+        let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
+
+        Ok(Self {
+            bytes,
+            phantom_data: PhantomData,
+        })
+    }
+
     pub fn as_slice(&self) -> &[u8] {
         self.bytes.as_slice()
     }
@@ -248,10 +257,7 @@ pub fn hss_keygen<H: Hasher>(
 
     let hss_key = HssPrivateKey::from(&private_key, aux_data).map_err(|_| Error::new())?;
 
-    let signing_key = SigningKey {
-        bytes: private_key.to_binary_representation(),
-        phantom_data: PhantomData,
-    };
+    let signing_key = SigningKey::from_bytes(&private_key.to_binary_representation())?;
     let verifying_key =
         VerifyingKey::from_bytes(&hss_key.get_public_key().to_binary_representation())?;
     Ok((signing_key, verifying_key))

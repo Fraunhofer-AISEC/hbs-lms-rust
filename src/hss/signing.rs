@@ -290,8 +290,14 @@ mod tests {
 
     #[test]
     fn test_signed_public_key_binary_representation() {
-        let mut keypair =
-            lms::generate_key_pair::<Sha256Hasher>(&HssParameter::construct_default_parameters());
+        let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
+        OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
+        let mut keypair = lms::generate_key_pair::<Sha256Hasher>(
+            &seed_and_lms_tree_identifier,
+            &HssParameter::construct_default_parameters(),
+            &0,
+            &mut None,
+        );
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
         let signature_randomizer = Some(ArrayVec::from([0u8; 32]));

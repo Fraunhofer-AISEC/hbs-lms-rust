@@ -6,10 +6,7 @@ use crate::{
     hss::aux::{
         hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
     },
-    lms::{
-        definitions::InMemoryLmsPublicKey, generate_key_pair_with_seed_and_aux,
-        parameters::LmsParameter,
-    },
+    lms::{definitions::InMemoryLmsPublicKey, generate_key_pair, parameters::LmsParameter},
     util::{
         helper::read_and_advance,
         ustr::{str32u, u32str},
@@ -71,7 +68,7 @@ impl<H: Hasher> HssPrivateKey<H> {
 
         let mut current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
 
-        let lms_keypair = generate_key_pair_with_seed_and_aux(
+        let lms_keypair = generate_key_pair(
             &current_seed,
             &parameters[0],
             &used_leafs_indexes[0],
@@ -91,12 +88,8 @@ impl<H: Hasher> HssPrivateKey<H> {
                 &parent_used_leafs_index,
             );
 
-            let lms_keypair = generate_key_pair_with_seed_and_aux(
-                &current_seed,
-                parameter,
-                &used_leafs_indexes[i],
-                &mut None,
-            );
+            let lms_keypair =
+                generate_key_pair(&current_seed, parameter, &used_leafs_indexes[i], &mut None);
 
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);
@@ -391,8 +384,14 @@ mod tests {
 
     #[test]
     fn test_public_key_binary_representation() {
-        let public_key =
-            crate::lms::generate_key_pair(&HssParameter::construct_default_parameters());
+        let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
+        OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
+        let public_key = lms::generate_key_pair(
+            &seed_and_lms_tree_identifier,
+            &HssParameter::construct_default_parameters(),
+            &0,
+            &mut None,
+        );
         let public_key: HssPublicKey<Sha256Hasher> = HssPublicKey {
             level: 18,
             public_key: public_key.public_key,

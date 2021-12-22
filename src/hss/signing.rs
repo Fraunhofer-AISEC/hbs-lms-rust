@@ -245,27 +245,36 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
 
 #[cfg(test)]
 mod tests {
-    use tinyvec::ArrayVec;
-
     use crate::HssParameter;
     use crate::{
         hasher::sha256::Sha256Hasher,
         hss::{
             reference_impl_private_key::ReferenceImplPrivateKey,
-            signing::{InMemoryHssSignature, InMemoryHssSignedPublicKey, LmsSignature},
+            signing::{
+                InMemoryHssSignature, InMemoryHssSignedPublicKey, LmsSignature,
+                SeedAndLmsTreeIdentifier,
+            },
         },
-        lms,
+        lms, Seed,
     };
 
     use super::{HssPrivateKey, HssSignature, HssSignedPublicKey};
 
+    use rand::{rngs::OsRng, RngCore};
+    use tinyvec::ArrayVec;
+
     #[test]
     #[should_panic(expected = "Signing should panic!")]
     fn reuse_loaded_keypair() {
-        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(&[
-            HssParameter::construct_default_parameters(),
-            HssParameter::construct_default_parameters(),
-        ])
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(
+            &[
+                HssParameter::construct_default_parameters(),
+                HssParameter::construct_default_parameters(),
+            ],
+            &seed,
+        )
         .unwrap();
 
         let mut private_key = HssPrivateKey::from(&private_key, None).unwrap();
@@ -304,10 +313,15 @@ mod tests {
 
     #[test]
     fn test_hss_signature_binary_representation() {
-        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(&[
-            HssParameter::construct_default_parameters(),
-            HssParameter::construct_default_parameters(),
-        ])
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(
+            &[
+                HssParameter::construct_default_parameters(),
+                HssParameter::construct_default_parameters(),
+            ],
+            &seed,
+        )
         .unwrap();
 
         let mut private_key = HssPrivateKey::from(&private_key, None).unwrap();

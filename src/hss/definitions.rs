@@ -231,12 +231,17 @@ impl<'a, H: Hasher> InMemoryHssPublicKey<'a, H> {
 #[cfg(test)]
 mod tests {
     use super::{HssPrivateKey, HssPublicKey};
-    use crate::hasher::sha256::Sha256Hasher;
-    use crate::hss::definitions::InMemoryHssPublicKey;
     use crate::{
-        hss::reference_impl_private_key::ReferenceImplPrivateKey, Hasher, HssParameter,
-        LmotsAlgorithm, LmsAlgorithm,
+        hasher::sha256::Sha256Hasher,
+        hss::{
+            definitions::InMemoryHssPublicKey,
+            reference_impl_private_key::{ReferenceImplPrivateKey, SeedAndLmsTreeIdentifier},
+            Hasher, HssParameter,
+        },
+        lms, LmotsAlgorithm, LmsAlgorithm, Seed,
     };
+
+    use rand::{rngs::OsRng, RngCore};
 
     #[test]
     fn child_tree_lms_leaf_update() {
@@ -312,7 +317,9 @@ mod tests {
             HssParameter::<H>::new(lmots, lms),
         ];
 
-        let mut rfc_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let mut rfc_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
 
         let hss_key_before = HssPrivateKey::from(&rfc_key, None).unwrap();
 
@@ -337,7 +344,9 @@ mod tests {
             HssParameter::<H>::new(lmots, lms),
         ];
 
-        let mut private_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let mut private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
         let hss_key = HssPrivateKey::from(&private_key, None).unwrap();
 
         let tree_heights = hss_key
@@ -371,7 +380,9 @@ mod tests {
             HssParameter::<H>::new(lmots, lms),
         ];
 
-        let private_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
 
         let hss_key = HssPrivateKey::from(&private_key, None).unwrap();
         let hss_key_second = HssPrivateKey::from(&private_key, None).unwrap();

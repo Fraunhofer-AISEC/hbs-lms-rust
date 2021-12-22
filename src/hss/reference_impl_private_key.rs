@@ -12,7 +12,6 @@ use crate::{
     hss::{definitions::HssPrivateKey, seed_derive::SeedDerive},
     util::{
         helper::read_and_advance,
-        random::get_random,
         ustr::{str64u, u64str},
     },
     HssParameter, LmotsAlgorithm, LmsAlgorithm,
@@ -57,27 +56,16 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         self.compressed_used_leafs_indexes = CompressedUsedLeafsIndexes::new(0);
     }
 
-    pub fn generate_with_seed(parameters: &[HssParameter<H>], seed: &[u8]) -> Result<Self, ()> {
+    pub fn generate(parameters: &[HssParameter<H>], seed: &[u8; SEED_LEN]) -> Result<Self, ()> {
         let mut private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
-            compressed_used_leafs_indexes: CompressedUsedLeafsIndexes { count: 0 },
+            compressed_used_leafs_indexes: CompressedUsedLeafsIndexes::new(0),
             compressed_parameter: CompressedParameterSet::from(parameters)?,
             ..Default::default()
         };
 
-        if seed.len() < 32 {
-            return Err(());
-        }
-
-        private_key.seed.copy_from_slice(&seed[..32]);
+        private_key.seed.copy_from_slice(seed);
 
         Ok(private_key)
-    }
-
-    pub fn generate(parameters: &[HssParameter<H>]) -> Result<Self, ()> {
-        let mut seed: Seed = Default::default();
-        get_random(&mut seed);
-
-        ReferenceImplPrivateKey::generate_with_seed(parameters, &seed)
     }
 
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; REFERENCE_IMPL_PRIVATE_KEY_SIZE]> {
@@ -304,9 +292,10 @@ mod tests {
     use super::{CompressedParameterSet, ReferenceImplPrivateKey};
     use crate::{
         constants::MAX_ALLOWED_HSS_LEVELS, hss::definitions::HssPrivateKey, HssParameter,
-        LmotsAlgorithm, LmsAlgorithm, Sha256Hasher,
+        LmotsAlgorithm, LmsAlgorithm, Seed, Sha256Hasher,
     };
 
+    use rand::{rngs::OsRng, RngCore};
     use tinyvec::ArrayVec;
 
     type Hasher = Sha256Hasher;
@@ -315,10 +304,12 @@ mod tests {
     fn exhaust_state() {
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH5;
-
         let parameters = [HssParameter::<Hasher>::new(lmots, lms)];
 
-        let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
+
         let hss_private_key = HssPrivateKey::from(&rfc_private_key, None).unwrap();
 
         let seed = rfc_private_key.seed;
@@ -341,10 +332,12 @@ mod tests {
     fn parse_exhausted_state() {
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH5;
-
         let parameters = [HssParameter::<Hasher>::new(lmots, lms)];
 
-        let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
+
         let hss_private_key = HssPrivateKey::from(&rfc_private_key, None).unwrap();
         let keypair_lifetime = hss_private_key.get_lifetime();
 
@@ -391,7 +384,9 @@ mod tests {
             HssParameter::construct_default_parameters(),
         ];
 
-        let key = ReferenceImplPrivateKey::generate(&parameters).unwrap();
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
 
         let binary_representation = key.to_binary_representation();
         let deserialized = ReferenceImplPrivateKey::<Hasher>::from_binary_representation(

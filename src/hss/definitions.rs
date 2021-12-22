@@ -94,16 +94,16 @@ impl<H: Hasher> HssPrivateKey<H> {
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);
 
-            let signature_randomizer = Some(ArrayVec::from(generate_signature_randomizer(
+            let signature_randomizer = ArrayVec::from(generate_signature_randomizer(
                 &current_seed,
                 &parent_used_leafs_index,
-            )));
+            ));
             let signature = lms::signing::LmsSignature::sign(
                 &mut hss_private_key.private_key[i - 1],
                 hss_private_key.public_key[i]
                     .to_binary_representation()
                     .as_slice(),
-                signature_randomizer,
+                &signature_randomizer,
             )?;
 
             hss_private_key.signatures.push(signature);

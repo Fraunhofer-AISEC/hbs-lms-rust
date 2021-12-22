@@ -46,29 +46,30 @@ impl<H: Hasher> HssSignature<H> {
         }
 
         // Sign the message
+        #[allow(unused_mut)]
+        let mut signature_randomizer = ArrayVec::from(generate_signature_randomizer(
+            &SeedAndLmsTreeIdentifier {
+                seed: prv[max_level - 1].seed,
+                lms_tree_identifier: prv[max_level - 1].lms_tree_identifier,
+            },
+            &prv[max_level - 1].used_leafs_index,
+        ));
         let new_signature = if cfg!(feature = "fast_verify") && message_mut.is_some() {
             #[cfg(feature = "fast_verify")]
             let lms_sig = lms::signing::LmsSignature::sign_fast_verify(
                 &mut prv[max_level - 1],
                 None,
                 message_mut,
-                None,
+                &mut signature_randomizer,
             );
             #[cfg(not(feature = "fast_verify"))]
             let lms_sig = Err(());
             lms_sig
         } else {
-            let signature_randomizer = Some(ArrayVec::from(generate_signature_randomizer(
-                &SeedAndLmsTreeIdentifier {
-                    seed: prv[max_level - 1].seed,
-                    lms_tree_identifier: prv[max_level - 1].lms_tree_identifier,
-                },
-                &prv[max_level - 1].used_leafs_index,
-            )));
             lms::signing::LmsSignature::sign(
                 &mut prv[max_level - 1],
                 message.unwrap(),
-                signature_randomizer,
+                &signature_randomizer,
             )
         }?;
         sig.push(new_signature);
@@ -300,9 +301,10 @@ mod tests {
         );
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
-        let signature_randomizer = Some(ArrayVec::from([0u8; 32]));
+        let mut signature_randomizer = ArrayVec::from([0u8; 32]);
+        OsRng.fill_bytes(&mut signature_randomizer);
         let signature =
-            LmsSignature::sign(&mut keypair.private_key, &message, signature_randomizer)
+            LmsSignature::sign(&mut keypair.private_key, &message, &signature_randomizer)
                 .expect("Signing should work");
 
         let signed_public_key = HssSignedPublicKey {

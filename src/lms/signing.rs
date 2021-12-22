@@ -83,7 +83,7 @@ impl<H: Hasher> LmsSignature<H> {
         lms_private_key: &mut LmsPrivateKey<H>,
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
-        signature_randomizer: Option<ArrayVec<[u8; MAX_HASH_SIZE]>>,
+        signature_randomizer: &mut ArrayVec<[u8; MAX_HASH_SIZE]>,
     ) -> Result<LmsSignature<H>, ()> {
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
@@ -110,7 +110,7 @@ impl<H: Hasher> LmsSignature<H> {
     pub fn sign(
         lms_private_key: &mut LmsPrivateKey<H>,
         message: &[u8],
-        signature_randomizer: Option<ArrayVec<[u8; MAX_HASH_SIZE]>>,
+        signature_randomizer: &ArrayVec<[u8; MAX_HASH_SIZE]>,
     ) -> Result<LmsSignature<H>, ()> {
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
@@ -222,9 +222,10 @@ mod tests {
         );
 
         let message = "Hi, what up?".as_bytes();
-        let signature_randomizer = Some(ArrayVec::from([0u8; 32]));
+        let mut signature_randomizer = ArrayVec::from([0u8; 32]);
+        OsRng.fill_bytes(&mut signature_randomizer);
 
-        let signature = LmsSignature::sign(&mut private_key, message, signature_randomizer)
+        let signature = LmsSignature::sign(&mut private_key, message, &signature_randomizer)
             .expect("Signing must succeed.");
 
         let binary = signature.to_binary_representation();

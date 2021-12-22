@@ -66,41 +66,28 @@ impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, 
 impl<H: Hasher> LmotsSignature<H> {
     fn calculate_message_hash(
         private_key: &LmotsPrivateKey<H>,
-        signature_randomizer: Option<ArrayVec<[u8; MAX_HASH_SIZE]>>,
+        signature_randomizer: &ArrayVec<[u8; MAX_HASH_SIZE]>,
         message: &[u8],
-    ) -> (H, ArrayVec<[u8; MAX_HASH_SIZE]>) {
+    ) -> H {
         let lmots_parameter = private_key.lmots_parameter;
 
-        let signature_randomizer = signature_randomizer.unwrap();
-
-        let hasher = lmots_parameter
+        lmots_parameter
             .get_hasher()
             .chain(&private_key.lms_tree_identifier)
             .chain(&private_key.lms_leaf_identifier)
             .chain(&D_MESG)
-            .chain(signature_randomizer.as_slice())
-            .chain(message);
-
-        (hasher, signature_randomizer)
+            .chain(signature_randomizer)
+            .chain(message)
     }
 
     #[cfg(feature = "fast_verify")]
     fn calculate_message_hash_fast_verify(
         private_key: &LmotsPrivateKey<H>,
-        signature_randomizer: Option<ArrayVec<[u8; MAX_HASH_SIZE]>>,
+        signature_randomizer: &mut ArrayVec<[u8; MAX_HASH_SIZE]>,
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
-    ) -> (H, ArrayVec<[u8; MAX_HASH_SIZE]>) {
+    ) -> H {
         let lmots_parameter = private_key.lmots_parameter;
-
-        let mut signature_randomizer = signature_randomizer.unwrap_or_else(|| {
-            let mut randomizer = ArrayVec::new();
-            for _ in 0..lmots_parameter.get_hash_function_output_size() {
-                randomizer.push(0u8);
-            }
-            get_random(randomizer.as_mut_slice());
-            randomizer
-        });
 
         let mut hasher = lmots_parameter
             .get_hasher()
@@ -112,24 +99,19 @@ impl<H: Hasher> LmotsSignature<H> {
             let message_end = message_mut.len() - H::OUTPUT_SIZE as usize;
             let (message_mut, message_randomizer) = message_mut.split_at_mut(message_end);
 
-            hasher.update(signature_randomizer.as_slice());
+            hasher.update(signature_randomizer);
             hasher.update(message_mut);
 
             optimize_message_hash(&hasher, &lmots_parameter, message_randomizer, None);
 
             hasher.update(message_randomizer);
         } else {
-            optimize_message_hash(
-                &hasher,
-                &lmots_parameter,
-                &mut signature_randomizer,
-                message,
-            );
+            optimize_message_hash(&hasher, &lmots_parameter, signature_randomizer, message);
 
             hasher.update(signature_randomizer.as_slice());
             hasher.update(message.unwrap());
         }
-        (hasher, signature_randomizer)
+        hasher
     }
 
     fn calculate_signature(
@@ -163,10 +145,10 @@ impl<H: Hasher> LmotsSignature<H> {
 
     pub fn sign(
         private_key: &LmotsPrivateKey<H>,
-        signature_randomizer: Option<ArrayVec<[u8; MAX_HASH_SIZE]>>,
+        signature_randomizer: &ArrayVec<[u8; MAX_HASH_SIZE]>,
         message: &[u8],
     ) -> Self {
-        let (mut hasher, signature_randomizer) =
+        let mut hasher =
             LmotsSignature::<H>::calculate_message_hash(private_key, signature_randomizer, message);
         LmotsSignature::<H>::sign_core(private_key, &mut hasher, signature_randomizer)
     }
@@ -174,24 +156,23 @@ impl<H: Hasher> LmotsSignature<H> {
     #[cfg(feature = "fast_verify")]
     pub fn sign_fast_verify(
         private_key: &LmotsPrivateKey<H>,
-        signature_randomizer: Option<ArrayVec<[u8; MAX_HASH_SIZE]>>,
+        signature_randomizer: &mut ArrayVec<[u8; MAX_HASH_SIZE]>,
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
     ) -> Self {
-        let (mut hasher, signature_randomizer) =
-            LmotsSignature::<H>::calculate_message_hash_fast_verify(
-                private_key,
-                signature_randomizer,
-                message,
-                message_mut,
-            );
+        let mut hasher = LmotsSignature::<H>::calculate_message_hash_fast_verify(
+            private_key,
+            signature_randomizer,
+            message,
+            message_mut,
+        );
         LmotsSignature::<H>::sign_core(private_key, &mut hasher, signature_randomizer)
     }
 
     fn sign_core(
         private_key: &LmotsPrivateKey<H>,
         hasher: &mut H,
-        signature_randomizer: ArrayVec<[u8; MAX_HASH_SIZE]>,
+        signature_randomizer: &ArrayVec<[u8; MAX_HASH_SIZE]>,
     ) -> Self {
         let lmots_parameter = private_key.lmots_parameter;
 
@@ -211,7 +192,7 @@ impl<H: Hasher> LmotsSignature<H> {
         });
 
         LmotsSignature {
-            signature_randomizer,
+            signature_randomizer: *signature_randomizer,
             signature_data,
             lmots_parameter,
             hash_iterations,

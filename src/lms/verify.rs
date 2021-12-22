@@ -81,8 +81,6 @@ fn generate_public_key_candiate<'a, H: Hasher>(
 
 #[cfg(test)]
 mod tests {
-    use tinyvec::ArrayVec;
-
     use crate::{
         lm_ots::parameters::LmotsAlgorithm,
         lms::{
@@ -90,15 +88,24 @@ mod tests {
             keygen::{generate_private_key, generate_public_key},
             parameters::LmsAlgorithm,
             signing::{InMemoryLmsSignature, LmsSignature},
+            SeedAndLmsTreeIdentifier,
         },
         Sha256Hasher,
     };
+
+    use rand::{rngs::OsRng, RngCore};
+    use tinyvec::ArrayVec;
 
     #[test]
     fn test_verification() {
         type Hasher = Sha256Hasher;
 
+        let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
+        OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
         let mut private_key = generate_private_key(
+            seed_and_lms_tree_identifier.seed,
+            seed_and_lms_tree_identifier.lms_tree_identifier,
+            0,
             LmotsAlgorithm::construct_default_parameter(),
             LmsAlgorithm::construct_default_parameter(),
         );

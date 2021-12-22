@@ -145,18 +145,25 @@ impl<'a, H: Hasher> InMemoryLmsPublicKey<'a, H> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        hasher::sha256::Sha256Hasher,
         lm_ots::parameters::LmotsAlgorithm,
         lms::{
             definitions::InMemoryLmsPublicKey,
             keygen::{generate_private_key, generate_public_key},
             parameters::LmsAlgorithm,
+            SeedAndLmsTreeIdentifier,
         },
     };
 
+    use rand::{rngs::OsRng, RngCore};
+
     #[test]
     fn test_public_key_binary_representation() {
-        let private_key = generate_private_key::<Sha256Hasher>(
+        let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
+        OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
+        let private_key = generate_private_key(
+            seed_and_lms_tree_identifier.seed,
+            seed_and_lms_tree_identifier.lms_tree_identifier,
+            0,
             LmotsAlgorithm::construct_default_parameter(),
             LmsAlgorithm::construct_default_parameter(),
         );

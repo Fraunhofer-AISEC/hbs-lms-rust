@@ -17,7 +17,7 @@ pub struct LmsKeyPair<H: Hasher> {
     pub public_key: LmsPublicKey<H>,
 }
 
-pub fn generate_key_pair_with_seed_and_aux<H: Hasher>(
+pub fn generate_key_pair<H: Hasher>(
     seed: &SeedAndLmsTreeIdentifier,
     parameter: &HssParameter<H>,
     used_leafs_index: &u32,
@@ -35,19 +35,6 @@ pub fn generate_key_pair_with_seed_and_aux<H: Hasher>(
     );
     let public_key = keygen::generate_public_key(&private_key, aux_data);
 
-    LmsKeyPair {
-        private_key,
-        public_key,
-    }
-}
-
-#[cfg(test)]
-pub fn generate_key_pair<H: Hasher>(parameter: &HssParameter<H>) -> LmsKeyPair<H> {
-    let lmots_parameter = parameter.get_lmots_parameter();
-    let lms_parameter = parameter.get_lms_parameter();
-
-    let private_key = keygen::generate_private_key(*lmots_parameter, *lms_parameter);
-    let public_key = keygen::generate_public_key(&private_key, &mut None);
     LmsKeyPair {
         private_key,
         public_key,

@@ -30,23 +30,30 @@ pub fn verify<'a, H: Hasher>(
 
 #[cfg(test)]
 mod tests {
-    use crate::hasher::sha256::Sha256Hasher;
-    use crate::hasher::Hasher;
-    use crate::hss::definitions::HssPrivateKey;
-    use crate::hss::definitions::HssPublicKey;
-    use crate::hss::definitions::InMemoryHssPublicKey;
-    use crate::hss::reference_impl_private_key::ReferenceImplPrivateKey;
-    use crate::hss::signing::HssSignature;
-    use crate::hss::signing::InMemoryHssSignature;
-    use crate::hss::verify::verify;
-    use crate::HssParameter;
+    use crate::{
+        hasher::{sha256::Sha256Hasher, Hasher},
+        hss::{
+            definitions::{HssPrivateKey, HssPublicKey, InMemoryHssPublicKey},
+            reference_impl_private_key::ReferenceImplPrivateKey,
+            signing::{HssSignature, InMemoryHssSignature},
+            verify::verify,
+        },
+        HssParameter, Seed,
+    };
+
+    use rand::{rngs::OsRng, RngCore};
 
     #[test]
     fn test_hss_verify() {
-        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(&[
-            HssParameter::construct_default_parameters(),
-            HssParameter::construct_default_parameters(),
-        ])
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(
+            &[
+                HssParameter::construct_default_parameters(),
+                HssParameter::construct_default_parameters(),
+            ],
+            &seed,
+        )
         .unwrap();
 
         let mut private_key = HssPrivateKey::from(&private_key, None).unwrap();

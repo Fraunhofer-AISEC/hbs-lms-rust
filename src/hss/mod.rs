@@ -10,7 +10,7 @@ use core::{convert::TryFrom, marker::PhantomData};
 use tinyvec::ArrayVec;
 
 use crate::{
-    constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE},
+    constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_LEN},
     extract_or,
     signature::{Error, SignerMut, Verifier},
     Hasher, Signature, VerifierSignature,
@@ -222,7 +222,8 @@ fn hss_sign_core<H: Hasher>(
  *
  * # Example
  * ```
- * use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256Hasher};
+ * use rand::{rngs::OsRng, RngCore};
+ * use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256Hasher};
  *
  * let parameters = [
  *      HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5),

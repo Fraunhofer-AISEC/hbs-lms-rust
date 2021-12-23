@@ -45,7 +45,7 @@ impl<H: Hasher> HssSignature<H> {
 
         // Sign the message
         #[allow(unused_mut)]
-        let mut signature_randomizer = ArrayVec::from(generate_signature_randomizer(
+        let mut signature_randomizer = ArrayVec::from(generate_signature_randomizer::<H>(
             &SeedAndLmsTreeIdentifier {
                 seed: prv[max_level - 1].seed,
                 lms_tree_identifier: prv[max_level - 1].lms_tree_identifier,

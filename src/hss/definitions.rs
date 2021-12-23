@@ -81,7 +81,7 @@ impl<H: Hasher> HssPrivateKey<H> {
 
             let parent_used_leafs_index: u32 =
                 hss_private_key.private_key[i - 1].used_leafs_index as u32;
-            current_seed = generate_child_seed_and_lms_tree_identifier(
+            current_seed = generate_child_seed_and_lms_tree_identifier::<H>(
                 &current_seed,
                 &parent_used_leafs_index,
             );
@@ -92,7 +92,7 @@ impl<H: Hasher> HssPrivateKey<H> {
             hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);
 
-            let signature_randomizer = ArrayVec::from(generate_signature_randomizer(
+            let signature_randomizer = ArrayVec::from(generate_signature_randomizer::<H>(
                 &current_seed,
                 &parent_used_leafs_index,
             ));

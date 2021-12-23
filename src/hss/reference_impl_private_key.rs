@@ -123,7 +123,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         hash_preimage[TOPSEED_WHICH] = 0x02;
         hasher.update(&hash_preimage);
 
-        let mut lms_tree_identifier: LmsTreeIdentifier = [0u8; ILEN];
+        let mut lms_tree_identifier = LmsTreeIdentifier::default();
         lms_tree_identifier.copy_from_slice(&hasher.finalize_reset()[..ILEN]);
 
         SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier)
@@ -141,7 +141,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
     }
 }
 
-pub fn generate_child_seed_and_lms_tree_identifier(
+pub fn generate_child_seed_and_lms_tree_identifier<H: Hasher>(
     parent_seed: &SeedAndLmsTreeIdentifier,
     parent_lms_leaf_identifier: &u32,
 ) -> SeedAndLmsTreeIdentifier {
@@ -150,14 +150,14 @@ pub fn generate_child_seed_and_lms_tree_identifier(
     derive.set_lms_leaf_identifier(*parent_lms_leaf_identifier);
     derive.set_child_seed(SEED_CHILD_SEED);
 
-    let seed = derive.seed_derive(true);
-    let mut lms_tree_identifier: LmsTreeIdentifier = [0u8; ILEN];
-    lms_tree_identifier.copy_from_slice(&derive.seed_derive(false)[..ILEN]);
+    let seed = derive.seed_derive::<H>(true).into_inner();
+    let mut lms_tree_identifier = LmsTreeIdentifier::default();
+    lms_tree_identifier.copy_from_slice(&derive.seed_derive::<H>(false)[..ILEN]);
 
     SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier)
 }
 
-pub fn generate_signature_randomizer(
+pub fn generate_signature_randomizer<H: Hasher>(
     child_seed: &SeedAndLmsTreeIdentifier,
     parent_lms_leaf_identifier: &u32,
 ) -> [u8; MAX_HASH_SIZE] {
@@ -166,7 +166,7 @@ pub fn generate_signature_randomizer(
     derive.set_lms_leaf_identifier(*parent_lms_leaf_identifier);
     derive.set_child_seed(SEED_SIGNATURE_RANDOMIZER_SEED);
 
-    derive.seed_derive(false)
+    derive.seed_derive::<H>(false).into_inner()
 }
 
 const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set

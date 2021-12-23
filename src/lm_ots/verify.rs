@@ -2,14 +2,7 @@ use core::usize;
 
 use tinyvec::ArrayVec;
 
-use crate::{
-    constants::*,
-    hasher::Hasher,
-    util::{
-        coef::coef,
-        ustr::{str32u, u32str},
-    },
-};
+use crate::{constants::*, hasher::Hasher, util::coef::coef};
 
 use super::{definitions::LmotsPublicKey, signing::InMemoryLmotsSignature};
 
@@ -26,7 +19,7 @@ pub fn verify_signature_inmemory<'a, H: Hasher>(
     let public_key_candidate = generate_public_key_candiate(
         signature,
         &public_key.lms_tree_identifier,
-        str32u(&public_key.lms_leaf_identifier[..]),
+        u32::from_be_bytes(public_key.lms_leaf_identifier),
         message,
     );
 
@@ -42,7 +35,7 @@ pub fn generate_public_key_candiate<'a, H: Hasher>(
     let lmots_parameter = signature.lmots_parameter;
     let mut hasher = lmots_parameter.get_hasher();
 
-    let lms_leaf_identifier = u32str(lms_leaf_identifier);
+    let lms_leaf_identifier = lms_leaf_identifier.to_be_bytes();
 
     hasher.update(lms_tree_identifier);
     hasher.update(&lms_leaf_identifier);

@@ -1,10 +1,9 @@
-use crate::constants::D_INTR;
-use crate::constants::D_LEAF;
-use crate::constants::MAX_HASH_SIZE;
-use crate::hasher::Hasher;
-use crate::util::helper::is_odd;
-use crate::util::ustr::u32str;
 use tinyvec::ArrayVec;
+
+use crate::constants::{D_INTR, D_LEAF, MAX_HASH_SIZE};
+use crate::hasher::Hasher;
+use crate::lm_ots;
+use crate::util::helper::is_odd;
 
 use super::definitions::InMemoryLmsPublicKey;
 use super::signing::InMemoryLmsSignature;
@@ -41,39 +40,41 @@ fn generate_public_key_candiate<'a, H: Hasher>(
         return Err(());
     }
 
-    let ots_public_key_canditate = crate::lm_ots::verify::generate_public_key_candiate(
+    let ots_public_key_canditate = lm_ots::verify::generate_public_key_candiate(
         &signature.lmots_signature,
         public_key.lms_tree_identifier,
         signature.lms_leaf_identifier,
         message,
     );
 
-    let mut node_num = leafs + signature.lms_leaf_identifier;
-
+    let mut node_num: u32 = leafs + signature.lms_leaf_identifier;
     let mut hasher = <H>::get_hasher();
+
     hasher.update(public_key.lms_tree_identifier);
-    hasher.update(&u32str(node_num));
+    hasher.update(&node_num.to_be_bytes());
     hasher.update(&D_LEAF);
     hasher.update(ots_public_key_canditate.as_slice());
-
     let mut temp = hasher.finalize_reset();
+
     let mut i = 0;
+    let mut nodes: [&[u8]; 2];
 
     while node_num > 1 {
-        hasher.update(public_key.lms_tree_identifier);
-        hasher.update(&u32str(node_num / 2));
-        hasher.update(&D_INTR);
-
         if is_odd(node_num as usize) {
-            hasher.update(signature.get_path(i));
-            hasher.update(temp.as_slice());
+            nodes = [signature.get_path(i), temp.as_slice()];
         } else {
-            hasher.update(temp.as_slice());
-            hasher.update(signature.get_path(i));
+            nodes = [temp.as_slice(), signature.get_path(i)];
         }
-        temp = hasher.finalize_reset();
-        node_num /= 2;
+
         i += 1;
+        node_num /= 2;
+
+        hasher.update(public_key.lms_tree_identifier);
+        hasher.update(&node_num.to_be_bytes());
+        hasher.update(&D_INTR);
+        hasher.update(nodes[0]);
+        hasher.update(nodes[1]);
+        temp = hasher.finalize_reset();
     }
 
     Ok(temp)

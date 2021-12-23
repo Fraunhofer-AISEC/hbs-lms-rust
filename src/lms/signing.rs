@@ -9,10 +9,9 @@ use crate::lm_ots::signing::InMemoryLmotsSignature;
 use crate::lm_ots::signing::LmotsSignature;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::parameters::LmsAlgorithm;
-use crate::util::{
-    helper::{read, read_and_advance},
-    ustr::{str32u, u32str},
-};
+use crate::util::helper::{read, read_and_advance};
+
+use core::convert::TryInto;
 use tinyvec::ArrayVec;
 
 use super::helper::get_tree_element;
@@ -36,7 +35,8 @@ pub struct InMemoryLmsSignature<'a, H: Hasher> {
 
 impl<'a, H: Hasher> PartialEq<LmsSignature<H>> for InMemoryLmsSignature<'a, H> {
     fn eq(&self, other: &LmsSignature<H>) -> bool {
-        let first_condition = self.lms_leaf_identifier == str32u(&other.lms_leaf_identifier[..])
+        let first_condition = self.lms_leaf_identifier
+            == u32::from_be_bytes(other.lms_leaf_identifier)
             && self.lmots_signature == other.lmots_signature
             && self.lms_parameter == other.lms_parameter;
 
@@ -66,7 +66,7 @@ impl<H: Hasher> LmsSignature<H> {
     ) -> Result<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_TREE_HEIGHT]>, ()> {
         let tree_height = lms_private_key.lms_parameter.get_tree_height();
         let signature_leaf_index = 2usize.pow(tree_height as u32)
-            + str32u(&lm_ots_private_key.lms_leaf_identifier) as usize;
+            + u32::from_be_bytes(lm_ots_private_key.lms_leaf_identifier) as usize;
 
         let mut authentication_path = ArrayVec::new();
 
@@ -139,7 +139,7 @@ impl<H: Hasher> LmsSignature<H> {
 
         result.extend_from_slice(lmots_signature.as_slice());
 
-        result.extend_from_slice(&u32str(self.lms_parameter.get_type_id() as u32));
+        result.extend_from_slice(&self.lms_parameter.get_type_id().to_be_bytes());
 
         for element in self.authentication_path.iter() {
             result.extend_from_slice(element.as_slice());
@@ -154,11 +154,14 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
         // Parsing like 5.4.2 Algorithm 6a
         let mut index = 0;
 
-        let lms_leaf_identifier = str32u(read_and_advance(data, 4, &mut index));
+        let lms_leaf_identifier =
+            u32::from_be_bytes(read_and_advance(data, 4, &mut index).try_into().unwrap());
 
         // LMOTS Signature consists of LMOTS parameter, signature randomizer & signature data
-        let lmots_parameter =
-            LmotsAlgorithm::get_from_type::<H>(str32u(read(data, 4, &index))).unwrap();
+        let lmots_parameter = LmotsAlgorithm::get_from_type::<H>(u32::from_be_bytes(
+            read(data, 4, &index).try_into().unwrap(),
+        ))
+        .unwrap();
         let lmots_signature = lm_ots::signing::InMemoryLmotsSignature::new(read_and_advance(
             data,
             (4 + H::OUTPUT_SIZE * (1 + lmots_parameter.get_hash_chain_count())) as usize,
@@ -166,8 +169,10 @@ impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
         ))
         .unwrap();
 
-        let lms_parameter =
-            LmsAlgorithm::get_from_type(str32u(read_and_advance(data, 4, &mut index))).unwrap();
+        let lms_parameter = LmsAlgorithm::get_from_type(u32::from_be_bytes(
+            read_and_advance(data, 4, &mut index).try_into().unwrap(),
+        ))
+        .unwrap();
         let authentication_path = read_and_advance(
             data,
             (H::OUTPUT_SIZE * lms_parameter.get_tree_height() as u16) as usize,

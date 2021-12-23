@@ -273,7 +273,6 @@ mod tests {
     use crate::hasher::Hasher;
     use crate::{
         constants::{LMS_LEAF_IDENTIFIERS_SIZE, SEED_LEN},
-        util::ustr::u64str,
         LmotsAlgorithm, LmsAlgorithm, Seed,
     };
 
@@ -350,7 +349,7 @@ mod tests {
         for index in 0..keypair_lifetime {
             assert_eq!(
                 signing_key.as_slice()[..LMS_LEAF_IDENTIFIERS_SIZE],
-                u64str(index),
+                index.to_be_bytes(),
             );
             assert_eq!(
                 keypair_lifetime - signing_key.get_lifetime(None).unwrap(),

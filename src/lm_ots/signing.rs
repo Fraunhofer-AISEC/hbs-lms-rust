@@ -2,12 +2,10 @@ use crate::{
     constants::{D_MESG, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE, MAX_LMOTS_SIGNATURE_LENGTH},
     hasher::Hasher,
     lm_ots::parameters::LmotsAlgorithm,
-    util::{
-        coef::coef,
-        helper::read_and_advance,
-        ustr::{str32u, u32str},
-    },
+    util::{coef::coef, helper::read_and_advance},
 };
+
+use core::convert::TryInto;
 use tinyvec::ArrayVec;
 
 #[cfg(feature = "fast_verify")]
@@ -200,7 +198,7 @@ impl<H: Hasher> LmotsSignature<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_LMOTS_SIGNATURE_LENGTH]> {
         let mut result = ArrayVec::new();
 
-        result.extend_from_slice(&u32str(self.lmots_parameter.get_type_id()));
+        result.extend_from_slice(&(self.lmots_parameter.get_type_id()).to_be_bytes());
         result.extend_from_slice(self.signature_randomizer.as_slice());
 
         for hash_chain_value in self.signature_data.iter() {
@@ -217,9 +215,10 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         let mut index = 0;
 
-        let lmots_parameter =
-            LmotsAlgorithm::get_from_type::<H>(str32u(read_and_advance(data, 4, &mut index)))
-                .unwrap();
+        let lmots_parameter = LmotsAlgorithm::get_from_type::<H>(u32::from_be_bytes(
+            read_and_advance(data, 4, &mut index).try_into().unwrap(),
+        ))
+        .unwrap();
 
         let signature_randomizer = read_and_advance(data, H::OUTPUT_SIZE as usize, &mut index);
 

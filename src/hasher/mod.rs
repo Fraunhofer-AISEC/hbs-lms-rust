@@ -1,10 +1,7 @@
 use core::{convert::TryFrom, fmt::Debug};
 use tinyvec::ArrayVec;
 
-use crate::{
-    constants::{winternitz_chain::*, MAX_HASH_SIZE},
-    util::ustr::u16str,
-};
+use crate::constants::{winternitz_chain::*, MAX_HASH_SIZE};
 
 pub mod sha256;
 pub mod shake256;
@@ -49,7 +46,7 @@ pub trait Hasher: Debug + Default + Clone + PartialEq + Send + Sync {
     ) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
         let temp = &mut hash_chain_data.0;
 
-        temp[ITER_K..ITER_J].copy_from_slice(&u16str(hash_chain_id));
+        temp[ITER_K..ITER_J].copy_from_slice(&hash_chain_id.to_be_bytes());
         temp[ITER_PREV..].copy_from_slice(initial_value);
 
         self.do_actual_hash_chain(temp, from, to);

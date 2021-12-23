@@ -1,7 +1,3 @@
-use core::{marker::PhantomData, mem::size_of};
-
-use tinyvec::ArrayVec;
-
 use crate::{
     constants::{
         LmsTreeIdentifier, Seed, D_TOPSEED, ILEN, LMS_LEAF_IDENTIFIERS_SIZE,
@@ -11,12 +7,12 @@ use crate::{
     },
     hasher::Hasher,
     hss::{definitions::HssPrivateKey, seed_derive::SeedDerive},
-    util::{
-        helper::read_and_advance,
-        ustr::{str64u, u64str},
-    },
+    util::helper::read_and_advance,
     HssParameter, LmotsAlgorithm, LmsAlgorithm,
 };
+
+use core::{convert::TryInto, marker::PhantomData, mem::size_of};
+use tinyvec::ArrayVec;
 
 /**
 To be compatible with the reference implementation
@@ -71,7 +67,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; REFERENCE_IMPL_PRIVATE_KEY_SIZE]> {
         let mut result = ArrayVec::new();
 
-        result.extend_from_slice(&u64str(self.compressed_used_leafs_indexes.count));
+        result.extend_from_slice(&self.compressed_used_leafs_indexes.count.to_be_bytes());
         result.extend_from_slice(&self.compressed_parameter.0);
         result.extend_from_slice(&self.seed);
 
@@ -253,7 +249,7 @@ impl CompressedUsedLeafsIndexes {
 
     pub fn from_slice(data: &[u8]) -> Self {
         CompressedUsedLeafsIndexes {
-            count: str64u(data),
+            count: u64::from_be_bytes(data.try_into().unwrap()),
         }
     }
 

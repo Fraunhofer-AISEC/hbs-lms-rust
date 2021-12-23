@@ -15,20 +15,14 @@ pub struct Sha256Hasher {
     hasher: Sha256,
 }
 
-impl Sha256Hasher {
-    pub fn new() -> Self {
-        Sha256Hasher {
-            hasher: Sha256::default(),
-        }
-    }
-}
-
 impl Hasher for Sha256Hasher {
     const OUTPUT_SIZE: u16 = 32;
     const BLOCK_SIZE: u16 = 64;
 
-    fn get_hasher() -> Self {
-        Self::new()
+    fn new() -> Self {
+        Sha256Hasher {
+            hasher: Sha256::default(),
+        }
     }
 
     fn update(&mut self, data: &[u8]) {

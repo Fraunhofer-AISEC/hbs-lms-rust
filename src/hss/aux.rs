@@ -235,7 +235,7 @@ fn compute_seed_derive<H: Hasher>(seed: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE]> 
     prefix[DAUX_D] = (D_DAUX >> 8) as u8;
     prefix[DAUX_D + 1] = (D_DAUX & 0xff) as u8;
 
-    H::get_hasher().chain(&prefix[..]).chain(seed).finalize()
+    H::new().chain(&prefix[..]).chain(seed).finalize()
 }
 
 fn compute_hmac_ipad<H: Hasher>(key: &[u8]) -> H {
@@ -246,7 +246,7 @@ fn compute_hmac_ipad<H: Hasher>(key: &[u8]) -> H {
         .map(|byte| byte ^ IPAD)
         .collect::<ArrayVec<[u8; MAX_HASH_SIZE]>>();
 
-    H::get_hasher()
+    H::new()
         .chain(&key)
         .chain(&IPAD_ARRAY[H::OUTPUT_SIZE.into()..H::BLOCK_SIZE.into()])
 }
@@ -261,7 +261,7 @@ fn compute_hmac_opad<H: Hasher>(hasher: &mut H, key: &[u8]) -> ArrayVec<[u8; MAX
         .map(|byte| byte ^ OPAD)
         .collect::<ArrayVec<[u8; MAX_HASH_SIZE]>>();
 
-    H::get_hasher()
+    H::new()
         .chain(&key)
         .chain(&OPAD_ARRAY[H::OUTPUT_SIZE.into()..H::BLOCK_SIZE.into()])
         .chain(&buffer)

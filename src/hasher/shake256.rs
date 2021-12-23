@@ -17,20 +17,14 @@ pub struct Shake256Hasher {
     hasher: Shake256,
 }
 
-impl Shake256Hasher {
-    pub fn new() -> Self {
-        Shake256Hasher {
-            hasher: Shake256::default(),
-        }
-    }
-}
-
 impl Hasher for Shake256Hasher {
     const OUTPUT_SIZE: u16 = 32;
     const BLOCK_SIZE: u16 = 64;
 
-    fn get_hasher() -> Self {
-        Self::new()
+    fn new() -> Self {
+        Shake256Hasher {
+            hasher: Shake256::default(),
+        }
     }
 
     fn update(&mut self, data: &[u8]) {

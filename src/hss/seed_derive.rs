@@ -1,10 +1,11 @@
+use tinyvec::ArrayVec;
+
 use crate::{
     constants::{
-        LmsTreeIdentifier, Seed, ILEN, PRNG_FF, PRNG_I, PRNG_J, PRNG_MAX_LEN, PRNG_Q, PRNG_SEED,
-        SEED_LEN,
+        LmsTreeIdentifier, Seed, ILEN, MAX_HASH_SIZE, PRNG_FF, PRNG_I, PRNG_J, PRNG_MAX_LEN,
+        PRNG_Q, PRNG_SEED, SEED_LEN,
     },
     hasher::Hasher,
-    Sha256Hasher,
 };
 
 pub struct SeedDerive<'a> {
@@ -32,7 +33,7 @@ impl<'a> SeedDerive<'a> {
         self.child_seed = seed;
     }
 
-    pub fn seed_derive(&mut self, increment_j: bool) -> [u8; Sha256Hasher::OUTPUT_SIZE as usize] {
+    pub fn seed_derive<H: Hasher>(&mut self, increment_j: bool) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
         let mut buffer = [0u8; PRNG_MAX_LEN];
 
         buffer[PRNG_I..PRNG_I + ILEN].copy_from_slice(self.lms_tree_identifier);
@@ -45,7 +46,6 @@ impl<'a> SeedDerive<'a> {
             self.child_seed += 1;
         }
 
-        // We always use SHA256 to derive seeds
-        Sha256Hasher::new().chain(&buffer).finalize().into_inner()
+        H::new().chain(&buffer).finalize()
     }
 }

@@ -3,12 +3,11 @@ use crate::extract_or_return;
 use crate::hasher::Hasher;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
-use crate::lm_ots::parameters::LmotsAlgorithm;
-use crate::lm_ots::parameters::LmotsParameter;
+use crate::lm_ots::parameters::{LmotsAlgorithm, LmotsParameter};
 use crate::lms::parameters::LmsAlgorithm;
 use crate::util::helper::read_and_advance;
-use crate::util::ustr::str32u;
-use crate::util::ustr::u32str;
+
+use core::convert::TryInto;
 use tinyvec::ArrayVec;
 
 use super::parameters::LmsParameter;
@@ -48,7 +47,7 @@ impl<H: Hasher> LmsPrivateKey<H> {
 
         let key = lm_ots::generate_private_key(
             self.lms_tree_identifier,
-            u32str(self.used_leafs_index),
+            self.used_leafs_index.to_be_bytes(),
             self.seed,
             self.lmots_parameter,
         );
@@ -103,8 +102,8 @@ impl<H: Hasher> LmsPublicKey<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_LMS_PUBLIC_KEY_LENGTH]> {
         let mut result = ArrayVec::new();
 
-        result.extend_from_slice(&u32str(self.lms_parameter.get_type_id()));
-        result.extend_from_slice(&u32str(self.lmots_parameter.get_type_id()));
+        result.extend_from_slice(&self.lms_parameter.get_type_id().to_be_bytes());
+        result.extend_from_slice(&self.lmots_parameter.get_type_id().to_be_bytes());
 
         result.extend_from_slice(&self.lms_tree_identifier);
 
@@ -119,12 +118,17 @@ impl<'a, H: Hasher> InMemoryLmsPublicKey<'a, H> {
         // Parsing like desribed in 5.4.2
         let mut data_index = 0;
 
-        let lms_parameter = extract_or_return!(LmsAlgorithm::get_from_type(str32u(
+        let lms_parameter = extract_or_return!(LmsAlgorithm::get_from_type(u32::from_be_bytes(
             read_and_advance(data, 4, &mut data_index)
+                .try_into()
+                .unwrap()
         )));
-        let lmots_parameter = extract_or_return!(LmotsAlgorithm::get_from_type(str32u(
-            read_and_advance(data, 4, &mut data_index)
-        )));
+        let lmots_parameter =
+            extract_or_return!(LmotsAlgorithm::get_from_type(u32::from_be_bytes(
+                read_and_advance(data, 4, &mut data_index)
+                    .try_into()
+                    .unwrap()
+            )));
         let lms_tree_identifier = read_and_advance(data, 16, &mut data_index);
         let key = read_and_advance(data, H::OUTPUT_SIZE.into(), &mut data_index);
 

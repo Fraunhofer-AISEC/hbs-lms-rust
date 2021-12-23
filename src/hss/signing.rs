@@ -1,5 +1,3 @@
-use tinyvec::ArrayVec;
-
 use crate::{
     constants::{
         lms_public_key_length, lms_signature_length, MAX_ALLOWED_HSS_LEVELS,
@@ -12,14 +10,14 @@ use crate::{
         definitions::{InMemoryLmsPublicKey, LmsPublicKey},
         signing::{InMemoryLmsSignature, LmsSignature},
     },
-    util::{
-        helper::read_and_advance,
-        ustr::{str32u, u32str},
-    },
+    util::helper::read_and_advance,
     Hasher,
 };
 
 use super::definitions::HssPrivateKey;
+
+use core::convert::TryInto;
+use tinyvec::ArrayVec;
 
 #[derive(PartialEq)]
 pub struct HssSignature<H: Hasher> {
@@ -93,7 +91,7 @@ impl<H: Hasher> HssSignature<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_SIGNATURE_LENGTH]> {
         let mut result = ArrayVec::new();
 
-        result.extend_from_slice(&u32str(self.level as u32));
+        result.extend_from_slice(&(self.level as u32).to_be_bytes());
 
         for signed_public_key in self.signed_public_keys.iter() {
             let binary_representation = signed_public_key.to_binary_representation();
@@ -145,7 +143,8 @@ impl<'a, H: Hasher> InMemoryHssSignature<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         let mut index = 0;
 
-        let level = str32u(read_and_advance(data, 4, &mut index)) as usize;
+        let level =
+            u32::from_be_bytes(read_and_advance(data, 4, &mut index).try_into().unwrap()) as usize;
 
         let mut signed_public_keys = ArrayVec::new();
 

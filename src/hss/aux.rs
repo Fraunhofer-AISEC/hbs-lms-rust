@@ -1,3 +1,4 @@
+use core::convert::TryInto;
 use tinyvec::ArrayVec;
 
 use crate::{
@@ -7,10 +8,7 @@ use crate::{
     },
     hasher::Hasher,
     lms::parameters::LmsParameter,
-    util::{
-        helper::read_and_advance,
-        ustr::{str32u, u32str},
-    },
+    util::helper::read_and_advance,
 };
 
 /**
@@ -102,7 +100,11 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
 
     // REMARK: Reference implementation treats that as u64 and ANDs it with 0x7ffffffffL after its stored in expanded_aux_data
     // However in our opinion that should make no difference, because we only read 4 bytes.
-    expanded_aux_data.level = str32u(read_and_advance(aux_data, 4, &mut index));
+    expanded_aux_data.level = u32::from_be_bytes(
+        read_and_advance(aux_data, 4, &mut index)
+            .try_into()
+            .unwrap(),
+    );
 
     const LEN_LAYER_SIZES: usize = 1 + MAX_TREE_HEIGHT;
     let mut layer_sizes: ArrayVec<[usize; LEN_LAYER_SIZES]> =
@@ -156,7 +158,7 @@ pub fn hss_store_aux_marker(aux_data: &mut [u8], aux_level: AuxLevel) {
     if aux_level == 0 {
         aux_data[AUX_DATA_MARKER] = NO_AUX_DATA;
     } else {
-        let levels = u32str(aux_level);
+        let levels = aux_level.to_be_bytes();
         aux_data[0..4].copy_from_slice(&levels);
     }
 }

@@ -1,3 +1,4 @@
+use core::convert::TryInto;
 use tinyvec::ArrayVec;
 
 use crate::{
@@ -7,10 +8,7 @@ use crate::{
         hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
     },
     lms::{definitions::InMemoryLmsPublicKey, generate_key_pair, parameters::LmsParameter},
-    util::{
-        helper::read_and_advance,
-        ustr::{str32u, u32str},
-    },
+    util::helper::read_and_advance,
 };
 use crate::{
     hss::aux::hss_get_aux_data_len,
@@ -196,7 +194,7 @@ impl<H: Hasher> HssPublicKey<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]> {
         let mut result = ArrayVec::new();
 
-        result.extend_from_slice(&u32str(self.level as u32));
+        result.extend_from_slice(&(self.level as u32).to_be_bytes());
         result.extend_from_slice(self.public_key.to_binary_representation().as_slice());
 
         result
@@ -207,7 +205,7 @@ impl<'a, H: Hasher> InMemoryHssPublicKey<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         let mut index = 0;
 
-        let level = str32u(read_and_advance(data, 4, &mut index));
+        let level = u32::from_be_bytes(read_and_advance(data, 4, &mut index).try_into().unwrap());
 
         let public_key = match InMemoryLmsPublicKey::new(&data[index..]) {
             None => return None,

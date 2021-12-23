@@ -1,11 +1,8 @@
 use super::definitions::*;
 use super::parameters::LmotsParameter;
 use crate::constants::*;
+use crate::constants::{D_PBLC, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE};
 use crate::hasher::Hasher;
-use crate::{
-    constants::{D_PBLC, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
-    util::ustr::*,
-};
 use tinyvec::ArrayVec;
 
 pub fn generate_private_key<H: Hasher>(
@@ -21,7 +18,7 @@ pub fn generate_private_key<H: Hasher>(
     for index in 0..lmots_parameter.get_hash_chain_count() {
         hasher.update(&lms_tree_identifier);
         hasher.update(&lms_leaf_identifier);
-        hasher.update(&u16str(index as u16));
+        hasher.update(&(index as u16).to_be_bytes());
         hasher.update(&[0xff]);
         hasher.update(&seed);
 

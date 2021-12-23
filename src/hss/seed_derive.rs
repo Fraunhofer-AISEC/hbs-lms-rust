@@ -4,7 +4,6 @@ use crate::{
         SEED_LEN,
     },
     hasher::Hasher,
-    util::ustr::{u16str, u32str},
     Sha256Hasher,
 };
 
@@ -37,8 +36,8 @@ impl<'a> SeedDerive<'a> {
         let mut buffer = [0u8; PRNG_MAX_LEN];
 
         buffer[PRNG_I..PRNG_I + ILEN].copy_from_slice(self.lms_tree_identifier);
-        buffer[PRNG_Q..PRNG_Q + 4].copy_from_slice(&u32str(self.lms_leaf_identifier));
-        buffer[PRNG_J..PRNG_J + 2].copy_from_slice(&u16str(self.child_seed));
+        buffer[PRNG_Q..PRNG_Q + 4].copy_from_slice(&self.lms_leaf_identifier.to_be_bytes());
+        buffer[PRNG_J..PRNG_J + 2].copy_from_slice(&self.child_seed.to_be_bytes());
         buffer[PRNG_FF] = 0xff;
         buffer[PRNG_SEED..PRNG_SEED + SEED_LEN].copy_from_slice(self.master_seed);
 

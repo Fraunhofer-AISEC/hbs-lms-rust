@@ -48,7 +48,7 @@ fn generate_public_key_candiate<'a, H: Hasher>(
     );
 
     let mut node_num: u32 = leafs + signature.lms_leaf_identifier;
-    let mut hasher = <H>::get_hasher();
+    let mut hasher = H::new();
 
     hasher.update(public_key.lms_tree_identifier);
     hasher.update(&node_num.to_be_bytes());

@@ -108,7 +108,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         let end = start + size_of::<Seed>();
         hash_preimage[start..end].copy_from_slice(&self.seed);
 
-        let mut hasher = H::get_hasher();
+        let mut hasher = H::new();
 
         hasher.update(&hash_preimage);
         hash_postimage.copy_from_slice(hasher.finalize_reset().as_slice());

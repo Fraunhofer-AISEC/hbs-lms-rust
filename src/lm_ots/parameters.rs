@@ -187,7 +187,7 @@ impl<H: Hasher> LmotsParameter<H> {
     }
 
     pub fn get_hasher(&self) -> H {
-        <H>::get_hasher()
+        H::new()
     }
 }
 

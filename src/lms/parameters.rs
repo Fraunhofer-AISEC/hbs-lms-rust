@@ -107,7 +107,7 @@ impl<H: Hasher> LmsParameter<H> {
     }
 
     pub fn get_hasher(&self) -> H {
-        <H>::get_hasher()
+        H::new()
     }
 }
 

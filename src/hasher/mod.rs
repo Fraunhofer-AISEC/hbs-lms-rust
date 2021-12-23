@@ -20,7 +20,7 @@ pub struct HashChainData([u8; ITER_MAX_LEN]);
 pub trait Hasher: Debug + Default + Clone + PartialEq + Send + Sync {
     const OUTPUT_SIZE: u16;
     const BLOCK_SIZE: u16;
-    fn get_hasher() -> Self;
+    fn new() -> Self;
     fn update(&mut self, data: &[u8]);
     fn chain(self, data: &[u8]) -> Self;
     fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]>;

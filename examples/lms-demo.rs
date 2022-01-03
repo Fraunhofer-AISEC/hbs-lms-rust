@@ -1,4 +1,4 @@
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
 use hbs_lms::*;
 use std::{
     error::Error,
@@ -59,28 +59,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let command = App::new("LMS Demo")
         .about("Generates a LMS key pair")
         .subcommand(
-            SubCommand::with_name(GENKEY_COMMAND)
-                .arg(Arg::with_name(KEYNAME_PARAMETER).required(true))
-                .arg(Arg::with_name(PARAMETER_PARAMETER).required(false).help(
+            App::new(GENKEY_COMMAND)
+                .arg(Arg::new(KEYNAME_PARAMETER).required(true))
+                .arg(Arg::new(PARAMETER_PARAMETER).required(false).help(
                     "Specify LMS parameters (e.g. 15/4 (Treeheight 15 and Winternitz parameter 4))",
                 ).default_value("5/1"))
-                .arg(Arg::with_name(SEED_PARAMETER).long(SEED_PARAMETER).required(false).takes_value(true).value_name("seed")),
+                .arg(Arg::new(SEED_PARAMETER).long(SEED_PARAMETER).required(false).takes_value(true).value_name("seed")),
         )
         .subcommand(
-            SubCommand::with_name(VERIFY_COMMAND)
-            .arg(Arg::with_name(KEYNAME_PARAMETER).required(true))
-            .arg(Arg::with_name(MESSAGE_PARAMETER).required(true).help("File to verify")))
+            App::new(VERIFY_COMMAND)
+            .arg(Arg::new(KEYNAME_PARAMETER).required(true))
+            .arg(Arg::new(MESSAGE_PARAMETER).required(true).help("File to verify")))
         .subcommand(
-            SubCommand::with_name(SIGN_COMMAND)
-            .arg(Arg::with_name(KEYNAME_PARAMETER).required(true))
-            .arg(Arg::with_name(MESSAGE_PARAMETER).required(true))
+            App::new(SIGN_COMMAND)
+            .arg(Arg::new(KEYNAME_PARAMETER).required(true))
+            .arg(Arg::new(MESSAGE_PARAMETER).required(true))
         );
 
     #[cfg(feature = "fast_verify")]
     let command = command.subcommand(
-        SubCommand::with_name(SIGN_MUT_COMMAND)
-            .arg(Arg::with_name(KEYNAME_PARAMETER).required(true))
-            .arg(Arg::with_name(MESSAGE_PARAMETER).required(true)),
+        App::new(SIGN_MUT_COMMAND)
+            .arg(Arg::new(KEYNAME_PARAMETER).required(true))
+            .arg(Arg::new(MESSAGE_PARAMETER).required(true)),
     );
 
     let matches = command.get_matches();

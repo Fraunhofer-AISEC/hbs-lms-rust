@@ -33,7 +33,7 @@ pub struct SigningKey<H: HashChain> {
 }
 
 impl<H: HashChain> SigningKey<H> {
-    pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
 
         Ok(Self {

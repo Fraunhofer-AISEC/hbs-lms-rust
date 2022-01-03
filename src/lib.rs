@@ -8,6 +8,8 @@
 //! generate digital signatures. NIST has published recommendations for this algorithm in:
 //! [NIST Recommendations for Stateful Hash-Based Signatures](https://doi.org/10.6028/NIST.SP.800-208)
 //!
+//! This crate can be used together with the [`signature::SignerMut`] and [`signature::Verifier`] traits.
+//!
 //! # Example
 //! ```
 //! use rand::{rngs::OsRng, RngCore};
@@ -55,17 +57,15 @@
 //! The length of the tree height and the winternitz parameter arrays must match the value of the
 //! HSS levels.
 //!
-//! | Name                           | Default | Description                             |
-//! |--------------------------------|---------|-----------------------------------------|
-//! | HBS_LMS_MAX_ALLOWED_HSS_LEVELS | 8       | Max. tree count for HSS                 |
-//! | HBS_LMS_TREE_HEIGHTS           | [25; 8] | Max. tree height for each tree          |
-//! | HBS_LMS_WINTERNITZ_PARAMETERS  | [1; 8]  | Min. Winternitz parameter for each tree |
+//! | Name                           | Default | Range of Values    | Description             |
+//! |--------------------------------|---------|--------------------|-------------------------|
+//! | HBS_LMS_MAX_ALLOWED_HSS_LEVELS | 8       | 1..8               | Max. tree count for HSS |
+//! | HBS_LMS_TREE_HEIGHTS           | [25; 8] | [`LmsAlgorithm`]   | Max. Tree Height for each tree|
+//! | HBS_LMS_WINTERNITZ_PARAMETERS  | [1; 8]  | [`LmotsAlgorithm`] | Min. Winternitz Parameter for each tree |
 //!
 //! Reducing the HSS levels or the values of the tree heights lead to a reduced stack usage. For the
 //! values of the Winternitz parameter the inverse must be applied, as higher Winternitz parameters
 //! reduce the stack usage.
-//!
-//! Possible values for the Winternitz parameter are: 1, 2, 4 or 8.
 //!
 //! ## Adapting wrt the 'fast_verify' feature
 //!
@@ -113,6 +113,9 @@ use tinyvec::ArrayVec;
 
 use constants::MAX_HSS_SIGNATURE_LENGTH;
 
+/**
+ * Implementation of [`signature::Signature`].
+ */
 #[derive(Debug)]
 pub struct Signature {
     bytes: ArrayVec<[u8; MAX_HSS_SIGNATURE_LENGTH]>,
@@ -144,6 +147,10 @@ impl signature::Signature for Signature {
     }
 }
 
+/**
+ * No-copy friendly alternative to [`Signature`] by using a reference to a slice of bytes (for
+ * verification only!).
+ */
 #[derive(Debug)]
 pub struct VerifierSignature<'a> {
     bytes: &'a [u8],

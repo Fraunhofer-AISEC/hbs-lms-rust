@@ -10,7 +10,7 @@ use crate::constants::MAX_HASH_SIZE;
 use super::HashChain;
 
 /**
- * Standard software implementation for Shake256. Can be passed into the library, because it implements the `HashChain` trait.
+ * Extension of [`sha3::Shake256`], which can be passed into the library, as it implements the [`HashChain`] trait.
  * */
 #[derive(Debug, Default, Clone)]
 pub struct Shake256 {

@@ -30,7 +30,7 @@ impl DerefMut for HashChainData {
 
 /**
  *
- * This trait is used inside the library to generate hashes. A standard software implementation exists as `Sha256`.
+ * This trait is used inside the library to generate hashes. Default implementations are available with [`sha256::Sha256`] and [`shake256::Shake256`].
  * It can be used to outsource calculations to hardware accelerators.
  *
  *

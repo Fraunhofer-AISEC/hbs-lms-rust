@@ -13,7 +13,7 @@ use crate::{
     constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_LEN},
     extract_or,
     signature::{Error, SignerMut, Verifier},
-    Hasher, Signature, VerifierSignature,
+    HashChain, Signature, VerifierSignature,
 };
 
 use self::{
@@ -24,12 +24,12 @@ use self::{
 };
 
 #[derive(Clone)]
-pub struct SigningKey<H: Hasher> {
+pub struct SigningKey<H: HashChain> {
     pub bytes: ArrayVec<[u8; REFERENCE_IMPL_PRIVATE_KEY_SIZE]>,
     phantom_data: PhantomData<H>,
 }
 
-impl<H: Hasher> SigningKey<H> {
+impl<H: HashChain> SigningKey<H> {
     pub(crate) fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
 
@@ -76,19 +76,19 @@ impl<H: Hasher> SigningKey<H> {
     }
 }
 
-impl<H: Hasher> SignerMut<Signature> for SigningKey<H> {
+impl<H: HashChain> SignerMut<Signature> for SigningKey<H> {
     fn try_sign(&mut self, msg: &[u8]) -> Result<Signature, Error> {
         self.try_sign_with_aux(msg, None)
     }
 }
 
 #[derive(Clone)]
-pub struct VerifyingKey<H: Hasher> {
+pub struct VerifyingKey<H: HashChain> {
     pub bytes: ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]>,
     phantom_data: PhantomData<H>,
 }
 
-impl<H: Hasher> VerifyingKey<H> {
+impl<H: HashChain> VerifyingKey<H> {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
 
@@ -103,7 +103,7 @@ impl<H: Hasher> VerifyingKey<H> {
     }
 }
 
-impl<H: Hasher> Verifier<Signature> for VerifyingKey<H> {
+impl<H: HashChain> Verifier<Signature> for VerifyingKey<H> {
     fn verify(&self, msg: &[u8], signature: &Signature) -> Result<(), Error> {
         if !hss_verify::<H>(msg, signature.as_ref(), &self.bytes) {
             return Err(Error::new());
@@ -112,7 +112,7 @@ impl<H: Hasher> Verifier<Signature> for VerifyingKey<H> {
     }
 }
 
-impl<'a, H: Hasher> Verifier<VerifierSignature<'a>> for VerifyingKey<H> {
+impl<'a, H: HashChain> Verifier<VerifierSignature<'a>> for VerifyingKey<H> {
     fn verify(&self, msg: &[u8], signature: &VerifierSignature) -> Result<(), Error> {
         if !hss_verify::<H>(msg, signature.as_ref(), &self.bytes) {
             return Err(Error::new());
@@ -125,12 +125,12 @@ impl<'a, H: Hasher> Verifier<VerifierSignature<'a>> for VerifyingKey<H> {
  * This function is used to verify a signature.
  *
  * # Arguments
- * * `Hasher` - The hasher implementation that should be used. ```Sha256Hasher``` is a standard software implementation.
+ * * `HashChain` - The hasher implementation that should be used. ```Sha256``` is a standard software implementation.
  * * `message` - The message that should be verified.
  * * `signature` - The signature that should be used for verification.
  * * `public_key` - The public key that should be used for verification.
  */
-pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
+pub fn hss_verify<H: HashChain>(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
     let signature = extract_or!(InMemoryHssSignature::<H>::new(signature), false);
     let public_key = extract_or!(InMemoryHssPublicKey::<H>::new(public_key), false);
 
@@ -141,14 +141,14 @@ pub fn hss_verify<H: Hasher>(message: &[u8], signature: &[u8], public_key: &[u8]
  * This function is used to generate a signature.
  *
  * # Arguments
- * * `Hasher` - The hasher implementation that should be used. ```Sha256Hasher``` is a standard software implementation.
+ * * `HashChain` - The hasher implementation that should be used. ```Sha256``` is a standard software implementation.
  * * `message` - The message that should be signed.
  * * `private_key` - The private key that should be used.
  * * `private_key_update_function` - The update function that is called with the new private key. This function should save the new private key.
  * * `aux_data` - Auxiliary data to speedup signature generation if available
  */
 
-pub fn hss_sign<H: Hasher>(
+pub fn hss_sign<H: HashChain>(
     message: &[u8],
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
@@ -164,7 +164,7 @@ pub fn hss_sign<H: Hasher>(
 }
 
 #[cfg(feature = "fast_verify")]
-pub fn hss_sign_mut<H: Hasher>(
+pub fn hss_sign_mut<H: HashChain>(
     message_mut: &mut [u8],
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
@@ -188,7 +188,7 @@ pub fn hss_sign_mut<H: Hasher>(
     )
 }
 
-fn hss_sign_core<H: Hasher>(
+fn hss_sign_core<H: HashChain>(
     message: Option<&[u8]>,
     message_mut: Option<&mut [u8]>,
     private_key: &[u8],
@@ -224,7 +224,7 @@ fn hss_sign_core<H: Hasher>(
  * This function is used to generate a public and private key.
  * # Arguments
  *
- * * `Hasher` - The hasher implementation that should be used. ```Sha256Hasher``` is a standard software implementation.
+ * * `HashChain` - The hasher implementation that should be used. ```Sha256``` is a standard software implementation.
  * * `parameters` - An array which specifies the Winternitz parameter and tree height of each individual HSS level. The first element describes Level 1, the second element Level 2 and so on.
  * * `seed` - An optional seed which will be used to generate the private key. It must be only used for testing purposes and not for production used key pairs.
  * * `aux_data` - The reference to a slice to auxiliary data. This can be used to speedup signature generation.
@@ -232,7 +232,7 @@ fn hss_sign_core<H: Hasher>(
  * # Example
  * ```
  * use rand::{rngs::OsRng, RngCore};
- * use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256Hasher};
+ * use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256};
  *
  * let parameters = [
  *      HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5),
@@ -244,10 +244,10 @@ fn hss_sign_core<H: Hasher>(
  * OsRng.fill_bytes(&mut seed);
  *
  * let (signing_key, verifying_key) =
- *      keygen::<Sha256Hasher>(&parameters, &seed, Some(aux_slice)).unwrap();
+ *      keygen::<Sha256>(&parameters, &seed, Some(aux_slice)).unwrap();
  * ```
  */
-pub fn hss_keygen<H: Hasher>(
+pub fn hss_keygen<H: HashChain>(
     parameters: &[HssParameter<H>],
     seed: &[u8; SEED_LEN],
     aux_data: Option<&mut &mut [u8]>,
@@ -268,9 +268,9 @@ mod tests {
 
     #[cfg(feature = "fast_verify")]
     use crate::constants::MAX_HASH_SIZE;
-    use crate::hasher::sha256::Sha256Hasher;
-    use crate::hasher::shake256::Shake256Hasher;
-    use crate::hasher::Hasher;
+    use crate::hasher::sha256::Sha256;
+    use crate::hasher::shake256::Shake256;
+    use crate::hasher::HashChain;
     use crate::{
         constants::{LMS_LEAF_IDENTIFIERS_SIZE, SEED_LEN},
         LmotsAlgorithm, LmsAlgorithm, Seed,
@@ -287,7 +287,7 @@ mod tests {
         ];
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
-        type H = Sha256Hasher;
+        type H = Sha256;
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH5;
@@ -331,7 +331,7 @@ mod tests {
         ];
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
-        type H = Sha256Hasher;
+        type H = Sha256;
 
         let lmots = LmotsAlgorithm::LmotsW2;
         let lms = LmsAlgorithm::LmsH2;
@@ -391,7 +391,7 @@ mod tests {
         ];
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
-        type H = Sha256Hasher;
+        type H = Sha256;
 
         let lmots = LmotsAlgorithm::LmotsW2;
         let lms = LmsAlgorithm::LmsH2;
@@ -434,14 +434,14 @@ mod tests {
 
     #[test]
     fn test_signing_sha256() {
-        test_signing_core::<Sha256Hasher>();
+        test_signing_core::<Sha256>();
     }
     #[test]
     fn test_signing_shake256() {
-        test_signing_core::<Shake256Hasher>();
+        test_signing_core::<Shake256>();
     }
 
-    fn test_signing_core<H: Hasher>() {
+    fn test_signing_core<H: HashChain>() {
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
         let (mut signing_key, verifying_key) = hss_keygen::<H>(
@@ -494,7 +494,7 @@ mod tests {
     #[cfg(feature = "fast_verify")]
     #[test]
     fn test_signing_fast_verify() {
-        type H = Sha256Hasher;
+        type H = Sha256;
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
 

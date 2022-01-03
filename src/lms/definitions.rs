@@ -1,6 +1,6 @@
 use crate::constants::*;
 use crate::extract_or_return;
-use crate::hasher::Hasher;
+use crate::hasher::HashChain;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::parameters::{LmotsAlgorithm, LmotsParameter};
@@ -13,7 +13,7 @@ use tinyvec::ArrayVec;
 use super::parameters::LmsParameter;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct LmsPrivateKey<H: Hasher> {
+pub struct LmsPrivateKey<H: HashChain> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub used_leafs_index: u32,
     pub seed: Seed,
@@ -21,7 +21,7 @@ pub struct LmsPrivateKey<H: Hasher> {
     pub lms_parameter: LmsParameter<H>,
 }
 
-impl<H: Hasher> LmsPrivateKey<H> {
+impl<H: HashChain> LmsPrivateKey<H> {
     pub fn new(
         seed: Seed,
         lms_tree_identifier: LmsTreeIdentifier,
@@ -58,7 +58,7 @@ impl<H: Hasher> LmsPrivateKey<H> {
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct LmsPublicKey<H: Hasher> {
+pub struct LmsPublicKey<H: HashChain> {
     pub key: ArrayVec<[u8; MAX_HASH_SIZE]>,
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lmots_parameter: LmotsParameter<H>,
@@ -66,7 +66,7 @@ pub struct LmsPublicKey<H: Hasher> {
 }
 
 #[derive(Clone)]
-pub struct InMemoryLmsPublicKey<'a, H: Hasher> {
+pub struct InMemoryLmsPublicKey<'a, H: HashChain> {
     pub key: &'a [u8],
     pub lms_tree_identifier: &'a [u8],
     pub lmots_parameter: LmotsParameter<H>,
@@ -74,7 +74,7 @@ pub struct InMemoryLmsPublicKey<'a, H: Hasher> {
     complete_data: &'a [u8],
 }
 
-impl<'a, H: Hasher> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H> {
+impl<'a, H: HashChain> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H> {
     fn eq(&self, other: &LmsPublicKey<H>) -> bool {
         self.key == other.key.as_slice()
             && self.lms_tree_identifier == &other.lms_tree_identifier[..]
@@ -84,7 +84,7 @@ impl<'a, H: Hasher> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H> {
     }
 }
 
-impl<H: Hasher> LmsPublicKey<H> {
+impl<H: HashChain> LmsPublicKey<H> {
     pub fn new(
         public_key: ArrayVec<[u8; MAX_HASH_SIZE]>,
         lms_tree_identifier: LmsTreeIdentifier,
@@ -113,7 +113,7 @@ impl<H: Hasher> LmsPublicKey<H> {
     }
 }
 
-impl<'a, H: Hasher> InMemoryLmsPublicKey<'a, H> {
+impl<'a, H: HashChain> InMemoryLmsPublicKey<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         // Parsing like desribed in 5.4.2
         let mut data_index = 0;

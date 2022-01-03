@@ -5,7 +5,7 @@ use std::{
     process::Command,
 };
 
-use hbs_lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256Hasher};
+use hbs_lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256};
 use tempfile::TempDir;
 
 const MESSAGE_FILE_NAME: &str = "message.txt";
@@ -51,7 +51,7 @@ fn create_signature_with_own_implementation() {
 
     let mut seed = Seed::default();
     OsRng.fill_bytes(&mut seed);
-    let (mut signing_key, verifying_key) = hbs_lms::keygen::<Sha256Hasher>(
+    let (mut signing_key, verifying_key) = hbs_lms::keygen::<Sha256>(
         &[
             HssParameter::construct_default_parameters(),
             HssParameter::construct_default_parameters(),
@@ -116,8 +116,7 @@ fn should_produce_same_private_key() {
 
     reference_genkey_seed(&tempdir, &TEST_SEED);
 
-    let parameters =
-        HssParameter::<Sha256Hasher>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
+    let parameters = HssParameter::<Sha256>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
 
     let (sk, vk) = hbs_lms::keygen(&[parameters, parameters], &TEST_SEED, None).unwrap();
 
@@ -136,8 +135,7 @@ fn should_produce_same_aux_data() {
 
     reference_genkey_seed(&tempdir, &TEST_SEED);
 
-    let parameters =
-        HssParameter::<Sha256Hasher>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
+    let parameters = HssParameter::<Sha256>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
 
     let mut aux_data = vec![0u8; 2000];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
@@ -197,7 +195,7 @@ fn own_signing(
         Ok(())
     };
 
-    let result = hbs_lms::sign::<Sha256Hasher>(
+    let result = hbs_lms::sign::<Sha256>(
         message_data,
         &private_key_before,
         &mut update_private_key,
@@ -216,7 +214,7 @@ fn own_verify(temp_path: &TempDir) {
     let signature_data = read_file(path.join(SIGNATURE_FILE_NAME).to_str().unwrap());
     let public_key_data = read_file(path.join(PUBLIC_KEY_NAME).to_str().unwrap());
 
-    assert!(hbs_lms::verify::<Sha256Hasher>(
+    assert!(hbs_lms::verify::<Sha256>(
         &message_data,
         &signature_data,
         &public_key_data

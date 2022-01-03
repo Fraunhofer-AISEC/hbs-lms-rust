@@ -1,7 +1,7 @@
 use crate::constants::{
     LmsLeafIdentifier, MAX_HASH_SIZE, MAX_LMS_SIGNATURE_LENGTH, MAX_TREE_HEIGHT,
 };
-use crate::hasher::Hasher;
+use crate::hasher::HashChain;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::parameters::LmotsAlgorithm;
@@ -18,7 +18,7 @@ use super::helper::get_tree_element;
 use super::parameters::LmsParameter;
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct LmsSignature<H: Hasher> {
+pub struct LmsSignature<H: HashChain> {
     pub lms_leaf_identifier: LmsLeafIdentifier,
     pub lmots_signature: LmotsSignature<H>,
     pub authentication_path: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_TREE_HEIGHT]>,
@@ -26,14 +26,14 @@ pub struct LmsSignature<H: Hasher> {
 }
 
 #[derive(Clone)]
-pub struct InMemoryLmsSignature<'a, H: Hasher> {
+pub struct InMemoryLmsSignature<'a, H: HashChain> {
     pub lms_leaf_identifier: u32,
     pub lmots_signature: InMemoryLmotsSignature<'a, H>,
     pub authentication_path: &'a [u8],
     pub lms_parameter: LmsParameter<H>,
 }
 
-impl<'a, H: Hasher> PartialEq<LmsSignature<H>> for InMemoryLmsSignature<'a, H> {
+impl<'a, H: HashChain> PartialEq<LmsSignature<H>> for InMemoryLmsSignature<'a, H> {
     fn eq(&self, other: &LmsSignature<H>) -> bool {
         let first_condition = self.lms_leaf_identifier
             == u32::from_be_bytes(other.lms_leaf_identifier)
@@ -59,7 +59,7 @@ impl<'a, H: Hasher> PartialEq<LmsSignature<H>> for InMemoryLmsSignature<'a, H> {
     }
 }
 
-impl<H: Hasher> LmsSignature<H> {
+impl<H: HashChain> LmsSignature<H> {
     fn build_authentication_path(
         lms_private_key: &mut LmsPrivateKey<H>,
         lm_ots_private_key: &LmotsPrivateKey<H>,
@@ -149,7 +149,7 @@ impl<H: Hasher> LmsSignature<H> {
     }
 }
 
-impl<'a, H: Hasher> InMemoryLmsSignature<'a, H> {
+impl<'a, H: HashChain> InMemoryLmsSignature<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         // Parsing like 5.4.2 Algorithm 6a
         let mut index = 0;

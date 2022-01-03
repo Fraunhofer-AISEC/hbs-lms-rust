@@ -2,10 +2,10 @@ use super::definitions::*;
 use super::parameters::LmotsParameter;
 use crate::constants::*;
 use crate::constants::{D_PBLC, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE};
-use crate::hasher::Hasher;
+use crate::hasher::HashChain;
 use tinyvec::ArrayVec;
 
-pub fn generate_private_key<H: Hasher>(
+pub fn generate_private_key<H: HashChain>(
     lms_tree_identifier: LmsTreeIdentifier,
     lms_leaf_identifier: LmsLeafIdentifier,
     seed: Seed,
@@ -33,7 +33,7 @@ pub fn generate_private_key<H: Hasher>(
     )
 }
 
-pub fn generate_public_key<H: Hasher>(private_key: &LmotsPrivateKey<H>) -> LmotsPublicKey<H> {
+pub fn generate_public_key<H: HashChain>(private_key: &LmotsPrivateKey<H>) -> LmotsPublicKey<H> {
     let lmots_parameter = &private_key.lmots_parameter;
     let mut hasher = lmots_parameter.get_hasher();
 

@@ -6,7 +6,7 @@ use crate::{
         DAUX_D, DAUX_PREFIX_LEN, D_DAUX, MAX_HASH_BLOCK_SIZE, MAX_HASH_SIZE, MAX_TREE_HEIGHT,
         MIN_SUBTREE,
     },
-    hasher::Hasher,
+    hasher::HashChain,
     lms::parameters::LmsParameter,
     util::helper::read_and_advance,
 };
@@ -32,7 +32,7 @@ pub struct MutableExpandedAuxData<'a> {
     pub hmac: &'a mut [u8],
 }
 
-pub fn hss_optimal_aux_level<H: Hasher>(
+pub fn hss_optimal_aux_level<H: HashChain>(
     mut max_length: usize,
     lms_parameter: LmsParameter<H>,
     actual_len: Option<&mut usize>,
@@ -84,7 +84,7 @@ pub fn hss_smallest_subtree_size(_tree_height: u8, _i: usize, _n: usize) -> u32 
     2
 }
 
-pub fn hss_expand_aux_data<'a, H: Hasher>(
+pub fn hss_expand_aux_data<'a, H: HashChain>(
     aux_data: Option<&'a mut [u8]>,
     seed: Option<&'a [u8]>,
 ) -> Option<MutableExpandedAuxData<'a>> {
@@ -144,7 +144,10 @@ pub fn hss_expand_aux_data<'a, H: Hasher>(
     Some(expanded_aux_data)
 }
 
-pub fn hss_get_aux_data_len<H: Hasher>(max_length: usize, lms_parameter: LmsParameter<H>) -> usize {
+pub fn hss_get_aux_data_len<H: HashChain>(
+    max_length: usize,
+    lms_parameter: LmsParameter<H>,
+) -> usize {
     let mut len = 0;
 
     if hss_optimal_aux_level(max_length, lms_parameter, Some(&mut len)) == 0 {
@@ -167,7 +170,7 @@ pub fn hss_is_aux_data_used(aux_data: &[u8]) -> bool {
     aux_data[AUX_DATA_MARKER] != NO_AUX_DATA
 }
 
-pub fn hss_save_aux_data<H: Hasher>(
+pub fn hss_save_aux_data<H: HashChain>(
     data: &mut MutableExpandedAuxData,
     index: usize,
     cur_val: &[u8],
@@ -186,7 +189,7 @@ pub fn hss_save_aux_data<H: Hasher>(
     dest[start_index..end_index].copy_from_slice(cur_val);
 }
 
-pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed: &[u8]) {
+pub fn hss_finalize_aux_data<H: HashChain>(data: &mut MutableExpandedAuxData, seed: &[u8]) {
     let aux_seed = compute_seed_derive::<H>(seed);
 
     let mut hasher = compute_hmac_ipad::<H>(&aux_seed).chain(&data.level.to_be_bytes());
@@ -201,7 +204,7 @@ pub fn hss_finalize_aux_data<H: Hasher>(data: &mut MutableExpandedAuxData, seed:
         .copy_from_slice(compute_hmac_opad::<H>(&mut hasher, &aux_seed).as_slice());
 }
 
-pub fn hss_extract_aux_data<H: Hasher>(
+pub fn hss_extract_aux_data<H: HashChain>(
     aux: &MutableExpandedAuxData,
     index: usize,
 ) -> Option<ArrayVec<[u8; MAX_HASH_SIZE]>> {
@@ -229,16 +232,16 @@ pub fn hss_extract_aux_data<H: Hasher>(
     Some(result)
 }
 
-fn compute_seed_derive<H: Hasher>(seed: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+fn compute_seed_derive<H: HashChain>(seed: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
     let mut prefix = [0u8; DAUX_PREFIX_LEN];
 
     prefix[DAUX_D] = (D_DAUX >> 8) as u8;
     prefix[DAUX_D + 1] = (D_DAUX & 0xff) as u8;
 
-    H::new().chain(&prefix[..]).chain(seed).finalize()
+    H::default().chain(&prefix[..]).chain(seed).finalize()
 }
 
-fn compute_hmac_ipad<H: Hasher>(key: &[u8]) -> H {
+fn compute_hmac_ipad<H: HashChain>(key: &[u8]) -> H {
     const IPAD_ARRAY: [u8; MAX_HASH_BLOCK_SIZE] = [IPAD; MAX_HASH_BLOCK_SIZE];
 
     let key = key
@@ -246,12 +249,12 @@ fn compute_hmac_ipad<H: Hasher>(key: &[u8]) -> H {
         .map(|byte| byte ^ IPAD)
         .collect::<ArrayVec<[u8; MAX_HASH_SIZE]>>();
 
-    H::new()
+    H::default()
         .chain(&key)
         .chain(&IPAD_ARRAY[H::OUTPUT_SIZE.into()..H::BLOCK_SIZE.into()])
 }
 
-fn compute_hmac_opad<H: Hasher>(hasher: &mut H, key: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+fn compute_hmac_opad<H: HashChain>(hasher: &mut H, key: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
     const OPAD_ARRAY: [u8; MAX_HASH_BLOCK_SIZE] = [OPAD; MAX_HASH_BLOCK_SIZE];
 
     let buffer = hasher.finalize_reset();
@@ -261,14 +264,14 @@ fn compute_hmac_opad<H: Hasher>(hasher: &mut H, key: &[u8]) -> ArrayVec<[u8; MAX
         .map(|byte| byte ^ OPAD)
         .collect::<ArrayVec<[u8; MAX_HASH_SIZE]>>();
 
-    H::new()
+    H::default()
         .chain(&key)
         .chain(&OPAD_ARRAY[H::OUTPUT_SIZE.into()..H::BLOCK_SIZE.into()])
         .chain(&buffer)
         .finalize_reset()
 }
 
-fn compute_hmac<H: Hasher>(key: &[u8], data: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+fn compute_hmac<H: HashChain>(key: &[u8], data: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
     let mut hasher = compute_hmac_ipad::<H>(key).chain(data);
     compute_hmac_opad::<H>(&mut hasher, key)
 }

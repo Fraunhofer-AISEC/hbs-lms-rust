@@ -1,14 +1,14 @@
 use tinyvec::ArrayVec;
 
 use crate::constants::{D_INTR, D_LEAF, MAX_HASH_SIZE};
-use crate::hasher::Hasher;
+use crate::hasher::HashChain;
 use crate::lm_ots;
 use crate::util::helper::is_odd;
 
 use super::definitions::InMemoryLmsPublicKey;
 use super::signing::InMemoryLmsSignature;
 
-pub fn verify<'a, H: Hasher>(
+pub fn verify<'a, H: HashChain>(
     signature: &InMemoryLmsSignature<'a, H>,
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],
@@ -28,7 +28,7 @@ pub fn verify<'a, H: Hasher>(
     }
 }
 
-fn generate_public_key_candiate<'a, H: Hasher>(
+fn generate_public_key_candiate<'a, H: HashChain>(
     signature: &InMemoryLmsSignature<'a, H>,
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],
@@ -48,7 +48,7 @@ fn generate_public_key_candiate<'a, H: Hasher>(
     );
 
     let mut node_num: u32 = leafs + signature.lms_leaf_identifier;
-    let mut hasher = H::new();
+    let mut hasher = H::default();
 
     hasher.update(public_key.lms_tree_identifier);
     hasher.update(&node_num.to_be_bytes());
@@ -91,7 +91,7 @@ mod tests {
             signing::{InMemoryLmsSignature, LmsSignature},
             SeedAndLmsTreeIdentifier,
         },
-        Sha256Hasher,
+        Sha256,
     };
 
     use rand::{rngs::OsRng, RngCore};
@@ -99,7 +99,7 @@ mod tests {
 
     #[test]
     fn test_verification() {
-        type Hasher = Sha256Hasher;
+        type Hasher = Sha256;
 
         let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
         OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);

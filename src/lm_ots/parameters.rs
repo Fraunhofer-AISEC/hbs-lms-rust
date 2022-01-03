@@ -7,7 +7,7 @@ use crate::{
         FastVerifyCached, HASH_CHAIN_COUNT_W1, HASH_CHAIN_COUNT_W2, HASH_CHAIN_COUNT_W4,
         HASH_CHAIN_COUNT_W8, MAX_HASH_SIZE,
     },
-    hasher::{sha256::Sha256Hasher, Hasher},
+    hasher::{sha256::Sha256, HashChain},
     util::coef::coef,
 };
 
@@ -46,7 +46,7 @@ impl LmotsAlgorithm {
         LmotsAlgorithm::LmotsW1.construct_parameter().unwrap()
     }
 
-    pub fn construct_parameter<H: Hasher>(&self) -> Option<LmotsParameter<H>> {
+    pub fn construct_parameter<H: HashChain>(&self) -> Option<LmotsParameter<H>> {
         match *self {
             LmotsAlgorithm::LmotsReserved => None,
             LmotsAlgorithm::LmotsW1 => Some(LmotsParameter::new(1, 1, HASH_CHAIN_COUNT_W1, 7)),
@@ -56,7 +56,7 @@ impl LmotsAlgorithm {
         }
     }
 
-    pub fn get_from_type<H: Hasher>(_type: u32) -> Option<LmotsParameter<H>> {
+    pub fn get_from_type<H: HashChain>(_type: u32) -> Option<LmotsParameter<H>> {
         match _type {
             1 => LmotsAlgorithm::LmotsW1.construct_parameter(),
             2 => LmotsAlgorithm::LmotsW2.construct_parameter(),
@@ -68,7 +68,7 @@ impl LmotsAlgorithm {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LmotsParameter<H: Hasher = Sha256Hasher> {
+pub struct LmotsParameter<H: HashChain = Sha256> {
     type_id: u32,
     winternitz: u8,
     hash_chain_count: u16,
@@ -76,11 +76,11 @@ pub struct LmotsParameter<H: Hasher = Sha256Hasher> {
     phantom_data: PhantomData<H>,
 }
 
-// Manually implement Copy because Hasher trait does not.
-// However, it does not make a difference, because we don't hold a instance for Hasher.
-impl<H: Hasher> Copy for LmotsParameter<H> {}
+// Manually implement Copy because HashChain trait does not.
+// However, it does not make a difference, because we don't hold a instance for HashChain.
+impl<H: HashChain> Copy for LmotsParameter<H> {}
 
-impl<H: Hasher> LmotsParameter<H> {
+impl<H: HashChain> LmotsParameter<H> {
     const HASH_FUNCTION_OUTPUT_SIZE: u16 = H::OUTPUT_SIZE;
 
     pub fn new(
@@ -187,11 +187,11 @@ impl<H: Hasher> LmotsParameter<H> {
     }
 
     pub fn get_hasher(&self) -> H {
-        H::new()
+        H::default()
     }
 }
 
-impl<H: Hasher> Default for LmotsParameter<H> {
+impl<H: HashChain> Default for LmotsParameter<H> {
     fn default() -> Self {
         LmotsAlgorithm::LmotsW1.construct_parameter().unwrap()
     }

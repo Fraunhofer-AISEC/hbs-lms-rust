@@ -2,37 +2,31 @@ use tinyvec::ArrayVec;
 
 use sha3::{
     digest::{ExtendableOutput, ExtendableOutputReset, Update, XofReader},
-    Shake256,
+    Shake256 as Hasher,
 };
 
 use crate::constants::MAX_HASH_SIZE;
 
-use super::Hasher;
+use super::HashChain;
 
 /**
- * Standard software implementation for Shake256. Can be passed into the library, because it implements the `Hasher` trait.
+ * Standard software implementation for Shake256. Can be passed into the library, because it implements the `HashChain` trait.
  * */
 #[derive(Debug, Default, Clone)]
-pub struct Shake256Hasher {
-    hasher: Shake256,
+pub struct Shake256 {
+    hasher: Hasher,
 }
 
-impl Hasher for Shake256Hasher {
+impl HashChain for Shake256 {
     const OUTPUT_SIZE: u16 = 32;
     const BLOCK_SIZE: u16 = 64;
-
-    fn new() -> Self {
-        Shake256Hasher {
-            hasher: Shake256::default(),
-        }
-    }
 
     fn update(&mut self, data: &[u8]) {
         self.hasher.update(data);
     }
 
     fn chain(self, data: &[u8]) -> Self {
-        Shake256Hasher {
+        Shake256 {
             hasher: self.hasher.chain(data),
         }
     }
@@ -50,7 +44,7 @@ impl Hasher for Shake256Hasher {
     }
 }
 
-impl PartialEq for Shake256Hasher {
+impl PartialEq for Shake256 {
     fn eq(&self, _: &Self) -> bool {
         #[cfg(test)]
         return true;

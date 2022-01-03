@@ -13,15 +13,15 @@
 //! use rand::{rngs::OsRng, RngCore};
 //! use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm,
 //!     Signature, signature::{SignerMut, Verifier},
-//!     Sha256Hasher, Seed,
+//!     Sha256, Seed,
 //! };
 //!
 //! let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32];
 //!
 //! // Generate keys for a 2-level HSS system (RootTree W1/H5, ChildTree W2/H5)
 //! let hss_parameter = [
-//!         HssParameter::<Sha256Hasher>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5),
-//!         HssParameter::<Sha256Hasher>::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+//!         HssParameter::<Sha256>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5),
+//!         HssParameter::<Sha256>::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
 //! ];
 //!
 //! let mut seed = Seed::default();
@@ -29,7 +29,7 @@
 //! let aux_data = None;
 //!
 //! let (mut signing_key, verifying_key) =
-//!     hbs_lms::keygen::<Sha256Hasher>(&hss_parameter, &seed, aux_data).unwrap();
+//!     hbs_lms::keygen::<Sha256>(&hss_parameter, &seed, aux_data).unwrap();
 //!
 //! let signature = signing_key.try_sign(&message).unwrap();
 //!
@@ -94,7 +94,7 @@ pub use signature::{self};
 #[doc(hidden)]
 pub use crate::constants::Seed;
 
-pub use crate::hasher::{sha256::Sha256Hasher, shake256::Shake256Hasher, Hasher};
+pub use crate::hasher::{sha256::Sha256, shake256::Shake256, HashChain};
 
 pub use crate::hss::parameter::HssParameter;
 pub use crate::lm_ots::parameters::LmotsAlgorithm;
@@ -170,7 +170,7 @@ impl<'a> signature::Signature for VerifierSignature<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256Hasher};
+    use crate::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256};
     use crate::{
         signature::{SignerMut, Verifier},
         SigningKey, VerifierSignature, VerifyingKey,
@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn get_signing_and_verifying_key() {
-        type H = Sha256Hasher;
+        type H = Sha256;
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
 
@@ -206,7 +206,7 @@ mod tests {
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
 
-        let (mut signing_key, verifying_key) = keygen::<Sha256Hasher>(
+        let (mut signing_key, verifying_key) = keygen::<Sha256>(
             &[
                 HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
                 HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),

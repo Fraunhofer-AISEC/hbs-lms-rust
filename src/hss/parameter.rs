@@ -4,8 +4,8 @@ use crate::{
 };
 
 /**
- * Specify Winternitz parameter and Tree height for one HSS Level.
- * An array is passed to the `keygen` function describing each HSS level respectively.
+ * Specify `Winternitz Parameter` ([`LmotsAlgorithm`]) and `Tree Height` ([`LmsAlgorithm`]) for one HSS Level.
+ * An array is passed to the [`crate::keygen`] function describing each HSS Level respectively.
  * */
 #[derive(Clone, PartialEq)]
 pub struct HssParameter<H: HashChain> {

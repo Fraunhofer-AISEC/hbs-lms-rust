@@ -23,6 +23,9 @@ use self::{
     signing::{HssSignature, InMemoryHssSignature},
 };
 
+/**
+ * Implementation of [`SignerMut`] using [`Signature`].
+ */
 #[derive(Clone)]
 pub struct SigningKey<H: HashChain> {
     pub bytes: ArrayVec<[u8; REFERENCE_IMPL_PRIVATE_KEY_SIZE]>,
@@ -82,6 +85,9 @@ impl<H: HashChain> SignerMut<Signature> for SigningKey<H> {
     }
 }
 
+/**
+ * Implementation of [`Verifier`] using [`Signature`] or [`VerifierSignature`].
+ */
 #[derive(Clone)]
 pub struct VerifyingKey<H: HashChain> {
     pub bytes: ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]>,
@@ -122,7 +128,7 @@ impl<'a, H: HashChain> Verifier<VerifierSignature<'a>> for VerifyingKey<H> {
 }
 
 /**
- * This function is used to verify a signature.
+ * Verify a signature ([`Signature`] or [`VerifierSignature`]).
  *
  * # Arguments
  * * `HashChain` - The hasher implementation that should be used. ```Sha256``` is a standard software implementation.
@@ -138,7 +144,7 @@ pub fn hss_verify<H: HashChain>(message: &[u8], signature: &[u8], public_key: &[
 }
 
 /**
- * This function is used to generate a signature.
+ * Generate a [`Signature`].
  *
  * # Arguments
  * * `HashChain` - The hasher implementation that should be used. ```Sha256``` is a standard software implementation.
@@ -221,7 +227,7 @@ fn hss_sign_core<H: HashChain>(
 }
 
 /**
- * This function is used to generate a public and private key.
+ * Generate [`SigningKey`] and [`VerifyingKey`].
  * # Arguments
  *
  * * `HashChain` - The hasher implementation that should be used. ```Sha256``` is a standard software implementation.

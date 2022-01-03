@@ -39,7 +39,7 @@ The following table shows the mapping between the RFC and the library naming inc
 | C          | signature_randomizer | 32-byte random value added to every signature             |
 | Q          | message_hash         | Output of hashed message together with I, q, D_MESG and C |
 | y          | signature_data       | The actual data of the signature                          |
-| p          | max_hash_iterations  | The maximum value of hash iterations                      |
+| p          | hash_chain_count     | The number of hash chains for a certain W parameter       |
 | ls         | checksum_left_shift  | How many bits the checksum is shifted into the coef-value |
 | n          | hash_function_output_size | Number of bytes that the lm_ots hash functions generates         |
 | m          | hash_function_output_size | Number of bytes that the lms hash functions generates         |

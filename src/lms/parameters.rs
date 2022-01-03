@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::hasher::{sha256::Sha256Hasher, Hasher};
+use crate::hasher::{sha256::Sha256, HashChain};
 
 /// Specifies the used Tree height.
 #[derive(Clone, Copy)]
@@ -41,7 +41,7 @@ impl LmsAlgorithm {
         LmsAlgorithm::LmsH5.construct_parameter().unwrap()
     }
 
-    pub fn construct_parameter<H: Hasher>(&self) -> Option<LmsParameter<H>> {
+    pub fn construct_parameter<H: HashChain>(&self) -> Option<LmsParameter<H>> {
         match *self {
             LmsAlgorithm::LmsReserved => None,
             #[cfg(test)]
@@ -54,7 +54,7 @@ impl LmsAlgorithm {
         }
     }
 
-    pub fn get_from_type<H: Hasher>(_type: u32) -> Option<LmsParameter<H>> {
+    pub fn get_from_type<H: HashChain>(_type: u32) -> Option<LmsParameter<H>> {
         match _type {
             #[cfg(test)]
             1 => LmsAlgorithm::LmsH2.construct_parameter(),
@@ -69,17 +69,17 @@ impl LmsAlgorithm {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LmsParameter<H: Hasher = Sha256Hasher> {
+pub struct LmsParameter<H: HashChain = Sha256> {
     type_id: u32,
     tree_height: u8,
     phantom_data: PhantomData<H>,
 }
 
-// Manually implement Copy because Hasher trait does not.
-// However, it does not make a difference, because we don't hold a instance for Hasher.
-impl<H: Hasher> Copy for LmsParameter<H> {}
+// Manually implement Copy because HashChain trait does not.
+// However, it does not make a difference, because we don't hold a instance for HashChain.
+impl<H: HashChain> Copy for LmsParameter<H> {}
 
-impl<H: Hasher> LmsParameter<H> {
+impl<H: HashChain> LmsParameter<H> {
     const HASH_FUNCTION_OUTPUT_SIZE: usize = H::OUTPUT_SIZE as usize;
 
     pub fn new(type_id: u32, tree_height: u8) -> Self {
@@ -107,11 +107,11 @@ impl<H: Hasher> LmsParameter<H> {
     }
 
     pub fn get_hasher(&self) -> H {
-        H::new()
+        H::default()
     }
 }
 
-impl<H: Hasher> Default for LmsParameter<H> {
+impl<H: HashChain> Default for LmsParameter<H> {
     fn default() -> Self {
         LmsAlgorithm::LmsH5.construct_parameter().unwrap()
     }

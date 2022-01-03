@@ -1,5 +1,5 @@
 use crate::{
-    hasher::Hasher, lm_ots::parameters::LmotsParameter, lms::parameters::LmsParameter,
+    hasher::HashChain, lm_ots::parameters::LmotsParameter, lms::parameters::LmsParameter,
     LmotsAlgorithm, LmsAlgorithm,
 };
 
@@ -8,14 +8,14 @@ use crate::{
  * An array is passed to the `keygen` function describing each HSS level respectively.
  * */
 #[derive(Clone, PartialEq)]
-pub struct HssParameter<H: Hasher> {
+pub struct HssParameter<H: HashChain> {
     lmots_parameter: LmotsParameter<H>,
     lms_parameter: LmsParameter<H>,
 }
 
-impl<H: Hasher> Copy for HssParameter<H> {}
+impl<H: HashChain> Copy for HssParameter<H> {}
 
-impl<H: Hasher> HssParameter<H> {
+impl<H: HashChain> HssParameter<H> {
     pub fn new(lmots_parameter: LmotsAlgorithm, lms_parameter: LmsAlgorithm) -> Self {
         let lmots_parameter = lmots_parameter
             .construct_parameter()
@@ -38,7 +38,7 @@ impl<H: Hasher> HssParameter<H> {
     }
 }
 
-impl<H: Hasher> HssParameter<H> {
+impl<H: HashChain> HssParameter<H> {
     pub fn construct_default_parameters() -> Self {
         let lmots_parameter = LmotsAlgorithm::LmotsW1;
         let lms_parameter = LmsAlgorithm::LmsH5;
@@ -47,7 +47,7 @@ impl<H: Hasher> HssParameter<H> {
     }
 }
 
-impl<H: Hasher> Default for HssParameter<H> {
+impl<H: HashChain> Default for HssParameter<H> {
     fn default() -> Self {
         let lmots_parameter = LmotsAlgorithm::LmotsW1;
         let lms_parameter = LmsAlgorithm::LmsH5;

@@ -2,12 +2,12 @@ use core::usize;
 
 use tinyvec::ArrayVec;
 
-use crate::{constants::*, hasher::Hasher, util::coef::coef};
+use crate::{constants::*, hasher::HashChain, util::coef::coef};
 
 use super::{definitions::LmotsPublicKey, signing::InMemoryLmotsSignature};
 
 #[allow(dead_code)]
-pub fn verify_signature_inmemory<'a, H: Hasher>(
+pub fn verify_signature_inmemory<'a, H: HashChain>(
     signature: &InMemoryLmotsSignature<'a, H>,
     public_key: &LmotsPublicKey<H>,
     message: &[u8],
@@ -26,7 +26,7 @@ pub fn verify_signature_inmemory<'a, H: Hasher>(
     public_key_candidate == public_key.key
 }
 
-pub fn generate_public_key_candiate<'a, H: Hasher>(
+pub fn generate_public_key_candiate<'a, H: HashChain>(
     signature: &InMemoryLmotsSignature<'a, H>,
     lms_tree_identifier: &[u8],
     lms_leaf_identifier: u32,
@@ -80,7 +80,7 @@ mod tests {
     use tinyvec::ArrayVec;
 
     use crate::constants::Seed;
-    use crate::hasher::sha256::Sha256Hasher;
+    use crate::hasher::sha256::Sha256;
     use crate::lm_ots::{
         definitions::LmotsPublicKey,
         keygen::{generate_private_key, generate_public_key},
@@ -103,10 +103,10 @@ mod tests {
                     176, 213, 104, 226, 71, 9, 74, 130, 187, 214, 75, 151, 184, 216, 175,
                 ];
 
-                let parameter = $type.construct_parameter::<Sha256Hasher>().unwrap();
+                let parameter = $type.construct_parameter::<Sha256>().unwrap();
                 let private_key =
                     generate_private_key(lms_tree_identifier, lms_leaf_identifier, seed, parameter);
-                let public_key: LmotsPublicKey<Sha256Hasher> = generate_public_key(&private_key);
+                let public_key: LmotsPublicKey<Sha256> = generate_public_key(&private_key);
 
                 let mut message = [1, 3, 5, 9, 0];
                 let mut signature_randomizer = ArrayVec::from([0u8; 32]);

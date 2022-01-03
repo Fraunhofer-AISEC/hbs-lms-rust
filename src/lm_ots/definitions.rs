@@ -2,20 +2,20 @@ use tinyvec::ArrayVec;
 
 use crate::{
     constants::{LmsLeafIdentifier, LmsTreeIdentifier, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
-    hasher::Hasher,
+    hasher::HashChain,
 };
 
 use super::parameters::LmotsParameter;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct LmotsPrivateKey<H: Hasher> {
+pub struct LmotsPrivateKey<H: HashChain> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lms_leaf_identifier: LmsLeafIdentifier,
     pub key: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]>, // [[0u8; n]; p];
     pub lmots_parameter: LmotsParameter<H>,
 }
 
-impl<H: Hasher> LmotsPrivateKey<H> {
+impl<H: HashChain> LmotsPrivateKey<H> {
     pub fn new(
         lms_tree_identifier: LmsTreeIdentifier,
         lms_leaf_identifier: LmsLeafIdentifier,
@@ -31,14 +31,14 @@ impl<H: Hasher> LmotsPrivateKey<H> {
     }
 }
 
-pub struct LmotsPublicKey<H: Hasher> {
+pub struct LmotsPublicKey<H: HashChain> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lms_leaf_identifier: LmsLeafIdentifier,
     pub key: ArrayVec<[u8; MAX_HASH_SIZE]>,
     pub lmots_parameter: LmotsParameter<H>,
 }
 
-impl<H: Hasher> LmotsPublicKey<H> {
+impl<H: HashChain> LmotsPublicKey<H> {
     pub fn new(
         lms_tree_identifier: LmsTreeIdentifier,
         lms_leaf_identifier: LmsLeafIdentifier,
@@ -56,14 +56,14 @@ impl<H: Hasher> LmotsPublicKey<H> {
 
 #[cfg(test)]
 mod tests {
-    use crate::hasher::sha256::Sha256Hasher;
+    use crate::hasher::sha256::Sha256;
     use crate::lm_ots::parameters;
 
     macro_rules! generate_parameter_test {
         ($name:ident, $parameter:expr, $n:literal, $w:literal, $p:literal, $ls:literal, $type:literal) => {
             #[test]
             fn $name() {
-                let parameter = $parameter.construct_parameter::<Sha256Hasher>().unwrap();
+                let parameter = $parameter.construct_parameter::<Sha256>().unwrap();
                 assert_eq!(parameter.get_hash_function_output_size(), $n);
                 assert_eq!(parameter.get_winternitz(), $w);
                 assert_eq!(parameter.get_hash_chain_count(), $p);

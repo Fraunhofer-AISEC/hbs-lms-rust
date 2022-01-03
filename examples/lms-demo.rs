@@ -41,12 +41,12 @@ impl DemoError {
 }
 
 struct GenKeyParameter {
-    parameter: Vec<HssParameter<Sha256Hasher>>,
+    parameter: Vec<HssParameter<Sha256>>,
     aux_data: usize,
 }
 
 impl GenKeyParameter {
-    pub fn new(parameter: Vec<HssParameter<Sha256Hasher>>, aux_data: Option<usize>) -> Self {
+    pub fn new(parameter: Vec<HssParameter<Sha256>>, aux_data: Option<usize>) -> Self {
         let aux_data = aux_data.unwrap_or(AUX_DATA_DEFAULT_SIZE);
         Self {
             parameter,
@@ -140,14 +140,14 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
 
     let result = if let Some(aux_data) = aux_data.as_mut() {
         let aux_slice = &mut &mut aux_data[..];
-        hbs_lms::sign::<Sha256Hasher>(
+        hbs_lms::sign::<Sha256>(
             &message_data,
             &private_key_data,
             &mut private_key_update_function,
             Some(aux_slice),
         )
     } else {
-        hbs_lms::sign::<Sha256Hasher>(
+        hbs_lms::sign::<Sha256>(
             &message_data,
             &private_key_data,
             &mut private_key_update_function,
@@ -192,14 +192,14 @@ fn sign_mut(args: &ArgMatches) -> Result<(), std::io::Error> {
 
     let signature_result = if let Some(aux_data) = aux_data.as_mut() {
         let aux_slice = &mut &mut aux_data[..];
-        hbs_lms::sign_mut::<Sha256Hasher>(
+        hbs_lms::sign_mut::<Sha256>(
             &mut message_data,
             &private_key_data,
             &mut private_key_update_function,
             Some(aux_slice),
         )
     } else {
-        hbs_lms::sign_mut::<Sha256Hasher>(
+        hbs_lms::sign_mut::<Sha256>(
             &mut message_data,
             &private_key_data,
             &mut private_key_update_function,
@@ -236,7 +236,7 @@ fn verify(args: &ArgMatches) -> bool {
     let message_data = read_file(&message_name);
     let public_key_data = read_file(&public_key_name);
 
-    hbs_lms::verify::<Sha256Hasher>(&message_data, &signature_data, &public_key_data)
+    hbs_lms::verify::<Sha256>(&message_data, &signature_data, &public_key_data)
 }
 
 fn get_public_key_name(keyname: &str) -> String {

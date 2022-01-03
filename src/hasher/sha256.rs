@@ -1,36 +1,30 @@
 use core::convert::TryFrom;
 use tinyvec::ArrayVec;
 
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256 as Hasher};
 
 use crate::constants::MAX_HASH_SIZE;
 
-use super::Hasher;
+use super::HashChain;
 
 /**
- * Standard software implementation for Sha256. Can be passed into the library, because it implements the `Hasher` trait.
+ * Standard software implementation for Sha256. Can be passed into the library, because it implements the `HashChain` trait.
  * */
 #[derive(Debug, Default, Clone)]
-pub struct Sha256Hasher {
-    hasher: Sha256,
+pub struct Sha256 {
+    hasher: Hasher,
 }
 
-impl Hasher for Sha256Hasher {
+impl HashChain for Sha256 {
     const OUTPUT_SIZE: u16 = 32;
     const BLOCK_SIZE: u16 = 64;
-
-    fn new() -> Self {
-        Sha256Hasher {
-            hasher: Sha256::default(),
-        }
-    }
 
     fn update(&mut self, data: &[u8]) {
         self.hasher.update(data);
     }
 
     fn chain(self, data: &[u8]) -> Self {
-        Sha256Hasher {
+        Sha256 {
             hasher: self.hasher.chain_update(data),
         }
     }
@@ -46,7 +40,7 @@ impl Hasher for Sha256Hasher {
     }
 }
 
-impl PartialEq for Sha256Hasher {
+impl PartialEq for Sha256 {
     fn eq(&self, _: &Self) -> bool {
         #[cfg(test)]
         return true;

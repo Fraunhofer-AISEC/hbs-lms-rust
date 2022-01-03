@@ -1,13 +1,13 @@
 use tinyvec::ArrayVec;
 
 use crate::constants::{D_INTR, D_LEAF, MAX_HASH_SIZE};
-use crate::hasher::Hasher;
+use crate::hasher::HashChain;
 use crate::hss::aux::{hss_extract_aux_data, hss_save_aux_data, MutableExpandedAuxData};
 use crate::lm_ots;
 
 use super::definitions::LmsPrivateKey;
 
-pub fn get_tree_element<H: Hasher>(
+pub fn get_tree_element<H: HashChain>(
     index: usize,
     private_key: &LmsPrivateKey<H>,
     aux_data: &mut Option<MutableExpandedAuxData>,
@@ -21,7 +21,7 @@ pub fn get_tree_element<H: Hasher>(
 
     let max_private_keys = private_key.lms_parameter.number_of_lm_ots_keys();
 
-    let hasher = H::new()
+    let hasher = H::default()
         .chain(&private_key.lms_tree_identifier)
         .chain(&(index as u32).to_be_bytes());
 

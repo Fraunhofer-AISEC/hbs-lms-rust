@@ -1,4 +1,4 @@
-use crate::hasher::Hasher;
+use crate::hasher::HashChain;
 use crate::hss::aux::MutableExpandedAuxData;
 use crate::hss::parameter::HssParameter;
 use crate::hss::reference_impl_private_key::SeedAndLmsTreeIdentifier;
@@ -12,12 +12,12 @@ pub mod parameters;
 pub mod signing;
 pub mod verify;
 
-pub struct LmsKeyPair<H: Hasher> {
+pub struct LmsKeyPair<H: HashChain> {
     pub private_key: LmsPrivateKey<H>,
     pub public_key: LmsPublicKey<H>,
 }
 
-pub fn generate_key_pair<H: Hasher>(
+pub fn generate_key_pair<H: HashChain>(
     seed: &SeedAndLmsTreeIdentifier,
     parameter: &HssParameter<H>,
     used_leafs_index: &u32,

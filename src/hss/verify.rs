@@ -1,11 +1,11 @@
 use crate::{
-    hasher::Hasher,
+    hasher::HashChain,
     lms::{self},
 };
 
 use super::{definitions::InMemoryHssPublicKey, signing::InMemoryHssSignature};
 
-pub fn verify<'a, H: Hasher>(
+pub fn verify<'a, H: HashChain>(
     signature: &InMemoryHssSignature<'a, H>,
     public_key: &InMemoryHssPublicKey<'a, H>,
     message: &[u8],
@@ -31,7 +31,7 @@ pub fn verify<'a, H: Hasher>(
 #[cfg(test)]
 mod tests {
     use crate::{
-        hasher::{sha256::Sha256Hasher, Hasher},
+        hasher::{sha256::Sha256, HashChain},
         hss::{
             definitions::{HssPrivateKey, HssPublicKey, InMemoryHssPublicKey},
             reference_impl_private_key::ReferenceImplPrivateKey,
@@ -47,7 +47,7 @@ mod tests {
     fn test_hss_verify() {
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
-        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(
+        let private_key = ReferenceImplPrivateKey::<Sha256>::generate(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
@@ -67,7 +67,7 @@ mod tests {
         generate_signature_and_verify(&mut private_key, &public_key, &mut message);
     }
 
-    fn generate_signature_and_verify<H: Hasher>(
+    fn generate_signature_and_verify<H: HashChain>(
         private_key: &mut HssPrivateKey<H>,
         public_key: &HssPublicKey<H>,
         message: &mut [u8],

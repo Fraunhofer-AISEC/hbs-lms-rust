@@ -1,6 +1,6 @@
 use crate::{
     constants::{D_MESG, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE, MAX_LMOTS_SIGNATURE_LENGTH},
-    hasher::Hasher,
+    hasher::HashChain,
     lm_ots::parameters::LmotsAlgorithm,
     util::{coef::coef, helper::read_and_advance},
 };
@@ -22,7 +22,7 @@ use super::definitions::LmotsPrivateKey;
 use super::parameters::LmotsParameter;
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct LmotsSignature<H: Hasher> {
+pub struct LmotsSignature<H: HashChain> {
     pub signature_randomizer: ArrayVec<[u8; MAX_HASH_SIZE]>,
     pub signature_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]>,
     pub lmots_parameter: LmotsParameter<H>,
@@ -30,13 +30,13 @@ pub struct LmotsSignature<H: Hasher> {
 }
 
 #[derive(Clone)]
-pub struct InMemoryLmotsSignature<'a, H: Hasher> {
+pub struct InMemoryLmotsSignature<'a, H: HashChain> {
     pub signature_randomizer: &'a [u8],
     pub signature_data: &'a [u8],
     pub lmots_parameter: LmotsParameter<H>,
 }
 
-impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, H> {
+impl<'a, H: HashChain> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, H> {
     fn eq(&self, other: &LmotsSignature<H>) -> bool {
         let first_cond = self.signature_randomizer == other.signature_randomizer.as_slice()
             && self.lmots_parameter == other.lmots_parameter;
@@ -59,7 +59,7 @@ impl<'a, H: Hasher> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'a, 
     }
 }
 
-impl<H: Hasher> LmotsSignature<H> {
+impl<H: HashChain> LmotsSignature<H> {
     fn calculate_message_hash(
         private_key: &LmotsPrivateKey<H>,
         signature_randomizer: &ArrayVec<[u8; MAX_HASH_SIZE]>,
@@ -211,7 +211,7 @@ impl<H: Hasher> LmotsSignature<H> {
     }
 }
 
-impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
+impl<'a, H: HashChain> InMemoryLmotsSignature<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         let mut index = 0;
 
@@ -244,7 +244,7 @@ impl<'a, H: Hasher> InMemoryLmotsSignature<'a, H> {
 }
 
 #[cfg(feature = "fast_verify")]
-fn optimize_message_hash<H: Hasher>(
+fn optimize_message_hash<H: HashChain>(
     hasher: &H,
     lmots_parameter: &LmotsParameter<H>,
     randomizer: &mut [u8],
@@ -288,7 +288,7 @@ fn optimize_message_hash<H: Hasher>(
 }
 
 #[cfg(feature = "fast_verify")]
-fn thread_optimize_message_hash<H: Hasher>(
+fn thread_optimize_message_hash<H: HashChain>(
     hasher: &H,
     lmots_parameter: &LmotsParameter<H>,
     fast_verify_cached: &FastVerifyCached,

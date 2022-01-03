@@ -5,7 +5,7 @@ use crate::{
         SEED_LEN, SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED,
         TOPSEED_WHICH,
     },
-    hasher::Hasher,
+    hasher::HashChain,
     hss::{definitions::HssPrivateKey, seed_derive::SeedDerive},
     util::helper::read_and_advance,
     HssParameter, LmotsAlgorithm, LmsAlgorithm,
@@ -38,14 +38,14 @@ impl SeedAndLmsTreeIdentifier {
 }
 
 #[derive(Default, PartialEq)]
-pub struct ReferenceImplPrivateKey<H: Hasher> {
+pub struct ReferenceImplPrivateKey<H: HashChain> {
     pub compressed_used_leafs_indexes: CompressedUsedLeafsIndexes,
     pub compressed_parameter: CompressedParameterSet,
     pub seed: Seed,
     phantom: PhantomData<H>,
 }
 
-impl<H: Hasher> ReferenceImplPrivateKey<H> {
+impl<H: HashChain> ReferenceImplPrivateKey<H> {
     fn wipe(&mut self) {
         self.seed = [0u8; SEED_LEN] as Seed;
         self.compressed_parameter = CompressedParameterSet::default();
@@ -108,7 +108,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
         let end = start + size_of::<Seed>();
         hash_preimage[start..end].copy_from_slice(&self.seed);
 
-        let mut hasher = H::new();
+        let mut hasher = H::default();
 
         hasher.update(&hash_preimage);
         hash_postimage.copy_from_slice(hasher.finalize_reset().as_slice());
@@ -141,7 +141,7 @@ impl<H: Hasher> ReferenceImplPrivateKey<H> {
     }
 }
 
-pub fn generate_child_seed_and_lms_tree_identifier<H: Hasher>(
+pub fn generate_child_seed_and_lms_tree_identifier<H: HashChain>(
     parent_seed: &SeedAndLmsTreeIdentifier,
     parent_lms_leaf_identifier: &u32,
 ) -> SeedAndLmsTreeIdentifier {
@@ -157,7 +157,7 @@ pub fn generate_child_seed_and_lms_tree_identifier<H: Hasher>(
     SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier)
 }
 
-pub fn generate_signature_randomizer<H: Hasher>(
+pub fn generate_signature_randomizer<H: HashChain>(
     child_seed: &SeedAndLmsTreeIdentifier,
     parent_lms_leaf_identifier: &u32,
 ) -> [u8; MAX_HASH_SIZE] {
@@ -194,7 +194,7 @@ impl CompressedParameterSet {
         Ok(result)
     }
 
-    pub fn from<H: Hasher>(parameters: &[HssParameter<H>]) -> Result<Self, ()> {
+    pub fn from<H: HashChain>(parameters: &[HssParameter<H>]) -> Result<Self, ()> {
         let mut result = CompressedParameterSet::default();
 
         for (i, parameter) in parameters.iter().enumerate() {
@@ -210,7 +210,9 @@ impl CompressedParameterSet {
         Ok(result)
     }
 
-    pub fn to<H: Hasher>(&self) -> Result<ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>, ()> {
+    pub fn to<H: HashChain>(
+        &self,
+    ) -> Result<ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>, ()> {
         let mut result = ArrayVec::new();
 
         for level in 0..MAX_ALLOWED_HSS_LEVELS {
@@ -253,7 +255,7 @@ impl CompressedUsedLeafsIndexes {
         }
     }
 
-    pub fn to<H: Hasher>(
+    pub fn to<H: HashChain>(
         &self,
         parameters: &ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>,
     ) -> [u32; MAX_ALLOWED_HSS_LEVELS] {
@@ -290,13 +292,13 @@ mod tests {
     use super::{CompressedParameterSet, ReferenceImplPrivateKey};
     use crate::{
         constants::MAX_ALLOWED_HSS_LEVELS, hss::definitions::HssPrivateKey, HssParameter,
-        LmotsAlgorithm, LmsAlgorithm, Seed, Sha256Hasher,
+        LmotsAlgorithm, LmsAlgorithm, Seed, Sha256,
     };
 
     use rand::{rngs::OsRng, RngCore};
     use tinyvec::ArrayVec;
 
-    type Hasher = Sha256Hasher;
+    type Hasher = Sha256;
 
     #[test]
     fn exhaust_state() {

@@ -11,7 +11,7 @@ use crate::{
         signing::{InMemoryLmsSignature, LmsSignature},
     },
     util::helper::read_and_advance,
-    Hasher,
+    HashChain,
 };
 
 use super::definitions::HssPrivateKey;
@@ -20,13 +20,13 @@ use core::convert::TryInto;
 use tinyvec::ArrayVec;
 
 #[derive(PartialEq)]
-pub struct HssSignature<H: Hasher> {
+pub struct HssSignature<H: HashChain> {
     pub level: usize,
     pub signed_public_keys: ArrayVec<[HssSignedPublicKey<H>; MAX_ALLOWED_HSS_LEVELS - 1]>,
     pub signature: LmsSignature<H>,
 }
 
-impl<H: Hasher> HssSignature<H> {
+impl<H: HashChain> HssSignature<H> {
     pub fn sign(
         private_key: &mut HssPrivateKey<H>,
         message: Option<&[u8]>,
@@ -106,14 +106,14 @@ impl<H: Hasher> HssSignature<H> {
 
 /// To reduce memory footprint on verification we handle the signature in-memory using ```InMemoryHssSignature```.
 /// In order to reduce complexity we use ```HssSignature``` for key generation and signature generation.
-pub struct InMemoryHssSignature<'a, H: Hasher> {
+pub struct InMemoryHssSignature<'a, H: HashChain> {
     pub level: usize,
     pub signed_public_keys:
         ArrayVec<[Option<InMemoryHssSignedPublicKey<'a, H>>; MAX_ALLOWED_HSS_LEVELS - 1]>,
     pub signature: InMemoryLmsSignature<'a, H>,
 }
 
-impl<'a, H: Hasher> PartialEq<HssSignature<H>> for InMemoryHssSignature<'a, H> {
+impl<'a, H: HashChain> PartialEq<HssSignature<H>> for InMemoryHssSignature<'a, H> {
     fn eq(&self, other: &HssSignature<H>) -> bool {
         let first_condition = self.level == other.level && self.signature == other.signature;
 
@@ -139,7 +139,7 @@ impl<'a, H: Hasher> PartialEq<HssSignature<H>> for InMemoryHssSignature<'a, H> {
     }
 }
 
-impl<'a, H: Hasher> InMemoryHssSignature<'a, H> {
+impl<'a, H: HashChain> InMemoryHssSignature<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         let mut index = 0;
 
@@ -169,24 +169,24 @@ impl<'a, H: Hasher> InMemoryHssSignature<'a, H> {
 }
 
 #[derive(Default, Clone, PartialEq)]
-pub struct HssSignedPublicKey<H: Hasher> {
+pub struct HssSignedPublicKey<H: HashChain> {
     pub sig: LmsSignature<H>,
     pub public_key: LmsPublicKey<H>,
 }
 
 #[derive(Clone)]
-pub struct InMemoryHssSignedPublicKey<'a, H: Hasher> {
+pub struct InMemoryHssSignedPublicKey<'a, H: HashChain> {
     pub sig: InMemoryLmsSignature<'a, H>,
     pub public_key: InMemoryLmsPublicKey<'a, H>,
 }
 
-impl<'a, H: Hasher> PartialEq<HssSignedPublicKey<H>> for InMemoryHssSignedPublicKey<'a, H> {
+impl<'a, H: HashChain> PartialEq<HssSignedPublicKey<H>> for InMemoryHssSignedPublicKey<'a, H> {
     fn eq(&self, other: &HssSignedPublicKey<H>) -> bool {
         self.sig == other.sig && self.public_key == other.public_key
     }
 }
 
-impl<H: Hasher> HssSignedPublicKey<H> {
+impl<H: HashChain> HssSignedPublicKey<H> {
     pub fn new(signature: LmsSignature<H>, public_key: LmsPublicKey<H>) -> Self {
         Self {
             sig: signature,
@@ -204,7 +204,7 @@ impl<H: Hasher> HssSignedPublicKey<H> {
     }
 }
 
-impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
+impl<'a, H: HashChain> InMemoryHssSignedPublicKey<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         let sig = match InMemoryLmsSignature::new(data) {
             None => return None,
@@ -247,7 +247,7 @@ impl<'a, H: Hasher> InMemoryHssSignedPublicKey<'a, H> {
 mod tests {
     use crate::HssParameter;
     use crate::{
-        hasher::sha256::Sha256Hasher,
+        hasher::sha256::Sha256,
         hss::{
             reference_impl_private_key::ReferenceImplPrivateKey,
             signing::{
@@ -268,7 +268,7 @@ mod tests {
     fn reuse_loaded_keypair() {
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
-        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(
+        let private_key = ReferenceImplPrivateKey::<Sha256>::generate(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
@@ -292,7 +292,7 @@ mod tests {
     fn test_signed_public_key_binary_representation() {
         let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
         OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
-        let mut keypair = lms::generate_key_pair::<Sha256Hasher>(
+        let mut keypair = lms::generate_key_pair::<Sha256>(
             &seed_and_lms_tree_identifier,
             &HssParameter::construct_default_parameters(),
             &0,
@@ -322,7 +322,7 @@ mod tests {
     fn test_hss_signature_binary_representation() {
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
-        let private_key = ReferenceImplPrivateKey::<Sha256Hasher>::generate(
+        let private_key = ReferenceImplPrivateKey::<Sha256>::generate(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
@@ -341,9 +341,8 @@ mod tests {
             .expect("Should generate HSS signature");
 
         let binary_representation = signature.to_binary_representation();
-        let deserialized =
-            InMemoryHssSignature::<Sha256Hasher>::new(binary_representation.as_slice())
-                .expect("Deserialization should work.");
+        let deserialized = InMemoryHssSignature::<Sha256>::new(binary_representation.as_slice())
+            .expect("Deserialization should work.");
 
         assert!(deserialized == signature);
     }

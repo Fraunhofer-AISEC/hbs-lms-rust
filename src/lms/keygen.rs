@@ -2,14 +2,14 @@ use super::helper::get_tree_element;
 use super::parameters::LmsParameter;
 use crate::{
     constants::LmsTreeIdentifier,
-    hasher::Hasher,
+    hasher::HashChain,
     hss::aux::MutableExpandedAuxData,
     lm_ots::parameters::LmotsParameter,
     lms::definitions::{LmsPrivateKey, LmsPublicKey},
     Seed,
 };
 
-pub fn generate_private_key<H: Hasher>(
+pub fn generate_private_key<H: HashChain>(
     seed: Seed,
     lms_tree_identifier: LmsTreeIdentifier,
     used_leafs_index: u32,
@@ -25,7 +25,7 @@ pub fn generate_private_key<H: Hasher>(
     )
 }
 
-pub fn generate_public_key<H: Hasher>(
+pub fn generate_public_key<H: HashChain>(
     private_key: &LmsPrivateKey<H>,
     aux_data: &mut Option<MutableExpandedAuxData>,
 ) -> LmsPublicKey<H> {

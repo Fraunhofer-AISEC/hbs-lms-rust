@@ -3,7 +3,7 @@ use tinyvec::ArrayVec;
 
 use crate::{
     constants::{MAX_ALLOWED_HSS_LEVELS, MAX_HSS_PUBLIC_KEY_LENGTH},
-    hasher::Hasher,
+    hasher::HashChain,
     hss::aux::{
         hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
     },
@@ -28,13 +28,13 @@ use super::{
 };
 
 #[derive(Debug, Default, PartialEq)]
-pub struct HssPrivateKey<H: Hasher> {
+pub struct HssPrivateKey<H: HashChain> {
     pub private_key: ArrayVec<[LmsPrivateKey<H>; MAX_ALLOWED_HSS_LEVELS]>,
     pub public_key: ArrayVec<[LmsPublicKey<H>; MAX_ALLOWED_HSS_LEVELS]>,
     pub signatures: ArrayVec<[LmsSignature<H>; MAX_ALLOWED_HSS_LEVELS - 1]>, // Only L - 1 signatures needed
 }
 
-impl<H: Hasher> HssPrivateKey<H> {
+impl<H: HashChain> HssPrivateKey<H> {
     pub fn get_length(&self) -> usize {
         self.private_key.len()
     }
@@ -172,25 +172,25 @@ impl<H: Hasher> HssPrivateKey<H> {
 }
 
 #[derive(PartialEq)]
-pub struct HssPublicKey<H: Hasher> {
+pub struct HssPublicKey<H: HashChain> {
     pub public_key: LmsPublicKey<H>,
     pub level: usize,
 }
 
 /// To reduce memory footprint on verification we handle the public key in-memory using ```InMemoryHssPublicKey```.
 /// In order to reduce complexity we use ```HssPublicKey``` for key generation and signature generation.
-pub struct InMemoryHssPublicKey<'a, H: Hasher> {
+pub struct InMemoryHssPublicKey<'a, H: HashChain> {
     pub public_key: InMemoryLmsPublicKey<'a, H>,
     pub level: usize,
 }
 
-impl<'a, H: Hasher> PartialEq<HssPublicKey<H>> for InMemoryHssPublicKey<'a, H> {
+impl<'a, H: HashChain> PartialEq<HssPublicKey<H>> for InMemoryHssPublicKey<'a, H> {
     fn eq(&self, other: &HssPublicKey<H>) -> bool {
         self.public_key == other.public_key && self.level == other.level
     }
 }
 
-impl<H: Hasher> HssPublicKey<H> {
+impl<H: HashChain> HssPublicKey<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]> {
         let mut result = ArrayVec::new();
 
@@ -201,7 +201,7 @@ impl<H: Hasher> HssPublicKey<H> {
     }
 }
 
-impl<'a, H: Hasher> InMemoryHssPublicKey<'a, H> {
+impl<'a, H: HashChain> InMemoryHssPublicKey<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         let mut index = 0;
 
@@ -223,11 +223,11 @@ impl<'a, H: Hasher> InMemoryHssPublicKey<'a, H> {
 mod tests {
     use super::{HssPrivateKey, HssPublicKey};
     use crate::{
-        hasher::sha256::Sha256Hasher,
+        hasher::sha256::Sha256,
         hss::{
             definitions::InMemoryHssPublicKey,
             reference_impl_private_key::{ReferenceImplPrivateKey, SeedAndLmsTreeIdentifier},
-            Hasher, HssParameter,
+            HashChain, HssParameter,
         },
         lms, LmotsAlgorithm, LmsAlgorithm, Seed,
     };
@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     fn child_tree_lms_leaf_update() {
-        type H = Sha256Hasher;
+        type H = Sha256;
         let (hss_key, hss_key_second) = tree_lms_leaf_update::<H>(1);
 
         // 1 increment of the key updates the leaf in the top child tree.
@@ -255,7 +255,7 @@ mod tests {
 
     #[test]
     fn intermediate_tree_lms_leaf_update() {
-        type H = Sha256Hasher;
+        type H = Sha256;
         let (hss_key, hss_key_second) = tree_lms_leaf_update::<H>(4);
 
         // 4 increments of the key updates leafs in the top child tree and the intermediate
@@ -278,7 +278,7 @@ mod tests {
 
     #[test]
     fn root_tree_lms_leaf_update() {
-        type H = Sha256Hasher;
+        type H = Sha256;
         let (hss_key, hss_key_second) = tree_lms_leaf_update::<H>(16);
 
         // 16 increments of the key updates leafs in the top child tree, the intermediate
@@ -299,7 +299,9 @@ mod tests {
         assert_ne!(hss_key.public_key[2], hss_key_second.public_key[2]);
     }
 
-    fn tree_lms_leaf_update<H: Hasher>(increment_by: u8) -> (HssPrivateKey<H>, HssPrivateKey<H>) {
+    fn tree_lms_leaf_update<H: HashChain>(
+        increment_by: u8,
+    ) -> (HssPrivateKey<H>, HssPrivateKey<H>) {
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
         let parameters = [
@@ -325,7 +327,7 @@ mod tests {
 
     #[test]
     fn lifetime() {
-        type H = Sha256Hasher;
+        type H = Sha256;
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
@@ -362,7 +364,7 @@ mod tests {
 
     #[test]
     fn deterministic_signed_public_key_signatures() {
-        type H = Sha256Hasher;
+        type H = Sha256;
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
@@ -390,7 +392,7 @@ mod tests {
             &0,
             &mut None,
         );
-        let public_key: HssPublicKey<Sha256Hasher> = HssPublicKey {
+        let public_key: HssPublicKey<Sha256> = HssPublicKey {
             level: 18,
             public_key: public_key.public_key,
         };

@@ -60,7 +60,7 @@ fn main() {
     writeln!(
         &mut f,
         "pub const MAX_TREE_HEIGHT: usize = {};\n",
-        tree_heights.iter().min().unwrap(),
+        tree_heights.iter().max().unwrap(),
     )
     .expect("Could not write file");
     writeln!(

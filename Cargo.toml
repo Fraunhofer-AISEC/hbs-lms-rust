@@ -31,7 +31,7 @@ hex = "0.4.3"
 rand = "0.8.3"
 
 [features]
-default = ["std"]
+default = []
 std = []
 fast_verify = ["std", "rand", "crossbeam"]
 verbose = []

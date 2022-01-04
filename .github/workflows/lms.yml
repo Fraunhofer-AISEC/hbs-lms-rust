@@ -110,6 +110,17 @@ jobs:
       - run: cargo test --features fast_verify
       - run: cargo test --features fast_verify -- --include-ignored
 
+  bench:
+    needs: set-msrv
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+      - run: rustup run nightly cargo bench
+
   # Cross-compiled tests
   cross:
     needs: set-msrv

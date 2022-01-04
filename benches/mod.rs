@@ -6,7 +6,7 @@ mod tests {
     use rand::{rngs::OsRng, RngCore};
     use test::Bencher;
 
-    use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256Hasher};
+    use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256};
     use hbs_lms::{
         signature::{SignerMut, Verifier},
         Signature, SigningKey, VerifierSignature, VerifyingKey,
@@ -16,11 +16,11 @@ mod tests {
         32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
     ];
 
-    fn generate_signing_key(aux_data: Option<&mut &mut [u8]>) -> SigningKey<Sha256Hasher> {
+    fn generate_signing_key(aux_data: Option<&mut &mut [u8]>) -> SigningKey<Sha256> {
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
 
-        let (signing_key, _) = keygen::<Sha256Hasher>(
+        let (signing_key, _) = keygen::<Sha256>(
             &[
                 HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
                 HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
@@ -33,10 +33,10 @@ mod tests {
         signing_key
     }
 
-    fn generate_verifying_key_and_signature() -> (VerifyingKey<Sha256Hasher>, Signature) {
+    fn generate_verifying_key_and_signature() -> (VerifyingKey<Sha256>, Signature) {
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
-        let (mut signing_key, verifying_key) = keygen::<Sha256Hasher>(
+        let (mut signing_key, verifying_key) = keygen::<Sha256>(
             &[HssParameter::new(
                 LmotsAlgorithm::LmotsW2,
                 LmsAlgorithm::LmsH5,

@@ -52,6 +52,68 @@ mod tests {
     }
 
     #[bench]
+    fn keygen_h5w2(b: &mut Bencher) {
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let hss_parameter = [HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        )];
+
+        b.iter(|| {
+            let _ = keygen::<Sha256>(&hss_parameter, &seed, None);
+        });
+    }
+
+    #[bench]
+    fn keygen_with_aux_h5w2(b: &mut Bencher) {
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let hss_parameter = [HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        )];
+
+        b.iter(|| {
+            let mut aux_data = vec![0u8; 100_000];
+            let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+
+            let _ = keygen::<Sha256>(&hss_parameter, &seed, Some(aux_slice));
+        });
+    }
+
+    #[bench]
+    fn keygen_h5w2_h5w2(b: &mut Bencher) {
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let hss_parameter = [
+            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+        ];
+
+        b.iter(|| {
+            let _ = keygen::<Sha256>(&hss_parameter, &seed, None);
+        });
+    }
+
+    #[bench]
+    fn keygen_with_aux_h5w2_h5w2(b: &mut Bencher) {
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        let hss_parameter = [
+            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+        ];
+
+        b.iter(|| {
+            let mut aux_data = vec![0u8; 100_000];
+            let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+
+            let _ = keygen::<Sha256>(&hss_parameter, &seed, Some(aux_slice));
+        });
+    }
+
+    #[bench]
     fn sign(b: &mut Bencher) {
         let mut signing_key = generate_signing_key(None);
 

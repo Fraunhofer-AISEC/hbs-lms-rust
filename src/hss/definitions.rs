@@ -142,6 +142,7 @@ impl<H: HashChain> HssPrivateKey<H> {
         }
     }
 
+    #[cfg(test)]
     pub fn get_public_key(&self) -> HssPublicKey<H> {
         HssPublicKey {
             public_key: self.public_key[0].clone(),
@@ -191,6 +192,49 @@ impl<'a, H: HashChain> PartialEq<HssPublicKey<H>> for InMemoryHssPublicKey<'a, H
 }
 
 impl<H: HashChain> HssPublicKey<H> {
+    pub fn from(
+        private_key: &ReferenceImplPrivateKey<H>,
+        aux_data: Option<&mut &mut [u8]>,
+    ) -> Result<Self, ()> {
+        let parameters = private_key.compressed_parameter.to::<H>()?;
+        let levels = parameters.len();
+        let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
+
+        let top_lms_parameter = parameters[0].get_lms_parameter();
+
+        let is_aux_data_used = if let Some(ref aux_data) = aux_data {
+            hss_is_aux_data_used(aux_data)
+        } else {
+            false
+        };
+
+        let mut expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
+            aux_data,
+            private_key,
+            top_lms_parameter,
+            is_aux_data_used,
+        );
+
+        let current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
+
+        let lms_keypair = generate_key_pair(
+            &current_seed,
+            &parameters[0],
+            &used_leafs_indexes[0],
+            &mut expanded_aux_data,
+        );
+
+        if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
+            if !is_aux_data_used {
+                hss_finalize_aux_data::<H>(expanded_aux_data, &private_key.seed);
+            }
+        }
+
+        Ok(Self {
+            public_key: lms_keypair.public_key,
+            level: levels,
+        })
+    }
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]> {
         let mut result = ArrayVec::new();
 

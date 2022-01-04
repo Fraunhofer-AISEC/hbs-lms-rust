@@ -17,7 +17,7 @@ use crate::{
 };
 
 use self::{
-    definitions::{HssPrivateKey, InMemoryHssPublicKey},
+    definitions::{HssPrivateKey, HssPublicKey, InMemoryHssPublicKey},
     parameter::HssParameter,
     reference_impl_private_key::ReferenceImplPrivateKey,
     signing::{HssSignature, InMemoryHssSignature},
@@ -261,11 +261,10 @@ pub fn hss_keygen<H: HashChain>(
     let private_key =
         ReferenceImplPrivateKey::generate(parameters, seed).map_err(|_| Error::new())?;
 
-    let hss_key = HssPrivateKey::from(&private_key, aux_data).map_err(|_| Error::new())?;
+    let hss_public_key = HssPublicKey::from(&private_key, aux_data).map_err(|_| Error::new())?;
 
     let signing_key = SigningKey::from_bytes(&private_key.to_binary_representation())?;
-    let verifying_key =
-        VerifyingKey::from_bytes(&hss_key.get_public_key().to_binary_representation())?;
+    let verifying_key = VerifyingKey::from_bytes(&hss_public_key.to_binary_representation())?;
     Ok((signing_key, verifying_key))
 }
 

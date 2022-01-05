@@ -276,3 +276,38 @@ fn compute_hmac<H: HashChain>(key: &[u8], data: &[u8]) -> ArrayVec<[u8; MAX_HASH
     let mut hasher = compute_hmac_ipad::<H>(key).chain(data);
     compute_hmac_opad::<H>(&mut hasher, key)
 }
+
+#[cfg(test)]
+mod tests {
+    use rand::{rngs::OsRng, RngCore};
+
+    use crate::hasher::sha256::Sha256;
+    use crate::{
+        constants::MAX_HASH_SIZE,
+        hss::{aux::hss_expand_aux_data, hss_keygen},
+        HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed,
+    };
+
+    #[test]
+    #[should_panic(expected = "expand_aux_data should return None!")]
+    fn expand_aux_data_with_forged_aux_data() {
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        type H = Sha256;
+
+        let lmots = LmotsAlgorithm::LmotsW2;
+        let lms = LmsAlgorithm::LmsH5;
+        let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
+
+        let mut aux_data = [0u8; 1_000];
+        let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+
+        let _ =
+            hss_keygen::<H>(&parameters, &seed, Some(aux_slice)).expect("Should generate HSS keys");
+
+        aux_slice[2 * MAX_HASH_SIZE - 1] += 1;
+
+        hss_expand_aux_data::<H>(Some(aux_slice), Some(&seed))
+            .expect("expand_aux_data should return None!");
+    }
+}

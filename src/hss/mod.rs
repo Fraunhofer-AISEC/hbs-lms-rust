@@ -26,7 +26,7 @@ use self::{
 /**
  * Implementation of [`SignerMut`] using [`Signature`].
  */
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SigningKey<H: HashChain> {
     pub bytes: ArrayVec<[u8; REFERENCE_IMPL_PRIVATE_KEY_SIZE]>,
     phantom_data: PhantomData<H>,
@@ -88,7 +88,7 @@ impl<H: HashChain> SignerMut<Signature> for SigningKey<H> {
 /**
  * Implementation of [`Verifier`] using [`Signature`] or [`VerifierSignature`].
  */
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct VerifyingKey<H: HashChain> {
     pub bytes: ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]>,
     phantom_data: PhantomData<H>,
@@ -270,20 +270,15 @@ pub fn hss_keygen<H: HashChain>(
 
 #[cfg(test)]
 mod tests {
+    use rand::{rngs::OsRng, RngCore};
 
-    #[cfg(feature = "fast_verify")]
-    use crate::constants::MAX_HASH_SIZE;
-    use crate::hasher::sha256::Sha256;
-    use crate::hasher::shake256::Shake256;
-    use crate::hasher::HashChain;
     use crate::{
-        constants::{LMS_LEAF_IDENTIFIERS_SIZE, SEED_LEN},
+        constants::{LMS_LEAF_IDENTIFIERS_SIZE, MAX_HASH_SIZE, SEED_LEN},
+        hasher::{sha256::Sha256, shake256::Shake256, HashChain},
         LmotsAlgorithm, LmsAlgorithm, Seed,
     };
 
     use super::*;
-
-    use rand::{rngs::OsRng, RngCore};
 
     #[test]
     fn update_keypair() {
@@ -438,9 +433,35 @@ mod tests {
     }
 
     #[test]
+    fn keygen_with_forged_aux_data() {
+        let mut seed = Seed::default();
+        OsRng.fill_bytes(&mut seed);
+        type H = Sha256;
+
+        let lmots = LmotsAlgorithm::LmotsW2;
+        let lms = LmsAlgorithm::LmsH5;
+        let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
+
+        let mut aux_data = [0u8; 1_000];
+        let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+
+        let (sk1, vk1) =
+            hss_keygen::<H>(&parameters, &seed, Some(aux_slice)).expect("Should generate HSS keys");
+
+        aux_slice[2 * MAX_HASH_SIZE - 1] += 1;
+
+        let (sk2, vk2) =
+            hss_keygen::<H>(&parameters, &seed, Some(aux_slice)).expect("Should generate HSS keys");
+
+        assert_eq!(sk1, sk2);
+        assert_eq!(vk1, vk2);
+    }
+
+    #[test]
     fn test_signing_sha256() {
         test_signing_core::<Sha256>();
     }
+
     #[test]
     fn test_signing_shake256() {
         test_signing_core::<Shake256>();

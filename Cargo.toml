@@ -17,7 +17,8 @@ categories = ["cryptography", "no-std"]
 
 [dependencies]
 tinyvec = { version = "1.5.1", features = ["rustc_1_55"] }
-signature = { version = "1.4.0", default-features = false}
+subtle = { version = "2.4.1", default-features = false }
+signature = { version = "1.4.0", default-features = false }
 sha2 = { version = "0.10.0", default-features = false }
 sha3 = { version = "0.10.0", default-features = false }
 crossbeam = {version = "0.8", optional = true }

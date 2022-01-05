@@ -1,4 +1,5 @@
 use core::convert::TryInto;
+use subtle::ConstantTimeEq;
 use tinyvec::ArrayVec;
 
 use crate::{
@@ -122,7 +123,7 @@ pub fn hss_expand_aux_data<'a, H: HashChain>(
         let (aux_data, aux_data_mac) = aux_data.split_at(len_aux_data);
 
         let key = compute_seed_derive::<H>(seed);
-        if compute_hmac::<H>(&key, aux_data).as_slice() != aux_data_mac {
+        if !bool::from(compute_hmac::<H>(&key, aux_data).ct_eq(aux_data_mac)) {
             return None;
         }
     }

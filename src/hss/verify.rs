@@ -47,7 +47,7 @@ mod tests {
     fn test_hss_verify() {
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
-        let private_key = ReferenceImplPrivateKey::<Sha256>::generate(
+        let rfc_key = ReferenceImplPrivateKey::<Sha256>::generate(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
@@ -56,9 +56,8 @@ mod tests {
         )
         .unwrap();
 
-        let mut private_key = HssPrivateKey::from(&private_key, None).unwrap();
-
-        let public_key = private_key.get_public_key();
+        let mut private_key = HssPrivateKey::from(&rfc_key, None).unwrap();
+        let public_key = HssPublicKey::from(&rfc_key, None).unwrap();
 
         let message_values = [42, 57, 20, 59, 33, 1, 49, 3, 99, 130, 50, 20];
 

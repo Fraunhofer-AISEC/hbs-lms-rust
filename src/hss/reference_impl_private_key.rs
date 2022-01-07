@@ -131,7 +131,7 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
 
     pub fn increment(&mut self, hss_private_key: &HssPrivateKey<H>) {
         let tree_heights = hss_private_key
-            .public_key
+            .private_key
             .iter()
             .map(|pk| pk.lms_parameter.get_tree_height())
             .collect();

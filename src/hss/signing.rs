@@ -75,10 +75,7 @@ impl<H: HashChain> HssSignature<H> {
         // Create list of signed keys
         let mut signed_public_keys = ArrayVec::new();
         for i in 0..max_level - 1 {
-            signed_public_keys.push(HssSignedPublicKey::new(
-                sig[i].clone(),
-                public[i + 1].clone(),
-            ));
+            signed_public_keys.push(HssSignedPublicKey::new(sig[i].clone(), public[i].clone()));
         }
 
         Ok(HssSignature {

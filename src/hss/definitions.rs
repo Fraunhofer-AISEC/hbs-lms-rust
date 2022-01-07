@@ -30,7 +30,7 @@ use super::{
 #[derive(Debug, Default, PartialEq)]
 pub struct HssPrivateKey<H: HashChain> {
     pub private_key: ArrayVec<[LmsPrivateKey<H>; MAX_ALLOWED_HSS_LEVELS]>,
-    pub public_key: ArrayVec<[LmsPublicKey<H>; MAX_ALLOWED_HSS_LEVELS]>,
+    pub public_key: ArrayVec<[LmsPublicKey<H>; MAX_ALLOWED_HSS_LEVELS - 1]>,
     pub signatures: ArrayVec<[LmsSignature<H>; MAX_ALLOWED_HSS_LEVELS - 1]>, // Only L - 1 signatures needed
 }
 
@@ -74,7 +74,6 @@ impl<H: HashChain> HssPrivateKey<H> {
         );
 
         hss_private_key.private_key.push(lms_keypair.private_key);
-        hss_private_key.public_key.push(lms_keypair.public_key);
 
         for i in 1..levels {
             let parameter = &parameters[i];
@@ -90,7 +89,6 @@ impl<H: HashChain> HssPrivateKey<H> {
                 generate_key_pair(&current_seed, parameter, &used_leafs_indexes[i], &mut None);
 
             hss_private_key.private_key.push(lms_keypair.private_key);
-            hss_private_key.public_key.push(lms_keypair.public_key);
 
             let signature_randomizer = ArrayVec::from(generate_signature_randomizer::<H>(
                 &current_seed,
@@ -98,12 +96,11 @@ impl<H: HashChain> HssPrivateKey<H> {
             ));
             let signature = lms::signing::LmsSignature::sign(
                 &mut hss_private_key.private_key[i - 1],
-                hss_private_key.public_key[i]
-                    .to_binary_representation()
-                    .as_slice(),
+                lms_keypair.public_key.to_binary_representation().as_slice(),
                 &signature_randomizer,
             )?;
 
+            hss_private_key.public_key.push(lms_keypair.public_key);
             hss_private_key.signatures.push(signature);
         }
 
@@ -139,14 +136,6 @@ impl<H: HashChain> HssPrivateKey<H> {
             }
         } else {
             None
-        }
-    }
-
-    #[cfg(test)]
-    pub fn get_public_key(&self) -> HssPublicKey<H> {
-        HssPublicKey {
-            public_key: self.public_key[0].clone(),
-            level: self.get_length(),
         }
     }
 
@@ -294,7 +283,6 @@ mod tests {
         assert_eq!(hss_key.signatures[1], hss_key_second.signatures[1]);
 
         assert_ne!(hss_key.private_key[2], hss_key_second.private_key[2]);
-        assert_eq!(hss_key.public_key[2], hss_key_second.public_key[2]);
     }
 
     #[test]
@@ -313,11 +301,10 @@ mod tests {
         assert_eq!(hss_key.signatures[0], hss_key_second.signatures[0]);
 
         assert_ne!(hss_key.private_key[1], hss_key_second.private_key[1]);
-        assert_eq!(hss_key.public_key[1], hss_key_second.public_key[1]);
+        assert_ne!(hss_key.public_key[1], hss_key_second.public_key[1]);
         assert_ne!(hss_key.signatures[1], hss_key_second.signatures[1]);
 
         assert_ne!(hss_key.private_key[2], hss_key_second.private_key[2]);
-        assert_ne!(hss_key.public_key[2], hss_key_second.public_key[2]);
     }
 
     #[test]
@@ -332,7 +319,7 @@ mod tests {
         // and further intermediate tree private and public key is updated together with the
         // intermediate signature. Root tree private key is updated as the leaf is switched.
         assert_ne!(hss_key.private_key[0], hss_key_second.private_key[0]);
-        assert_eq!(hss_key.public_key[0], hss_key_second.public_key[0]);
+        assert_ne!(hss_key.public_key[0], hss_key_second.public_key[0]);
         assert_ne!(hss_key.signatures[0], hss_key_second.signatures[0]);
 
         assert_ne!(hss_key.private_key[1], hss_key_second.private_key[1]);
@@ -340,7 +327,6 @@ mod tests {
         assert_ne!(hss_key.signatures[1], hss_key_second.signatures[1]);
 
         assert_ne!(hss_key.private_key[2], hss_key_second.private_key[2]);
-        assert_ne!(hss_key.public_key[2], hss_key_second.public_key[2]);
     }
 
     fn tree_lms_leaf_update<H: HashChain>(
@@ -387,7 +373,7 @@ mod tests {
         let hss_key = HssPrivateKey::from(&private_key, None).unwrap();
 
         let tree_heights = hss_key
-            .public_key
+            .private_key
             .iter()
             .map(|pk| pk.lms_parameter.get_tree_height());
         let total_ots_count = 2u64.pow(tree_heights.clone().sum::<u8>().into());

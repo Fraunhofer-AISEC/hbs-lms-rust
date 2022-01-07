@@ -50,7 +50,7 @@ impl<H: HashChain> SigningKey<H> {
         self.bytes.as_mut_slice()
     }
 
-    pub fn get_lifetime(&self, aux_data: Option<&mut &mut [u8]>) -> Result<u64, Error> {
+    pub fn get_lifetime(&self) -> Result<u64, Error> {
         let rfc_sk = ReferenceImplPrivateKey::from_binary_representation(&self.bytes)
             .map_err(|_| Error::new())?;
 
@@ -339,7 +339,7 @@ mod tests {
 
         let (mut signing_key, verifying_key) =
             hss_keygen::<H>(&parameters, &seed, None).expect("Should generate HSS keys");
-        let keypair_lifetime = signing_key.get_lifetime(None).unwrap();
+        let keypair_lifetime = signing_key.get_lifetime().unwrap();
 
         assert_ne!(
             signing_key.as_slice()[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
@@ -352,7 +352,7 @@ mod tests {
                 index.to_be_bytes(),
             );
             assert_eq!(
-                keypair_lifetime - signing_key.get_lifetime(None).unwrap(),
+                keypair_lifetime - signing_key.get_lifetime().unwrap(),
                 index
             );
 
@@ -399,7 +399,7 @@ mod tests {
 
         let (mut signing_key, verifying_key) =
             hss_keygen::<H>(&parameters, &seed, None).expect("Should generate HSS keys");
-        let keypair_lifetime = signing_key.get_lifetime(None).unwrap();
+        let keypair_lifetime = signing_key.get_lifetime().unwrap();
 
         for index in 0..(1u64 + keypair_lifetime) {
             let signing_key_const = signing_key.clone();
@@ -419,7 +419,7 @@ mod tests {
                 if index < keypair_lifetime {
                     panic!("Signing should complete without error.");
                 } else {
-                    assert!(signing_key.get_lifetime(None).is_err());
+                    assert!(signing_key.get_lifetime().is_err());
                     panic!("Signing should panic!");
                 }
             });

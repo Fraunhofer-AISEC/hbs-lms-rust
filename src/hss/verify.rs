@@ -56,7 +56,7 @@ mod tests {
         )
         .unwrap();
 
-        let mut private_key = HssPrivateKey::from(&rfc_key, None).unwrap();
+        let mut private_key = HssPrivateKey::from(&rfc_key).unwrap();
         let public_key = HssPublicKey::from(&rfc_key, None).unwrap();
 
         let message_values = [42, 57, 20, 59, 33, 1, 49, 3, 99, 130, 50, 20];

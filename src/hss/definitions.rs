@@ -7,17 +7,15 @@ use crate::{
     hss::aux::{
         hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
     },
-    lms::{definitions::InMemoryLmsPublicKey, generate_key_pair, parameters::LmsParameter},
-    util::helper::read_and_advance,
-};
-use crate::{
-    hss::aux::hss_get_aux_data_len,
     lms::{
         self,
-        definitions::{LmsPrivateKey, LmsPublicKey},
-        signing::LmsSignature,
+        definitions::{InMemoryLmsPublicKey, LmsPrivateKey, LmsPublicKey},
+        generate_key_pair,
+        parameters::LmsParameter,
     },
+    util::helper::read_and_advance,
 };
+use crate::{hss::aux::hss_get_aux_data_len, lms::signing::LmsSignature};
 
 use super::reference_impl_private_key::ReferenceImplPrivateKey;
 use super::{
@@ -66,14 +64,15 @@ impl<H: HashChain> HssPrivateKey<H> {
 
         let mut current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
 
-        let lms_keypair = generate_key_pair(
-            &current_seed,
-            &parameters[0],
-            &used_leafs_indexes[0],
-            &mut expanded_aux_data,
-        );
+        let lms_private_key = LmsPrivateKey {
+            seed: current_seed.seed,
+            lms_tree_identifier: current_seed.lms_tree_identifier,
+            lmots_parameter: *parameters[0].get_lmots_parameter(),
+            lms_parameter: *parameters[0].get_lms_parameter(),
+            used_leafs_index: used_leafs_indexes[0],
+        };
 
-        hss_private_key.private_key.push(lms_keypair.private_key);
+        hss_private_key.private_key.push(lms_private_key);
 
         for i in 1..levels {
             let parameter = &parameters[i];

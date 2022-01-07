@@ -45,13 +45,13 @@ impl<H: HashChain> HssSignature<H> {
 
         // Sign the message
         #[allow(unused_mut)]
-        let mut signature_randomizer = ArrayVec::from(generate_signature_randomizer::<H>(
+        let mut signature_randomizer = generate_signature_randomizer::<H>(
             &SeedAndLmsTreeIdentifier {
                 seed: prv[max_level - 1].seed,
                 lms_tree_identifier: prv[max_level - 1].lms_tree_identifier,
             },
             &prv[max_level - 1].used_leafs_index,
-        ));
+        );
         let new_signature = if cfg!(feature = "fast_verify") && message_mut.is_some() {
             #[cfg(feature = "fast_verify")]
             let lms_sig = lms::signing::LmsSignature::sign_fast_verify(

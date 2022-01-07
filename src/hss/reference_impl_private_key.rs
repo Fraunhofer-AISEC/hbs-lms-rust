@@ -160,13 +160,13 @@ pub fn generate_child_seed_and_lms_tree_identifier<H: HashChain>(
 pub fn generate_signature_randomizer<H: HashChain>(
     child_seed: &SeedAndLmsTreeIdentifier,
     parent_lms_leaf_identifier: &u32,
-) -> [u8; MAX_HASH_SIZE] {
+) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
     let mut derive = SeedDerive::new(&child_seed.seed, &child_seed.lms_tree_identifier);
 
     derive.set_lms_leaf_identifier(*parent_lms_leaf_identifier);
     derive.set_child_seed(SEED_SIGNATURE_RANDOMIZER_SEED);
 
-    derive.seed_derive::<H>(false).into_inner()
+    derive.seed_derive::<H>(false)
 }
 
 const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set

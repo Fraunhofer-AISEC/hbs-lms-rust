@@ -199,7 +199,7 @@ fn hss_sign_core<H: HashChain>(
     message_mut: Option<&mut [u8]>,
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
-    aux_data: Option<&mut &mut [u8]>,
+    _aux_data: Option<&mut &mut [u8]>,
 ) -> Result<Signature, Error> {
     let mut rfc_private_key = ReferenceImplPrivateKey::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;

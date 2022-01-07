@@ -54,7 +54,7 @@ impl<H: HashChain> SigningKey<H> {
         let rfc_sk = ReferenceImplPrivateKey::from_binary_representation(&self.bytes)
             .map_err(|_| Error::new())?;
 
-        let parsed_sk = HssPrivateKey::<H>::from(&rfc_sk, aux_data).map_err(|_| Error::new())?;
+        let parsed_sk = HssPrivateKey::<H>::from(&rfc_sk).map_err(|_| Error::new())?;
 
         Ok(parsed_sk.get_lifetime())
     }
@@ -205,7 +205,7 @@ fn hss_sign_core<H: HashChain>(
         .map_err(|_| Error::new())?;
 
     let mut parsed_private_key =
-        HssPrivateKey::<H>::from(&rfc_private_key, aux_data).map_err(|_| Error::new())?;
+        HssPrivateKey::<H>::from(&rfc_private_key).map_err(|_| Error::new())?;
 
     let hss_signature = HssSignature::sign(&mut parsed_private_key, message, message_mut)
         .map_err(|_| Error::new())?;

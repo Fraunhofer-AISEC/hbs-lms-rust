@@ -37,10 +37,7 @@ impl<H: HashChain> HssPrivateKey<H> {
         self.private_key.len()
     }
 
-    pub fn from(
-        private_key: &ReferenceImplPrivateKey<H>,
-        aux_data: Option<&mut &mut [u8]>,
-    ) -> Result<Self, ()> {
+    pub fn from(private_key: &ReferenceImplPrivateKey<H>) -> Result<Self, ()> {
         let mut hss_private_key: HssPrivateKey<H> = Default::default();
 
         let mut current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
@@ -315,13 +312,13 @@ mod tests {
         OsRng.fill_bytes(&mut seed);
         let mut rfc_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
 
-        let hss_key_before = HssPrivateKey::from(&rfc_key, None).unwrap();
+        let hss_key_before = HssPrivateKey::from(&rfc_key).unwrap();
 
         for _ in 0..increment_by {
             rfc_key.increment(&hss_key_before);
         }
 
-        let hss_key_after = HssPrivateKey::from(&rfc_key, None).unwrap();
+        let hss_key_after = HssPrivateKey::from(&rfc_key).unwrap();
 
         (hss_key_before, hss_key_after)
     }
@@ -341,7 +338,7 @@ mod tests {
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
         let mut private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
-        let hss_key = HssPrivateKey::from(&private_key, None).unwrap();
+        let hss_key = HssPrivateKey::from(&private_key).unwrap();
 
         let tree_heights = hss_key
             .private_key
@@ -353,7 +350,7 @@ mod tests {
 
         const STEP_BY: usize = 27;
         for index in (0..total_ots_count).step_by(STEP_BY) {
-            let hss_key = HssPrivateKey::from(&private_key, None).unwrap();
+            let hss_key = HssPrivateKey::from(&private_key).unwrap();
 
             assert_eq!(hss_key.get_lifetime(), total_ots_count - index,);
 
@@ -378,8 +375,8 @@ mod tests {
         OsRng.fill_bytes(&mut seed);
         let private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
 
-        let hss_key = HssPrivateKey::from(&private_key, None).unwrap();
-        let hss_key_second = HssPrivateKey::from(&private_key, None).unwrap();
+        let hss_key = HssPrivateKey::from(&private_key).unwrap();
+        let hss_key_second = HssPrivateKey::from(&private_key).unwrap();
         assert_eq!(hss_key, hss_key_second);
     }
 

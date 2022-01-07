@@ -41,28 +41,11 @@ impl<H: HashChain> HssPrivateKey<H> {
         private_key: &ReferenceImplPrivateKey<H>,
         aux_data: Option<&mut &mut [u8]>,
     ) -> Result<Self, ()> {
-        let parameters = private_key.compressed_parameter.to::<H>()?;
-        let levels = parameters.len();
-        let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
-
-        let top_lms_parameter = parameters[0].get_lms_parameter();
-
-        let is_aux_data_used = if let Some(ref aux_data) = aux_data {
-            hss_is_aux_data_used(aux_data)
-        } else {
-            false
-        };
-
-        let mut expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
-            aux_data,
-            private_key,
-            top_lms_parameter,
-            is_aux_data_used,
-        );
-
         let mut hss_private_key: HssPrivateKey<H> = Default::default();
 
         let mut current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
+        let parameters = private_key.compressed_parameter.to::<H>()?;
+        let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
 
         let lms_private_key = LmsPrivateKey {
             seed: current_seed.seed,
@@ -71,42 +54,31 @@ impl<H: HashChain> HssPrivateKey<H> {
             lms_parameter: *parameters[0].get_lms_parameter(),
             used_leafs_index: used_leafs_indexes[0],
         };
-
         hss_private_key.private_key.push(lms_private_key);
 
-        for i in 1..levels {
-            let parameter = &parameters[i];
-
+        for (i, parameter) in parameters.iter().enumerate().skip(1) {
             let parent_used_leafs_index: u32 =
                 hss_private_key.private_key[i - 1].used_leafs_index as u32;
+
             current_seed = generate_child_seed_and_lms_tree_identifier::<H>(
                 &current_seed,
                 &parent_used_leafs_index,
             );
+            let signature_randomizer =
+                generate_signature_randomizer::<H>(&current_seed, &parent_used_leafs_index);
 
             let lms_keypair =
                 generate_key_pair(&current_seed, parameter, &used_leafs_indexes[i], &mut None);
 
-            hss_private_key.private_key.push(lms_keypair.private_key);
-
-            let signature_randomizer = ArrayVec::from(generate_signature_randomizer::<H>(
-                &current_seed,
-                &parent_used_leafs_index,
-            ));
             let signature = lms::signing::LmsSignature::sign(
                 &mut hss_private_key.private_key[i - 1],
                 lms_keypair.public_key.to_binary_representation().as_slice(),
                 &signature_randomizer,
             )?;
 
+            hss_private_key.private_key.push(lms_keypair.private_key);
             hss_private_key.public_key.push(lms_keypair.public_key);
             hss_private_key.signatures.push(signature);
-        }
-
-        if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
-            if !is_aux_data_used {
-                hss_finalize_aux_data::<H>(expanded_aux_data, &private_key.seed);
-            }
         }
 
         Ok(hss_private_key)

@@ -85,8 +85,7 @@ mod tests {
     use crate::{
         lm_ots::parameters::LmotsAlgorithm,
         lms::{
-            definitions::InMemoryLmsPublicKey,
-            keygen::{generate_private_key, generate_public_key},
+            definitions::{InMemoryLmsPublicKey, LmsPrivateKey, LmsPublicKey},
             parameters::LmsAlgorithm,
             signing::{InMemoryLmsSignature, LmsSignature},
             SeedAndLmsTreeIdentifier,
@@ -103,7 +102,7 @@ mod tests {
 
         let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
         OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
-        let mut private_key = generate_private_key(
+        let mut private_key = LmsPrivateKey::new(
             seed_and_lms_tree_identifier.seed,
             seed_and_lms_tree_identifier.lms_tree_identifier,
             0,
@@ -111,7 +110,7 @@ mod tests {
             LmsAlgorithm::construct_default_parameter(),
         );
 
-        let public_key = generate_public_key(&private_key, &mut None).to_binary_representation();
+        let public_key = LmsPublicKey::new(&private_key, &mut None).to_binary_representation();
 
         let public_key = InMemoryLmsPublicKey::<Hasher>::new(public_key.as_slice()).unwrap();
 

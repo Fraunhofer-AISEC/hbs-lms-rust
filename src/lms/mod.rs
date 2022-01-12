@@ -7,7 +7,6 @@ use crate::lms::definitions::LmsPublicKey;
 
 pub mod definitions;
 mod helper;
-pub mod keygen;
 pub mod parameters;
 pub mod signing;
 pub mod verify;
@@ -26,14 +25,14 @@ pub fn generate_key_pair<H: HashChain>(
     let lmots_parameter = parameter.get_lmots_parameter();
     let lms_parameter = parameter.get_lms_parameter();
 
-    let private_key = keygen::generate_private_key(
+    let private_key = LmsPrivateKey::new(
         seed.seed,
         seed.lms_tree_identifier,
         *used_leafs_index,
         *lmots_parameter,
         *lms_parameter,
     );
-    let public_key = keygen::generate_public_key(&private_key, aux_data);
+    let public_key = LmsPublicKey::new(&private_key, aux_data);
 
     LmsKeyPair {
         private_key,

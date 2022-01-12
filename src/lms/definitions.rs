@@ -4,7 +4,9 @@ use crate::hasher::HashChain;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::parameters::{LmotsAlgorithm, LmotsParameter};
+use crate::lms::helper::get_tree_element;
 use crate::lms::parameters::LmsAlgorithm;
+use crate::lms::MutableExpandedAuxData;
 use crate::util::helper::read_and_advance;
 
 use core::convert::TryInto;
@@ -65,6 +67,35 @@ pub struct LmsPublicKey<H: HashChain> {
     pub lms_parameter: LmsParameter<H>,
 }
 
+impl<H: HashChain> LmsPublicKey<H> {
+    pub fn new(
+        private_key: &LmsPrivateKey<H>,
+        aux_data: &mut Option<MutableExpandedAuxData>,
+    ) -> Self {
+        let public_key = get_tree_element(1, private_key, aux_data);
+
+        Self {
+            key: public_key,
+            lms_tree_identifier: private_key.lms_tree_identifier,
+            lmots_parameter: private_key.lmots_parameter,
+            lms_parameter: private_key.lms_parameter,
+        }
+    }
+
+    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_LMS_PUBLIC_KEY_LENGTH]> {
+        let mut result = ArrayVec::new();
+
+        result.extend_from_slice(&self.lms_parameter.get_type_id().to_be_bytes());
+        result.extend_from_slice(&self.lmots_parameter.get_type_id().to_be_bytes());
+
+        result.extend_from_slice(&self.lms_tree_identifier);
+
+        result.extend_from_slice(self.key.as_slice());
+
+        result
+    }
+}
+
 #[derive(Clone)]
 pub struct InMemoryLmsPublicKey<'a, H: HashChain> {
     pub key: &'a [u8],
@@ -81,35 +112,6 @@ impl<'a, H: HashChain> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H
             && self.lmots_parameter == other.lmots_parameter
             && self.lms_parameter == other.lms_parameter
             && self.complete_data == other.to_binary_representation().as_slice()
-    }
-}
-
-impl<H: HashChain> LmsPublicKey<H> {
-    pub fn new(
-        public_key: ArrayVec<[u8; MAX_HASH_SIZE]>,
-        lms_tree_identifier: LmsTreeIdentifier,
-        lmots_parameter: LmotsParameter<H>,
-        lms_parameter: LmsParameter<H>,
-    ) -> Self {
-        LmsPublicKey {
-            key: public_key,
-            lms_tree_identifier,
-            lmots_parameter,
-            lms_parameter,
-        }
-    }
-
-    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_LMS_PUBLIC_KEY_LENGTH]> {
-        let mut result = ArrayVec::new();
-
-        result.extend_from_slice(&self.lms_parameter.get_type_id().to_be_bytes());
-        result.extend_from_slice(&self.lmots_parameter.get_type_id().to_be_bytes());
-
-        result.extend_from_slice(&self.lms_tree_identifier);
-
-        result.extend_from_slice(self.key.as_slice());
-
-        result
     }
 }
 
@@ -151,8 +153,7 @@ mod tests {
     use crate::{
         lm_ots::parameters::LmotsAlgorithm,
         lms::{
-            definitions::InMemoryLmsPublicKey,
-            keygen::{generate_private_key, generate_public_key},
+            definitions::{InMemoryLmsPublicKey, LmsPrivateKey, LmsPublicKey},
             parameters::LmsAlgorithm,
             SeedAndLmsTreeIdentifier,
         },
@@ -164,7 +165,7 @@ mod tests {
     fn test_public_key_binary_representation() {
         let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
         OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
-        let private_key = generate_private_key(
+        let private_key = LmsPrivateKey::new(
             seed_and_lms_tree_identifier.seed,
             seed_and_lms_tree_identifier.lms_tree_identifier,
             0,
@@ -172,7 +173,7 @@ mod tests {
             LmsAlgorithm::construct_default_parameter(),
         );
 
-        let public_key = generate_public_key(&private_key, &mut None);
+        let public_key = LmsPublicKey::new(&private_key, &mut None);
 
         let serialized = public_key.to_binary_representation();
         let deserialized = InMemoryLmsPublicKey::new(serialized.as_slice())

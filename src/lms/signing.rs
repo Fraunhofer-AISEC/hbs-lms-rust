@@ -214,7 +214,7 @@ mod tests {
     use crate::{
         lm_ots::parameters::LmotsAlgorithm,
         lms::{
-            keygen::generate_private_key, parameters::LmsAlgorithm, signing::InMemoryLmsSignature,
+            definitions::LmsPrivateKey, parameters::LmsAlgorithm, signing::InMemoryLmsSignature,
             SeedAndLmsTreeIdentifier,
         },
     };
@@ -228,7 +228,7 @@ mod tests {
     fn test_binary_representation_of_signature() {
         let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
         OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
-        let mut private_key = generate_private_key(
+        let mut private_key = LmsPrivateKey::new(
             seed_and_lms_tree_identifier.seed,
             seed_and_lms_tree_identifier.lms_tree_identifier,
             0,

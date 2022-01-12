@@ -127,26 +127,6 @@ fn should_produce_same_private_key() {
     assert!(ref_verifying_key == vk.as_slice());
 }
 
-#[test]
-#[ignore]
-fn should_produce_same_aux_data() {
-    let tempdir = tempfile::tempdir().unwrap();
-    let path = tempdir.path();
-
-    reference_genkey_seed(&tempdir, &TEST_SEED);
-
-    let parameters = HssParameter::<Sha256>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
-
-    let mut aux_data = vec![0u8; 2000];
-    let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
-
-    let _ = hbs_lms::keygen(&[parameters, parameters], &TEST_SEED, Some(aux_slice)).unwrap();
-
-    let ref_aux_data = read_aux_data(path);
-
-    assert!(&ref_aux_data == aux_slice);
-}
-
 fn read_private_key(path: &Path) -> Vec<u8> {
     read_file(path.join(PRIVATE_KEY_NAME).to_str().unwrap())
 }

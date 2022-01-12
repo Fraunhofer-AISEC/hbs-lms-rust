@@ -12,6 +12,7 @@ use tinyvec::ArrayVec;
 use crate::{
     constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_LEN},
     extract_or,
+    hss::aux::hss_is_aux_data_used,
     signature::{Error, SignerMut, Verifier},
     HashChain, Signature, VerifierSignature,
 };
@@ -54,7 +55,7 @@ impl<H: HashChain> SigningKey<H> {
         let rfc_sk = ReferenceImplPrivateKey::from_binary_representation(&self.bytes)
             .map_err(|_| Error::new())?;
 
-        let parsed_sk = HssPrivateKey::<H>::from(&rfc_sk).map_err(|_| Error::new())?;
+        let parsed_sk = HssPrivateKey::<H>::from(&rfc_sk, &mut None).map_err(|_| Error::new())?;
 
         Ok(parsed_sk.get_lifetime())
     }
@@ -199,19 +200,41 @@ fn hss_sign_core<H: HashChain>(
     message_mut: Option<&mut [u8]>,
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
-    _aux_data: Option<&mut &mut [u8]>,
+    aux_data: Option<&mut &mut [u8]>,
 ) -> Result<Signature, Error> {
     let mut rfc_private_key = ReferenceImplPrivateKey::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
 
-    let mut parsed_private_key =
-        HssPrivateKey::<H>::from(&rfc_private_key).map_err(|_| Error::new())?;
+    let is_aux_data_used = if let Some(ref aux_data) = aux_data {
+        hss_is_aux_data_used(aux_data)
+    } else {
+        false
+    };
 
-    let hss_signature = HssSignature::sign(&mut parsed_private_key, message, message_mut)
+    let parameters = rfc_private_key
+        .compressed_parameter
+        .to::<H>()
+        .map_err(|_| Error::new())?;
+    let mut expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
+        aux_data,
+        &rfc_private_key,
+        parameters[0].get_lms_parameter(),
+        is_aux_data_used,
+    );
+
+    let mut private_key = HssPrivateKey::<H>::from(&rfc_private_key, &mut expanded_aux_data)
         .map_err(|_| Error::new())?;
 
+    let hss_signature = HssSignature::sign(
+        &mut private_key,
+        message,
+        message_mut,
+        &mut expanded_aux_data,
+    )
+    .map_err(|_| Error::new())?;
+
     // Advance private key
-    rfc_private_key.increment(&parsed_private_key);
+    rfc_private_key.increment(&private_key);
     private_key_update_function(&rfc_private_key.to_binary_representation())
         .map_err(|_| Error::new())?;
 

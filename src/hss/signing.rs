@@ -4,7 +4,10 @@ use crate::{
         MAX_HSS_SIGNATURE_LENGTH, MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH,
     },
     extract_or_return,
-    hss::reference_impl_private_key::{generate_signature_randomizer, SeedAndLmsTreeIdentifier},
+    hss::{
+        aux::MutableExpandedAuxData,
+        reference_impl_private_key::{generate_signature_randomizer, SeedAndLmsTreeIdentifier},
+    },
     lms::{
         self,
         definitions::{InMemoryLmsPublicKey, LmsPublicKey},
@@ -31,6 +34,7 @@ impl<H: HashChain> HssSignature<H> {
         private_key: &mut HssPrivateKey<H>,
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
+        aux_data: &mut Option<MutableExpandedAuxData>,
     ) -> Result<HssSignature<H>, ()> {
         let max_level = private_key.get_length();
 
@@ -59,6 +63,7 @@ impl<H: HashChain> HssSignature<H> {
                 None,
                 message_mut,
                 &mut signature_randomizer,
+                aux_data,
             );
             #[cfg(not(feature = "fast_verify"))]
             let lms_sig = Err(());
@@ -68,6 +73,7 @@ impl<H: HashChain> HssSignature<H> {
                 &mut prv[max_level - 1],
                 message.unwrap(),
                 &signature_randomizer,
+                aux_data,
             )
         }?;
         sig.push(new_signature);
@@ -274,14 +280,14 @@ mod tests {
         )
         .unwrap();
 
-        let mut private_key = HssPrivateKey::from(&private_key).unwrap();
+        let mut private_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
 
         let message = [2, 56, 123, 22, 42, 49, 22];
 
-        let _ = HssSignature::sign(&mut private_key, Some(&message), None)
+        let _ = HssSignature::sign(&mut private_key, Some(&message), None, &mut None)
             .expect("Should generate HSS signature");
 
-        let _ = HssSignature::sign(&mut private_key, Some(&message), None)
+        let _ = HssSignature::sign(&mut private_key, Some(&message), None, &mut None)
             .expect("Signing should panic!");
     }
 
@@ -299,9 +305,13 @@ mod tests {
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
         let mut signature_randomizer = ArrayVec::from([0u8; 32]);
         OsRng.fill_bytes(&mut signature_randomizer);
-        let signature =
-            LmsSignature::sign(&mut keypair.private_key, &message, &signature_randomizer)
-                .expect("Signing should work");
+        let signature = LmsSignature::sign(
+            &mut keypair.private_key,
+            &message,
+            &signature_randomizer,
+            &mut None,
+        )
+        .expect("Signing should work");
 
         let signed_public_key = HssSignedPublicKey {
             public_key: keypair.public_key,
@@ -328,13 +338,13 @@ mod tests {
         )
         .unwrap();
 
-        let mut private_key = HssPrivateKey::from(&private_key).unwrap();
+        let mut private_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
 
         let message_values = [2, 56, 123, 22, 42, 49, 22];
         let mut message = [0u8; 64];
         message[..message_values.len()].copy_from_slice(&message_values);
 
-        let signature = HssSignature::sign(&mut private_key, Some(&message), None)
+        let signature = HssSignature::sign(&mut private_key, Some(&message), None, &mut None)
             .expect("Should generate HSS signature");
 
         let binary_representation = signature.to_binary_representation();

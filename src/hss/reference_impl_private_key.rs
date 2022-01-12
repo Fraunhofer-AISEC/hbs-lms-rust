@@ -310,7 +310,7 @@ mod tests {
         OsRng.fill_bytes(&mut seed);
         let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
 
-        let hss_private_key = HssPrivateKey::from(&rfc_private_key).unwrap();
+        let hss_private_key = HssPrivateKey::from(&rfc_private_key, &mut None).unwrap();
 
         let seed = rfc_private_key.seed;
 
@@ -338,7 +338,7 @@ mod tests {
         OsRng.fill_bytes(&mut seed);
         let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
 
-        let hss_private_key = HssPrivateKey::from(&rfc_private_key).unwrap();
+        let hss_private_key = HssPrivateKey::from(&rfc_private_key, &mut None).unwrap();
         let keypair_lifetime = hss_private_key.get_lifetime();
 
         for _ in 0..keypair_lifetime {

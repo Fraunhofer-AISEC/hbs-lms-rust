@@ -26,13 +26,13 @@ pub fn get_tree_element<H: HashChain>(
         .chain(&(index as u32).to_be_bytes());
 
     let result = if index >= max_private_keys {
-        let lms_ots_private_key = lm_ots::generate_private_key(
+        let lms_ots_private_key = lm_ots::keygen::generate_private_key(
             private_key.lms_tree_identifier,
             ((index - max_private_keys) as u32).to_be_bytes(),
             private_key.seed,
             private_key.lmots_parameter,
         );
-        let lm_ots_public_key = lm_ots::generate_public_key(&lms_ots_private_key);
+        let lm_ots_public_key = lm_ots::keygen::generate_public_key(&lms_ots_private_key);
 
         hasher
             .chain(&D_LEAF)

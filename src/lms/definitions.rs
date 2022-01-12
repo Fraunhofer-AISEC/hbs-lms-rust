@@ -47,7 +47,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
             return Err(());
         }
 
-        let key = lm_ots::generate_private_key(
+        let key = lm_ots::keygen::generate_private_key(
             self.lms_tree_identifier,
             self.used_leafs_index.to_be_bytes(),
             self.seed,

@@ -79,7 +79,7 @@ pub fn generate_public_key_candiate<'a, H: HashChain>(
 mod tests {
     use tinyvec::ArrayVec;
 
-    use crate::constants::Seed;
+    use crate::constants::{LmsLeafIdentifier, LmsTreeIdentifier, Seed};
     use crate::hasher::sha256::Sha256;
     use crate::lm_ots::{
         definitions::LmotsPublicKey,
@@ -87,7 +87,6 @@ mod tests {
         parameters,
         signing::{InMemoryLmotsSignature, LmotsSignature},
         verify::verify_signature_inmemory,
-        LmsLeafIdentifier, LmsTreeIdentifier,
     };
 
     use rand::{rngs::OsRng, RngCore};

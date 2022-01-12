@@ -38,8 +38,10 @@ pub fn hss_optimal_aux_level<H: HashChain>(
     lms_parameter: LmsParameter<H>,
     actual_len: Option<&mut usize>,
 ) -> AuxLevel {
-    let h0 = lms_parameter.get_tree_height();
+    let mut aux_level = AuxLevel::default();
+
     let size_hash = lms_parameter.get_hash_function_output_size();
+    let orig_max_length = max_length;
 
     if max_length < AUX_DATA_HASHES + size_hash {
         if let Some(actual_len) = actual_len {
@@ -47,27 +49,15 @@ pub fn hss_optimal_aux_level<H: HashChain>(
         }
         return 0;
     }
-
-    let orig_max_length = max_length;
     max_length -= AUX_DATA_HASHES + size_hash;
 
-    let mut aux_level: AuxLevel = 0;
-
-    let substree_size = hss_smallest_subtree_size(h0, 0, size_hash);
-    let mut level = h0 as u32 % substree_size;
-
-    if level == 0 {
-        level = substree_size;
-    }
-
-    for level in (level..h0 as u32).step_by(substree_size as usize) {
+    let h0 = lms_parameter.get_tree_height().into();
+    for level in (1..=h0).rev().step_by(MIN_SUBTREE) {
         let len_this_level = size_hash << level;
 
         if max_length >= len_this_level {
             max_length -= len_this_level;
             aux_level |= 0x80000000 | (1 << level);
-        } else {
-            break;
         }
     }
 
@@ -76,13 +66,6 @@ pub fn hss_optimal_aux_level<H: HashChain>(
     }
 
     aux_level
-}
-
-pub fn hss_smallest_subtree_size(_tree_height: u8, _i: usize, _n: usize) -> u32 {
-    if MIN_SUBTREE > 2 {
-        panic!("We assume that a subtree of size 2 is allowed");
-    }
-    2
 }
 
 pub fn hss_expand_aux_data<'a, H: HashChain>(

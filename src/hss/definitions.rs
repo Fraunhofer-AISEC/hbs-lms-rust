@@ -81,30 +81,27 @@ impl<H: HashChain> HssPrivateKey<H> {
         Ok(hss_private_key)
     }
 
-    fn get_expanded_aux_data<'a>(
+    pub fn get_expanded_aux_data<'a>(
         aux_data: Option<&'a mut &mut [u8]>,
         private_key: &'a ReferenceImplPrivateKey<H>,
         top_lms_parameter: &LmsParameter<H>,
         is_aux_data_used: bool,
     ) -> Option<MutableExpandedAuxData<'a>> {
-        if let Some(aux_data) = aux_data {
-            if is_aux_data_used {
-                hss_expand_aux_data::<H>(Some(aux_data), Some(&private_key.seed))
-            } else {
-                let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter);
+        let aux_data = aux_data?;
 
-                // Shrink input slice
-                let moved = core::mem::take(aux_data);
-                *aux_data = &mut moved[..aux_len];
-
-                let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None);
-                hss_store_aux_marker(aux_data, aux_level);
-
-                hss_expand_aux_data::<H>(Some(aux_data), None)
-            }
-        } else {
-            None
+        if is_aux_data_used {
+            return hss_expand_aux_data::<H>(Some(aux_data), Some(&private_key.seed));
         }
+
+        // Shrink input slice
+        let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter);
+        let moved = core::mem::take(aux_data);
+        *aux_data = &mut moved[..aux_len];
+
+        let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None);
+        hss_store_aux_marker(aux_data, aux_level);
+
+        hss_expand_aux_data::<H>(Some(aux_data), None)
     }
 
     pub fn get_lifetime(&self) -> u64 {

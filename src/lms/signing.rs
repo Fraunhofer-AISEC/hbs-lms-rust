@@ -2,6 +2,7 @@ use crate::constants::{
     LmsLeafIdentifier, MAX_HASH_SIZE, MAX_LMS_SIGNATURE_LENGTH, MAX_TREE_HEIGHT,
 };
 use crate::hasher::HashChain;
+use crate::hss::aux::MutableExpandedAuxData;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::parameters::LmotsAlgorithm;
@@ -63,6 +64,7 @@ impl<H: HashChain> LmsSignature<H> {
     fn build_authentication_path(
         lms_private_key: &mut LmsPrivateKey<H>,
         lm_ots_private_key: &LmotsPrivateKey<H>,
+        aux_data: &mut Option<MutableExpandedAuxData>,
     ) -> Result<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_TREE_HEIGHT]>, ()> {
         let tree_height = lms_private_key.lms_parameter.get_tree_height();
         let signature_leaf_index = 2usize.pow(tree_height as u32)
@@ -72,7 +74,7 @@ impl<H: HashChain> LmsSignature<H> {
 
         for i in 0..tree_height.into() {
             let tree_index = (signature_leaf_index / (2usize.pow(i as u32))) ^ 0x1;
-            authentication_path.push(get_tree_element(tree_index, lms_private_key, &mut None));
+            authentication_path.push(get_tree_element(tree_index, lms_private_key, aux_data));
         }
 
         Ok(authentication_path)
@@ -84,6 +86,7 @@ impl<H: HashChain> LmsSignature<H> {
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
         signature_randomizer: &mut ArrayVec<[u8; MAX_HASH_SIZE]>,
+        aux_data: &mut Option<MutableExpandedAuxData>,
     ) -> Result<LmsSignature<H>, ()> {
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
@@ -94,8 +97,11 @@ impl<H: HashChain> LmsSignature<H> {
             message_mut,
         );
 
-        let authentication_path =
-            LmsSignature::<H>::build_authentication_path(lms_private_key, &lm_ots_private_key)?;
+        let authentication_path = LmsSignature::<H>::build_authentication_path(
+            lms_private_key,
+            &lm_ots_private_key,
+            aux_data,
+        )?;
 
         let signature = LmsSignature {
             lms_leaf_identifier: lm_ots_private_key.lms_leaf_identifier,
@@ -111,14 +117,18 @@ impl<H: HashChain> LmsSignature<H> {
         lms_private_key: &mut LmsPrivateKey<H>,
         message: &[u8],
         signature_randomizer: &ArrayVec<[u8; MAX_HASH_SIZE]>,
+        aux_data: &mut Option<MutableExpandedAuxData>,
     ) -> Result<LmsSignature<H>, ()> {
         let lm_ots_private_key = lms_private_key.use_lmots_private_key()?;
 
         let ots_signature =
             LmotsSignature::sign(&lm_ots_private_key, signature_randomizer, message);
 
-        let authentication_path =
-            LmsSignature::<H>::build_authentication_path(lms_private_key, &lm_ots_private_key)?;
+        let authentication_path = LmsSignature::<H>::build_authentication_path(
+            lms_private_key,
+            &lm_ots_private_key,
+            aux_data,
+        )?;
 
         let signature = LmsSignature {
             lms_leaf_identifier: lm_ots_private_key.lms_leaf_identifier,
@@ -230,8 +240,9 @@ mod tests {
         let mut signature_randomizer = ArrayVec::from([0u8; 32]);
         OsRng.fill_bytes(&mut signature_randomizer);
 
-        let signature = LmsSignature::sign(&mut private_key, message, &signature_randomizer)
-            .expect("Signing must succeed.");
+        let signature =
+            LmsSignature::sign(&mut private_key, message, &signature_randomizer, &mut None)
+                .expect("Signing must succeed.");
 
         let binary = signature.to_binary_representation();
 

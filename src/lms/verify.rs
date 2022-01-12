@@ -120,14 +120,22 @@ mod tests {
         let mut signature_randomizer = ArrayVec::from([0u8; 32]);
         OsRng.fill_bytes(&mut signature_randomizer);
 
-        let first_signature =
-            LmsSignature::sign(&mut private_key, &first_message, &signature_randomizer)
-                .unwrap()
-                .to_binary_representation();
-        let second_signature =
-            LmsSignature::sign(&mut private_key, &second_message, &signature_randomizer)
-                .unwrap()
-                .to_binary_representation();
+        let first_signature = LmsSignature::sign(
+            &mut private_key,
+            &first_message,
+            &signature_randomizer,
+            &mut None,
+        )
+        .unwrap()
+        .to_binary_representation();
+        let second_signature = LmsSignature::sign(
+            &mut private_key,
+            &second_message,
+            &signature_randomizer,
+            &mut None,
+        )
+        .unwrap()
+        .to_binary_representation();
 
         let first_signature = InMemoryLmsSignature::new(first_signature.as_slice()).unwrap();
         let second_signature = InMemoryLmsSignature::new(second_signature.as_slice()).unwrap();

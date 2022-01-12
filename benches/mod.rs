@@ -16,19 +16,14 @@ mod tests {
         32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
     ];
 
-    fn generate_signing_key(aux_data: Option<&mut &mut [u8]>) -> SigningKey<Sha256> {
+    fn generate_signing_key(
+        hss_parameter: &[HssParameter<Sha256>],
+        aux_data: Option<&mut &mut [u8]>,
+    ) -> SigningKey<Sha256> {
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
 
-        let (signing_key, _) = keygen::<Sha256>(
-            &[
-                HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
-                HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
-            ],
-            &seed,
-            aux_data,
-        )
-        .unwrap();
+        let (signing_key, _) = keygen::<Sha256>(hss_parameter, &seed, aux_data).unwrap();
 
         signing_key
     }
@@ -114,24 +109,102 @@ mod tests {
     }
 
     #[bench]
-    fn sign(b: &mut Bencher) {
-        let mut signing_key = generate_signing_key(None);
+    fn sign_h5w2(b: &mut Bencher) {
+        let hss_parameter = [HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        )];
+        let signing_key = generate_signing_key(&hss_parameter, None);
 
         b.iter(|| {
-            let _ = signing_key.try_sign(&MESSAGE).unwrap();
+            let mut signing_key = signing_key.clone();
+            signing_key.try_sign(&MESSAGE).unwrap()
         });
     }
 
     #[bench]
-    fn sign_with_aux(b: &mut Bencher) {
+    fn sign_with_aux_h5w2(b: &mut Bencher) {
+        let hss_parameter = [HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        )];
         let mut aux_data = vec![0u8; 100_000];
         let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
-        let mut signing_key = generate_signing_key(Some(aux_slice));
+        let signing_key = generate_signing_key(&hss_parameter, Some(aux_slice));
 
         b.iter(|| {
-            let _ = signing_key
+            let mut signing_key = signing_key.clone();
+            signing_key
                 .try_sign_with_aux(&MESSAGE, Some(aux_slice))
-                .unwrap();
+                .unwrap()
+        });
+    }
+
+    #[bench]
+    fn sign_with_aux_h10w2(b: &mut Bencher) {
+        let hss_parameter = [HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH10,
+        )];
+        let mut aux_data = vec![0u8; 100_000];
+        let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+        let signing_key = generate_signing_key(&hss_parameter, Some(aux_slice));
+
+        b.iter(|| {
+            let mut signing_key = signing_key.clone();
+            signing_key
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .unwrap()
+        });
+    }
+
+    #[bench]
+    fn sign_with_aux_h15w2(b: &mut Bencher) {
+        let hss_parameter = [HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH15,
+        )];
+        let mut aux_data = vec![0u8; 100_000];
+        let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+        let signing_key = generate_signing_key(&hss_parameter, Some(aux_slice));
+
+        b.iter(|| {
+            let mut signing_key = signing_key.clone();
+            signing_key
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .unwrap()
+        });
+    }
+
+    #[bench]
+    fn sign_h5w2_h5w2(b: &mut Bencher) {
+        let hss_parameter = [
+            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+        ];
+        let signing_key = generate_signing_key(&hss_parameter, None);
+
+        b.iter(|| {
+            let mut signing_key = signing_key.clone();
+            signing_key.try_sign(&MESSAGE).unwrap()
+        });
+    }
+
+    #[bench]
+    fn sign_with_aux_h5w2_h5w2(b: &mut Bencher) {
+        let hss_parameter = [
+            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+        ];
+        let mut aux_data = vec![0u8; 100_000];
+        let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+        let signing_key = generate_signing_key(&hss_parameter, Some(aux_slice));
+
+        b.iter(|| {
+            let mut signing_key = signing_key.clone();
+            signing_key
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .unwrap()
         });
     }
 

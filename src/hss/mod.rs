@@ -471,7 +471,7 @@ mod tests {
         let (sk1, vk1) =
             hss_keygen::<H>(&parameters, &seed, Some(aux_slice)).expect("Should generate HSS keys");
 
-        aux_slice[2 * MAX_HASH_SIZE - 1] += 1;
+        aux_slice[2 * MAX_HASH_SIZE - 1] ^= 0x1;
 
         let (sk2, vk2) =
             hss_keygen::<H>(&parameters, &seed, Some(aux_slice)).expect("Should generate HSS keys");

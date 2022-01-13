@@ -236,7 +236,7 @@ fn verify(args: &ArgMatches) -> bool {
     let message_data = read_file(&message_name);
     let public_key_data = read_file(&public_key_name);
 
-    hbs_lms::verify::<Sha256>(&message_data, &signature_data, &public_key_data)
+    hbs_lms::verify::<Sha256>(&message_data, &signature_data, &public_key_data).is_ok()
 }
 
 fn get_public_key_name(keyname: &str) -> String {

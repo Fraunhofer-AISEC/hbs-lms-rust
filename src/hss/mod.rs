@@ -11,7 +11,6 @@ use tinyvec::ArrayVec;
 
 use crate::{
     constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_LEN},
-    extract_or,
     hss::aux::hss_is_aux_data_used,
     signature::{Error, SignerMut, Verifier},
     HashChain, Signature, VerifierSignature,
@@ -112,19 +111,13 @@ impl<H: HashChain> VerifyingKey<H> {
 
 impl<H: HashChain> Verifier<Signature> for VerifyingKey<H> {
     fn verify(&self, msg: &[u8], signature: &Signature) -> Result<(), Error> {
-        if !hss_verify::<H>(msg, signature.as_ref(), &self.bytes) {
-            return Err(Error::new());
-        }
-        Ok(())
+        hss_verify::<H>(msg, signature.as_ref(), &self.bytes)
     }
 }
 
 impl<'a, H: HashChain> Verifier<VerifierSignature<'a>> for VerifyingKey<H> {
     fn verify(&self, msg: &[u8], signature: &VerifierSignature) -> Result<(), Error> {
-        if !hss_verify::<H>(msg, signature.as_ref(), &self.bytes) {
-            return Err(Error::new());
-        }
-        Ok(())
+        hss_verify::<H>(msg, signature.as_ref(), &self.bytes)
     }
 }
 
@@ -137,11 +130,15 @@ impl<'a, H: HashChain> Verifier<VerifierSignature<'a>> for VerifyingKey<H> {
  * * `signature` - The signature that should be used for verification.
  * * `public_key` - The public key that should be used for verification.
  */
-pub fn hss_verify<H: HashChain>(message: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
-    let signature = extract_or!(InMemoryHssSignature::<H>::new(signature), false);
-    let public_key = extract_or!(InMemoryHssPublicKey::<H>::new(public_key), false);
+pub fn hss_verify<H: HashChain>(
+    message: &[u8],
+    signature: &[u8],
+    public_key: &[u8],
+) -> Result<(), Error> {
+    let signature = InMemoryHssSignature::<H>::new(signature).ok_or_else(Error::new)?;
+    let public_key = InMemoryHssPublicKey::<H>::new(public_key).ok_or_else(Error::new)?;
 
-    crate::hss::verify::verify(&signature, &public_key, message).is_ok()
+    crate::hss::verify::verify(&signature, &public_key, message).map_err(|_| Error::new())
 }
 
 /**
@@ -334,11 +331,7 @@ mod tests {
         )
         .expect("Signing should complete without error.");
 
-        assert!(hss_verify::<H>(
-            &message,
-            signature.as_ref(),
-            verifying_key.as_slice()
-        ));
+        assert!(hss_verify::<H>(&message, signature.as_ref(), verifying_key.as_slice()).is_ok());
 
         assert_ne!(signing_key.as_slice(), signing_key_const.as_slice());
         assert_eq!(
@@ -394,11 +387,9 @@ mod tests {
             )
             .expect("Signing should complete without error.");
 
-            assert!(hss_verify::<H>(
-                &message,
-                signature.as_ref(),
-                verifying_key.as_slice()
-            ));
+            assert!(
+                hss_verify::<H>(&message, signature.as_ref(), verifying_key.as_slice()).is_ok()
+            );
         }
         assert_eq!(
             signing_key.as_slice()[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
@@ -447,11 +438,9 @@ mod tests {
                 }
             });
 
-            assert!(hss_verify::<H>(
-                &message,
-                signature.as_ref(),
-                verifying_key.as_slice()
-            ));
+            assert!(
+                hss_verify::<H>(&message, signature.as_ref(), verifying_key.as_slice()).is_ok()
+            );
         }
     }
 
@@ -525,19 +514,11 @@ mod tests {
         )
         .expect("Signing should complete without error.");
 
-        assert!(hss_verify::<H>(
-            &message,
-            signature.as_ref(),
-            verifying_key.as_slice(),
-        ));
+        assert!(hss_verify::<H>(&message, signature.as_ref(), verifying_key.as_slice(),).is_ok());
 
         message[0] = 33;
 
-        assert!(!hss_verify::<H>(
-            &message,
-            signature.as_ref(),
-            verifying_key.as_slice(),
-        ));
+        assert!(hss_verify::<H>(&message, signature.as_ref(), verifying_key.as_slice(),).is_err());
     }
 
     #[cfg(feature = "fast_verify")]
@@ -585,10 +566,6 @@ mod tests {
             [0u8; MAX_HASH_SIZE]
         );
 
-        assert!(hss_verify::<H>(
-            &message,
-            signature.as_ref(),
-            verifying_key.as_slice()
-        ));
+        assert!(hss_verify::<H>(&message, signature.as_ref(), verifying_key.as_slice()).is_ok());
     }
 }

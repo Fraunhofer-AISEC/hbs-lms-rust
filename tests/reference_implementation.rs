@@ -194,11 +194,7 @@ fn own_verify(temp_path: &TempDir) {
     let signature_data = read_file(path.join(SIGNATURE_FILE_NAME).to_str().unwrap());
     let public_key_data = read_file(path.join(PUBLIC_KEY_NAME).to_str().unwrap());
 
-    assert!(hbs_lms::verify::<Sha256>(
-        &message_data,
-        &signature_data,
-        &public_key_data
-    ));
+    assert!(hbs_lms::verify::<Sha256>(&message_data, &signature_data, &public_key_data).is_ok());
 }
 
 fn reference_verify(temp_path: &TempDir) {

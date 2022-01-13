@@ -14,17 +14,6 @@ pub fn read_and_advance<'a>(src: &'a [u8], length: usize, index: &mut usize) -> 
 
 #[macro_export]
 #[doc(hidden)]
-macro_rules! extract_or_return {
-    ($x:expr) => {
-        match $x {
-            None => return None,
-            Some(x) => x,
-        }
-    };
-}
-
-#[macro_export]
-#[doc(hidden)]
 macro_rules! extract_or {
     ($x:expr, $or:expr) => {
         match $x {

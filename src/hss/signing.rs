@@ -3,7 +3,6 @@ use crate::{
         lms_public_key_length, lms_signature_length, MAX_ALLOWED_HSS_LEVELS,
         MAX_HSS_SIGNATURE_LENGTH, MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH,
     },
-    extract_or_return,
     hss::{
         aux::MutableExpandedAuxData,
         reference_impl_private_key::{generate_signature_randomizer, SeedAndLmsTreeIdentifier},
@@ -152,8 +151,7 @@ impl<'a, H: HashChain> InMemoryHssSignature<'a, H> {
         let mut signed_public_keys = ArrayVec::new();
 
         for _ in 0..level {
-            let signed_public_key =
-                extract_or_return!(InMemoryHssSignedPublicKey::<'a, H>::new(&data[index..]));
+            let signed_public_key = InMemoryHssSignedPublicKey::<'a, H>::new(&data[index..])?;
             index += signed_public_key.len();
             signed_public_keys.push(Some(signed_public_key));
         }

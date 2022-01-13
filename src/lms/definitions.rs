@@ -1,5 +1,4 @@
 use crate::constants::*;
-use crate::extract_or_return;
 use crate::hasher::HashChain;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
@@ -120,17 +119,16 @@ impl<'a, H: HashChain> InMemoryLmsPublicKey<'a, H> {
         // Parsing like desribed in 5.4.2
         let mut data_index = 0;
 
-        let lms_parameter = extract_or_return!(LmsAlgorithm::get_from_type(u32::from_be_bytes(
+        let lms_parameter = LmsAlgorithm::get_from_type(u32::from_be_bytes(
             read_and_advance(data, 4, &mut data_index)
                 .try_into()
-                .unwrap()
-        )));
-        let lmots_parameter =
-            extract_or_return!(LmotsAlgorithm::get_from_type(u32::from_be_bytes(
-                read_and_advance(data, 4, &mut data_index)
-                    .try_into()
-                    .unwrap()
-            )));
+                .unwrap(),
+        ))?;
+        let lmots_parameter = LmotsAlgorithm::get_from_type(u32::from_be_bytes(
+            read_and_advance(data, 4, &mut data_index)
+                .try_into()
+                .unwrap(),
+        ))?;
         let lms_tree_identifier = read_and_advance(data, 16, &mut data_index);
         let key = read_and_advance(data, H::OUTPUT_SIZE.into(), &mut data_index);
 

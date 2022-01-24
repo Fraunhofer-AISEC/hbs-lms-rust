@@ -288,7 +288,7 @@ mod tests {
         let _ =
             hss_keygen::<H>(&parameters, &seed, Some(aux_slice)).expect("Should generate HSS keys");
 
-        aux_slice[2 * MAX_HASH_SIZE - 1] += 1;
+        aux_slice[2 * MAX_HASH_SIZE - 1] ^= 1;
 
         hss_expand_aux_data::<H>(Some(aux_slice), Some(&seed))
             .expect("expand_aux_data should return None!");

@@ -26,7 +26,7 @@ pub fn generate_key_pair<H: HashChain>(
     let lms_parameter = parameter.get_lms_parameter();
 
     let private_key = LmsPrivateKey::new(
-        seed.seed,
+        seed.seed.clone(),
         seed.lms_tree_identifier,
         *used_leafs_index,
         *lmots_parameter,

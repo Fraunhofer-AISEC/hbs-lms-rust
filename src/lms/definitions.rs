@@ -10,15 +10,18 @@ use crate::{lm_ots, Seed};
 
 use core::convert::TryInto;
 use tinyvec::ArrayVec;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use super::parameters::LmsParameter;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct LmsPrivateKey<H: HashChain> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub used_leafs_index: u32,
     pub seed: Seed<H>,
+    #[zeroize(skip)]
     pub lmots_parameter: LmotsParameter<H>,
+    #[zeroize(skip)]
     pub lms_parameter: LmsParameter<H>,
 }
 
@@ -49,7 +52,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
         let key = lm_ots::keygen::generate_private_key(
             self.lms_tree_identifier,
             self.used_leafs_index.to_be_bytes(),
-            self.seed,
+            self.seed.clone(),
             self.lmots_parameter,
         );
         self.used_leafs_index += 1;
@@ -60,7 +63,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct LmsPublicKey<H: HashChain> {
-    pub key: ArrayVec<[u8; MAX_HASH_SIZE]>,
+    pub key: Node,
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
@@ -164,7 +167,7 @@ mod tests {
         let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
         OsRng.fill_bytes(seed_and_lms_tree_identifier.seed.as_mut_slice());
         let private_key = LmsPrivateKey::new(
-            seed_and_lms_tree_identifier.seed,
+            seed_and_lms_tree_identifier.seed.clone(),
             seed_and_lms_tree_identifier.lms_tree_identifier,
             0,
             LmotsAlgorithm::construct_default_parameter(),

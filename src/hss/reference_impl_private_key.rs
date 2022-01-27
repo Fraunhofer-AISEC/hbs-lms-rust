@@ -6,16 +6,17 @@ use crate::{
     },
     hasher::HashChain,
     hss::{definitions::HssPrivateKey, seed_derive::SeedDerive},
-    util::helper::read_and_advance,
+    util::{helper::read_and_advance, ArrayVecZeroize},
     HssParameter, LmotsAlgorithm, LmsAlgorithm,
 };
 
 use core::{convert::TryFrom, convert::TryInto, marker::PhantomData};
 use tinyvec::ArrayVec;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct Seed<H: HashChain> {
-    data: ArrayVec<[u8; MAX_SEED_LEN]>,
+    data: ArrayVecZeroize<u8, MAX_SEED_LEN>,
     phantom: PhantomData<H>,
 }
 
@@ -26,20 +27,18 @@ impl<H: HashChain> Seed<H> {
     }
 
     pub fn as_slice(&self) -> &[u8] {
-        self.data.as_slice()
+        &self.data.as_slice()[..H::OUTPUT_SIZE as usize]
     }
 
     pub fn as_mut_slice(&mut self) -> &mut [u8] {
-        self.data.as_mut_slice()
+        &mut self.data.as_mut_slice()[..H::OUTPUT_SIZE as usize]
     }
 }
-
-impl<H: HashChain> Copy for Seed<H> {}
 
 impl<H: HashChain> From<[u8; MAX_SEED_LEN]> for Seed<H> {
     fn from(data: [u8; MAX_SEED_LEN]) -> Self {
         Seed {
-            data: ArrayVec::from_array_len(data, H::OUTPUT_SIZE as usize),
+            data: ArrayVecZeroize(ArrayVec::from_array_len(data, MAX_SEED_LEN)),
             phantom: PhantomData::default(),
         }
     }
@@ -51,7 +50,7 @@ impl<H: HashChain> TryFrom<ArrayVec<[u8; MAX_SEED_LEN]>> for Seed<H> {
     fn try_from(value: ArrayVec<[u8; MAX_SEED_LEN]>) -> Result<Self, Self::Error> {
         if value.len() == H::OUTPUT_SIZE as usize {
             Ok(Seed {
-                data: value,
+                data: ArrayVecZeroize(value),
                 phantom: PhantomData::default(),
             })
         } else {
@@ -60,34 +59,11 @@ impl<H: HashChain> TryFrom<ArrayVec<[u8; MAX_SEED_LEN]>> for Seed<H> {
     }
 }
 
-impl<H: HashChain> Default for Seed<H> {
-    #[inline]
-    fn default() -> Self {
-        Self::from([0u8; MAX_SEED_LEN])
-    }
-}
-
-/*
-impl<H: HashChain> Deref for Seed<H> {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        self.data.as_slice()
-    }
-}
-
-impl<H: HashChain> DerefMut for Seed<H> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.data.as_mut_slice()
-    }
-}
- */
-
 /**
 To be compatible with the reference implementation
  */
 
-#[derive(Default)]
+#[derive(Default, Zeroize, ZeroizeOnDrop)]
 pub struct SeedAndLmsTreeIdentifier<H: HashChain> {
     pub seed: Seed<H>,
     pub lms_tree_identifier: LmsTreeIdentifier,
@@ -106,7 +82,7 @@ impl<H: HashChain> SeedAndLmsTreeIdentifier<H> {
     }
 }
 
-#[derive(Default, PartialEq, Eq)]
+#[derive(Clone, Default, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct ReferenceImplPrivateKey<H: HashChain> {
     pub compressed_used_leafs_indexes: CompressedUsedLeafsIndexes,
     pub compressed_parameter: CompressedParameterSet,
@@ -121,16 +97,11 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
     }
 
     pub fn generate(parameters: &[HssParameter<H>], seed: &Seed<H>) -> Result<Self, ()> {
-        let mut private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
+        let private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
             compressed_used_leafs_indexes: CompressedUsedLeafsIndexes::new(0),
             compressed_parameter: CompressedParameterSet::from(parameters)?,
-            ..Default::default()
+            seed: seed.clone(),
         };
-
-        private_key
-            .seed
-            .as_mut_slice()
-            .copy_from_slice(seed.as_slice());
 
         Ok(private_key)
     }
@@ -245,7 +216,7 @@ pub fn generate_signature_randomizer<H: HashChain>(
 
 const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct CompressedParameterSet([u8; MAX_ALLOWED_HSS_LEVELS]);
 
 impl Default for CompressedParameterSet {
@@ -311,7 +282,7 @@ impl CompressedParameterSet {
     }
 }
 
-#[derive(Default, PartialEq, Eq)]
+#[derive(Clone, Default, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct CompressedUsedLeafsIndexes {
     count: u64,
 }
@@ -382,7 +353,7 @@ mod tests {
 
         let hss_private_key = HssPrivateKey::from(&rfc_private_key, &mut None).unwrap();
 
-        let seed = rfc_private_key.seed;
+        let seed = rfc_private_key.seed.clone();
 
         let tree_heights = parameters
             .iter()

@@ -1,17 +1,20 @@
 use tinyvec::ArrayVec;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
-    constants::{LmsLeafIdentifier, LmsTreeIdentifier, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
+    constants::{LmsLeafIdentifier, LmsTreeIdentifier, Node, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
     hasher::HashChain,
+    util::ArrayVecZeroize,
 };
 
 use super::parameters::LmotsParameter;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Zeroize, ZeroizeOnDrop)]
 pub struct LmotsPrivateKey<H: HashChain> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lms_leaf_identifier: LmsLeafIdentifier,
-    pub key: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]>, // [[0u8; n]; p];
+    pub key: ArrayVecZeroize<Node, MAX_HASH_CHAIN_COUNT>, // [[0u8; n]; p];
+    #[zeroize(skip)]
     pub lmots_parameter: LmotsParameter<H>,
 }
 
@@ -19,13 +22,13 @@ impl<H: HashChain> LmotsPrivateKey<H> {
     pub fn new(
         lms_tree_identifier: LmsTreeIdentifier,
         lms_leaf_identifier: LmsLeafIdentifier,
-        key: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]>,
+        key: ArrayVec<[Node; MAX_HASH_CHAIN_COUNT]>,
         lmots_parameter: LmotsParameter<H>,
     ) -> Self {
         LmotsPrivateKey {
             lms_tree_identifier,
             lms_leaf_identifier,
-            key,
+            key: ArrayVecZeroize(key),
             lmots_parameter,
         }
     }
@@ -34,7 +37,7 @@ impl<H: HashChain> LmotsPrivateKey<H> {
 pub struct LmotsPublicKey<H: HashChain> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lms_leaf_identifier: LmsLeafIdentifier,
-    pub key: ArrayVec<[u8; MAX_HASH_SIZE]>,
+    pub key: Node,
     pub lmots_parameter: LmotsParameter<H>,
 }
 

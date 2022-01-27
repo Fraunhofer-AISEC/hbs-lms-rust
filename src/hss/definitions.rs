@@ -49,7 +49,7 @@ impl<H: HashChain> HssPrivateKey<H> {
         let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
 
         let lms_private_key = LmsPrivateKey {
-            seed: current_seed.seed,
+            seed: current_seed.seed.clone(),
             lms_tree_identifier: current_seed.lms_tree_identifier,
             lmots_parameter: *parameters[0].get_lmots_parameter(),
             lms_parameter: *parameters[0].get_lms_parameter(),

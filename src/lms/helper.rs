@@ -29,7 +29,7 @@ pub fn get_tree_element<H: HashChain>(
         let lms_ots_private_key = lm_ots::keygen::generate_private_key(
             private_key.lms_tree_identifier,
             ((index - max_private_keys) as u32).to_be_bytes(),
-            private_key.seed,
+            private_key.seed.clone(),
             private_key.lmots_parameter,
         );
         let lm_ots_public_key = lm_ots::keygen::generate_public_key(&lms_ots_private_key);

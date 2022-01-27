@@ -50,7 +50,7 @@ impl<H: HashChain> HssSignature<H> {
         #[allow(unused_mut)]
         let mut signature_randomizer = generate_signature_randomizer::<H>(
             &SeedAndLmsTreeIdentifier {
-                seed: prv[max_level - 1].seed,
+                seed: prv[max_level - 1].seed.clone(),
                 lms_tree_identifier: prv[max_level - 1].lms_tree_identifier,
             },
             &prv[max_level - 1].used_leafs_index,

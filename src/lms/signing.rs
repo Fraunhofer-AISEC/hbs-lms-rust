@@ -228,7 +228,7 @@ mod tests {
         let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
         OsRng.fill_bytes(seed_and_lms_tree_identifier.seed.as_mut_slice());
         let mut private_key = LmsPrivateKey::new(
-            seed_and_lms_tree_identifier.seed,
+            seed_and_lms_tree_identifier.seed.clone(),
             seed_and_lms_tree_identifier.lms_tree_identifier,
             0,
             LmotsAlgorithm::construct_default_parameter(),

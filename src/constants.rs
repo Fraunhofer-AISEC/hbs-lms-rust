@@ -6,6 +6,7 @@ include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 pub const ILEN: usize = 16;
 pub const MAX_SEED_LEN: usize = 32;
 
+pub type Node = ArrayVec<[u8; MAX_HASH_SIZE]>;
 pub type LmsTreeIdentifier = [u8; ILEN];
 pub type LmsLeafIdentifier = [u8; 4];
 

@@ -1,7 +1,10 @@
 use core::convert::TryFrom;
 use tinyvec::ArrayVec;
 
-use sha2::{Digest, Sha256 as Hasher};
+use sha2::{
+    digest::{typenum::U32, FixedOutput, FixedOutputReset, Output, OutputSizeUser, Reset, Update},
+    Sha256 as Hasher,
+};
 
 use crate::constants::MAX_HASH_SIZE;
 
@@ -19,32 +22,45 @@ impl HashChain for Sha256 {
     const OUTPUT_SIZE: u16 = 32;
     const BLOCK_SIZE: u16 = 64;
 
-    fn update(&mut self, data: &[u8]) {
-        self.hasher.update(data);
-    }
-
-    fn chain(self, data: &[u8]) -> Self {
-        Sha256 {
-            hasher: self.hasher.chain_update(data),
-        }
-    }
-
     fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
-        let result = ArrayVec::try_from(self.hasher.finalize().iter().as_slice()).unwrap();
-        result
+        ArrayVec::try_from(self.hasher.finalize_fixed().as_slice()).unwrap()
     }
 
     fn finalize_reset(&mut self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
-        let result = ArrayVec::try_from(self.hasher.finalize_reset().iter().as_slice()).unwrap();
-        result
+        ArrayVec::try_from(self.hasher.finalize_fixed_reset().as_slice()).unwrap()
+    }
+}
+
+impl OutputSizeUser for Sha256 {
+    type OutputSize = U32;
+}
+
+impl FixedOutput for Sha256 {
+    fn finalize_into(self, out: &mut Output<Self>) {
+        *out = self.hasher.finalize_fixed();
+    }
+}
+
+impl Reset for Sha256 {
+    fn reset(&mut self) {
+        *self = Default::default();
+    }
+}
+
+impl FixedOutputReset for Sha256 {
+    fn finalize_into_reset(&mut self, out: &mut Output<Self>) {
+        *out = self.hasher.finalize_fixed_reset();
+    }
+}
+
+impl Update for Sha256 {
+    fn update(&mut self, data: &[u8]) {
+        self.hasher.update(data);
     }
 }
 
 impl PartialEq for Sha256 {
     fn eq(&self, _: &Self) -> bool {
-        #[cfg(test)]
-        return true;
-        #[cfg(not(test))]
-        return false;
+        false
     }
 }

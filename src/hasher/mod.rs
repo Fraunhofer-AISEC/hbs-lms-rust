@@ -3,6 +3,7 @@ use core::{
     fmt::Debug,
     ops::{Deref, DerefMut},
 };
+use digest::{FixedOutput, Update};
 use tinyvec::ArrayVec;
 
 use crate::constants::{winternitz_chain::*, MAX_HASH_SIZE};
@@ -34,15 +35,16 @@ impl DerefMut for HashChainData {
  * It can be used to outsource calculations to hardware accelerators.
  *
  *
- * Implements PartialEq, although it makes no sense to compare two hasher.
- * But with that we can derive PartialEq automatically for our tests.
+ * Requires PartialEq, to use compare within the tests.
+ * This is required as long as this [issue](https://github.com/rust-lang/rust/issues/26925) is
+ * open.
  * */
-pub trait HashChain: Debug + Default + Clone + PartialEq + Send + Sync {
+pub trait HashChain:
+    Debug + Default + Clone + PartialEq + Send + Sync + FixedOutput + Update
+{
     const OUTPUT_SIZE: u16;
     const BLOCK_SIZE: u16;
 
-    fn update(&mut self, data: &[u8]);
-    fn chain(self, data: &[u8]) -> Self;
     fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]>;
     fn finalize_reset(&mut self) -> ArrayVec<[u8; MAX_HASH_SIZE]>;
 

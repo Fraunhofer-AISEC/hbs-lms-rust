@@ -67,10 +67,7 @@ pub fn generate_public_key<H: HashChain>(private_key: &LmotsPrivateKey<H>) -> Lm
         hasher.update(item.as_slice());
     }
 
-    let mut public_key = ArrayVec::new();
-    for value in hasher.finalize().into_iter() {
-        public_key.push(value);
-    }
+    let public_key = hasher.finalize();
 
     LmotsPublicKey::new(
         private_key.lms_tree_identifier,

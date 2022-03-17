@@ -92,9 +92,9 @@ mod util;
 pub use signature::{self};
 
 #[doc(hidden)]
-pub use crate::constants::Seed;
+pub use crate::constants::{Seed, MAX_HASH_SIZE};
 
-pub use crate::hasher::{sha256::Sha256, shake256::Shake256, HashChain};
+pub use crate::hasher::{sha256::Sha256, shake256::Shake256, HashChain, HashChainData};
 
 pub use crate::hss::parameter::HssParameter;
 pub use crate::lm_ots::parameters::LmotsAlgorithm;

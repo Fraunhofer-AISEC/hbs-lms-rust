@@ -176,9 +176,7 @@ pub struct CompressedParameterSet([u8; MAX_ALLOWED_HSS_LEVELS]);
 
 impl Default for CompressedParameterSet {
     fn default() -> Self {
-        Self {
-            0: [PARAM_SET_END; MAX_ALLOWED_HSS_LEVELS],
-        }
+        Self([PARAM_SET_END; MAX_ALLOWED_HSS_LEVELS])
     }
 }
 

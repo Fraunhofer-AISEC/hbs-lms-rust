@@ -6,7 +6,6 @@ use crate::hasher::{sha256::Sha256, HashChain};
 #[derive(Clone, Copy)]
 pub enum LmsAlgorithm {
     LmsReserved = 0,
-    #[cfg(test)]
     LmsH2 = 1,
     LmsH5 = 5,
     LmsH10 = 6,
@@ -24,7 +23,6 @@ impl Default for LmsAlgorithm {
 impl From<u32> for LmsAlgorithm {
     fn from(_type: u32) -> Self {
         match _type {
-            #[cfg(test)]
             1 => LmsAlgorithm::LmsH2,
             5 => LmsAlgorithm::LmsH5,
             6 => LmsAlgorithm::LmsH10,
@@ -44,7 +42,6 @@ impl LmsAlgorithm {
     pub fn construct_parameter<H: HashChain>(&self) -> Option<LmsParameter<H>> {
         match *self {
             LmsAlgorithm::LmsReserved => None,
-            #[cfg(test)]
             LmsAlgorithm::LmsH2 => Some(LmsParameter::new(1, 2)),
             LmsAlgorithm::LmsH5 => Some(LmsParameter::new(5, 5)),
             LmsAlgorithm::LmsH10 => Some(LmsParameter::new(6, 10)),
@@ -56,7 +53,6 @@ impl LmsAlgorithm {
 
     pub fn get_from_type<H: HashChain>(_type: u32) -> Option<LmsParameter<H>> {
         match _type {
-            #[cfg(test)]
             1 => LmsAlgorithm::LmsH2.construct_parameter(),
             5 => LmsAlgorithm::LmsH5.construct_parameter(),
             6 => LmsAlgorithm::LmsH10.construct_parameter(),

@@ -1,4 +1,4 @@
-use clap::{App, Arg, ArgMatches};
+use clap::{Arg, ArgMatches, Command};
 use hbs_lms::*;
 use std::{
     error::Error,
@@ -56,10 +56,10 @@ impl GenKeyParameter {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let command = App::new("LMS Demo")
+    let command = Command::new("LMS Demo")
         .about("Generates a LMS key pair")
         .subcommand(
-            App::new(GENKEY_COMMAND)
+            Command::new(GENKEY_COMMAND)
                 .arg(Arg::new(KEYNAME_PARAMETER).required(true))
                 .arg(Arg::new(PARAMETER_PARAMETER).required(false).help(
                     "Specify LMS parameters (e.g. 15/4 (Treeheight 15 and Winternitz parameter 4))",
@@ -67,18 +67,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .arg(Arg::new(SEED_PARAMETER).long(SEED_PARAMETER).required(false).takes_value(true).value_name("seed")),
         )
         .subcommand(
-            App::new(VERIFY_COMMAND)
+            Command::new(VERIFY_COMMAND)
             .arg(Arg::new(KEYNAME_PARAMETER).required(true))
             .arg(Arg::new(MESSAGE_PARAMETER).required(true).help("File to verify")))
         .subcommand(
-            App::new(SIGN_COMMAND)
+            Command::new(SIGN_COMMAND)
             .arg(Arg::new(KEYNAME_PARAMETER).required(true))
             .arg(Arg::new(MESSAGE_PARAMETER).required(true))
         );
 
     #[cfg(feature = "fast_verify")]
     let command = command.subcommand(
-        App::new(SIGN_MUT_COMMAND)
+        Command::new(SIGN_MUT_COMMAND)
             .arg(Arg::new(KEYNAME_PARAMETER).required(true))
             .arg(Arg::new(MESSAGE_PARAMETER).required(true)),
     );

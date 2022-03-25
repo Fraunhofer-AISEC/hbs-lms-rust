@@ -57,21 +57,21 @@ pub fn generate_public_key_candiate<'a, H: HashChain>(
         ) as usize;
 
         let initial = signature.get_signature_data(i as usize);
-        let mut hash_chain_data =
-            H::prepare_hash_chain_data(lms_tree_identifier, &lms_leaf_identifier);
+        // let mut hash_chain_data =
+        //     H::prepare_hash_chain_data(lms_tree_identifier, &lms_leaf_identifier);
         // let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial, a, max_w);
         let result = ArrayVec::<[u8; MAX_HASH_SIZE]>::default();
 
-        // z.push(result);
+        z.push(result);
     }
 
     hasher.update(lms_tree_identifier);
     hasher.update(&lms_leaf_identifier);
     hasher.update(&D_PBLC);
 
-    // for item in z.into_iter() {
-    //     hasher.update(item.as_slice());
-    // }
+    for item in z.into_iter() {
+        hasher.update(item.as_slice());
+    }
 
     hasher.finalize()
 }

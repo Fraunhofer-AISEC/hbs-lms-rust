@@ -1,10 +1,68 @@
-use core::usize;
+use core::{marker::PhantomData, usize};
 
 use tinyvec::ArrayVec;
 
-use crate::{constants::*, hasher::HashChain, util::coef::coef};
+use crate::lm_ots::parameters::LmotsParameter;
+use crate::{constants::*, hasher::HashChain, util::coef::coef, LmotsAlgorithm};
 
 use super::{definitions::LmotsPublicKey, signing::InMemoryLmotsSignature};
+
+#[derive(Default)]
+struct HashChainArray<H: HashChain> {
+    pub array_w1: Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W1 as usize]>>,
+    pub array_w2: Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W2 as usize]>>,
+    pub array_w4: Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W4 as usize]>>,
+    pub array_w8: Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W8 as usize]>>,
+    phantom_data: PhantomData<H>,
+}
+
+impl<H: HashChain> HashChainArray<H> {
+    pub fn new(lmots_parameter: &LmotsParameter<H>) -> Self {
+        let mut hash_chain_array = HashChainArray::<H>::default();
+        if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW8 {
+            hash_chain_array.array_w8 = Some(ArrayVec::<
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W8 as usize],
+            >::default());
+        } else if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW4 {
+            hash_chain_array.array_w4 = Some(ArrayVec::<
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W4 as usize],
+            >::default());
+        } else if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW2 {
+            hash_chain_array.array_w2 = Some(ArrayVec::<
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W2 as usize],
+            >::default());
+        } else {
+            hash_chain_array.array_w1 = Some(ArrayVec::<
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W1 as usize],
+            >::default());
+        }
+        hash_chain_array
+    }
+
+    pub fn push(&mut self, data: &ArrayVec<[u8; MAX_HASH_SIZE]>) {
+        if let Some(array_w8) = &mut self.array_w8 {
+            array_w8.push(*data);
+        } else if let Some(array_w4) = &mut self.array_w4 {
+            array_w4.push(*data);
+        } else if let Some(array_w2) = &mut self.array_w2 {
+            array_w2.push(*data);
+        } else if let Some(array_w1) = &mut self.array_w1 {
+            array_w1.push(*data);
+        }
+    }
+
+    pub fn as_slice(&mut self) -> &[ArrayVec<[u8; MAX_HASH_SIZE]>] {
+        if let Some(array_w8) = &self.array_w8 {
+            array_w8.as_slice()
+        } else if let Some(array_w4) = &self.array_w4 {
+            array_w4.as_slice()
+        } else if let Some(array_w2) = &self.array_w2 {
+            array_w2.as_slice()
+        } else {
+            return self.array_w1.as_ref().unwrap().as_slice();
+        }
+    }
+}
 
 #[allow(dead_code)]
 pub fn verify_signature_inmemory<'a, H: HashChain>(
@@ -46,7 +104,7 @@ pub fn generate_public_key_candiate<'a, H: HashChain>(
     let message_hash = hasher.finalize_reset();
     let message_hash_with_checksum = lmots_parameter.append_checksum_to(message_hash.as_slice());
 
-    let mut z: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]> = ArrayVec::new();
+    let mut hash_chain_array = HashChainArray::new(&lmots_parameter);
     let max_w = 2usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
 
     for i in 0..lmots_parameter.get_hash_chain_count() {
@@ -61,17 +119,15 @@ pub fn generate_public_key_candiate<'a, H: HashChain>(
             H::prepare_hash_chain_data(lms_tree_identifier, &lms_leaf_identifier);
         let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial, a, max_w);
 
-        z.push(result);
+        hash_chain_array.push(&result);
     }
 
     hasher.update(lms_tree_identifier);
     hasher.update(&lms_leaf_identifier);
     hasher.update(&D_PBLC);
-
-    for item in z.into_iter() {
-        hasher.update(item.as_slice());
+    for hash_chain in hash_chain_array.as_slice() {
+        hasher.update(hash_chain.as_slice());
     }
-
     hasher.finalize()
 }
 

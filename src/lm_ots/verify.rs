@@ -62,7 +62,7 @@ pub fn generate_public_key_candiate<'a, H: HashChain>(
         // let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial, a, max_w);
         let result = ArrayVec::<[u8; MAX_HASH_SIZE]>::default();
 
-        z.push(result);
+        // z.push(result);
     }
 
     hasher.update(lms_tree_identifier);

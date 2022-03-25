@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: RustCrypto/actions/cargo-cache@master
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -30,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: RustCrypto/actions/cargo-cache@master
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -53,6 +55,7 @@ jobs:
       msrv: ${{ steps.msrv.outputs.msrv }}
     steps:
       - uses: actions/checkout@v2
+      - uses: RustCrypto/actions/cargo-cache@master
       - name: Install msrv
         run: cargo install cargo-msrv
       - name: Run msrv
@@ -82,6 +85,7 @@ jobs:
           - wasm32-unknown-unknown
     steps:
       - uses: actions/checkout@v2
+      - uses: RustCrypto/actions/cargo-cache@master
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -100,6 +104,7 @@ jobs:
           - stable
     steps:
       - uses: actions/checkout@v2
+      - uses: RustCrypto/actions/cargo-cache@master
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -115,6 +120,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: RustCrypto/actions/cargo-cache@master
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal

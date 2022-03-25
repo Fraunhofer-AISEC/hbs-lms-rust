@@ -59,7 +59,8 @@ pub fn generate_public_key_candiate<'a, H: HashChain>(
         let initial = signature.get_signature_data(i as usize);
         let mut hash_chain_data =
             H::prepare_hash_chain_data(lms_tree_identifier, &lms_leaf_identifier);
-        let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial, a, max_w);
+        // let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial, a, max_w);
+        let result = ArrayVec::<[u8; MAX_HASH_SIZE]>::default();
 
         z.push(result);
     }

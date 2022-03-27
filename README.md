@@ -1,4 +1,11 @@
 # Leighton-Micali Hash-Based Signatures
+
+[![crate][crate-image]][crate-link]
+[![Docs][docs-image]][docs-link]
+![Apache2/MIT licensed][license-image]
+![Rust Version][rustc-image]
+[![Build Status][build-image]][build-link]
+
 LMS implementation in Rust according to the [IETF RFC 8554](https://datatracker.ietf.org/doc/html/rfc8554).
 This implementation is binary compatible with the reference implementation found here: [hash-sigs](https://github.com/cisco/hash-sigs).
 
@@ -54,3 +61,14 @@ This work is licensed under terms of the Apache-2.0 license (see [LICENSE file](
 
 ### Contribution
 Any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be licensed as above, without any additional terms or conditions.
+
+[//]: # (badges)
+
+[crate-image]: https://img.shields.io/crates/v/hbs-lms.svg
+[crate-link]: https://crates.io/crates/hbs-lms
+[docs-image]: https://docs.rs/hbs-lms/badge.svg
+[docs-link]: https://docs.rs/hbs-lms/
+[license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.57+-blue.svg
+[build-image]: https://github.com/Fraunhofer-AISEC/hbs-lms-rust/workflows/lms/badge.svg?branch=master
+[build-link]: https://github.com/Fraunhofer-AISEC/hbs-lms-rust/actions?query=workflow%3Alms

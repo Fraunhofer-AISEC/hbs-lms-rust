@@ -179,10 +179,9 @@ impl<'a, H: HashChain> InMemoryLmsSignature<'a, H> {
         ))
         .unwrap();
 
-        let lms_parameter = LmsAlgorithm::get_from_type(u32::from_be_bytes(
-            read_and_advance(data, 4, &mut index).try_into().unwrap(),
-        ))
-        .unwrap();
+        let _type = u32::from_be_bytes(read_and_advance(data, 4, &mut index).try_into().unwrap());
+
+        let lms_parameter = LmsAlgorithm::get_from_type(_type).unwrap();
         let authentication_path = read_and_advance(
             data,
             (H::OUTPUT_SIZE * lms_parameter.get_tree_height() as u16) as usize,

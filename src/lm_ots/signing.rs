@@ -199,6 +199,10 @@ impl<H: HashChain> LmotsSignature<H> {
         let mut result = ArrayVec::new();
 
         result.extend_from_slice(&(self.lmots_parameter.get_type_id()).to_be_bytes());
+        assert_eq!(
+            self.signature_randomizer.len(),
+            self.lmots_parameter.get_hash_function_output_size()
+        );
         result.extend_from_slice(self.signature_randomizer.as_slice());
 
         for hash_chain_value in self.signature_data.iter() {
@@ -335,41 +339,58 @@ mod tests {
 
     use crate::{
         constants::{MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
-        lm_ots::{parameters::LmotsAlgorithm, signing::InMemoryLmotsSignature},
+        hasher::{
+            sha256::{Sha256_128, Sha256_192, Sha256_256},
+            shake256::Shake256,
+        },
+        lm_ots::{
+            parameters::LmotsAlgorithm, signing::InMemoryLmotsSignature, signing::LmotsSignature,
+        },
     };
 
-    use super::LmotsSignature;
+    macro_rules! generate_test {
+        ($name:ident, $hash_chain:ty) => {
+            #[test]
+            fn $name() {
+                let lmots_parameter = LmotsAlgorithm::construct_default_parameter::<$hash_chain>();
 
-    #[test]
-    fn test_binary_representation() {
-        let lmots_parameter = LmotsAlgorithm::construct_default_parameter();
+                let mut signature_randomizer = ArrayVec::new();
+                let mut signature_data: ArrayVec<
+                    [ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT],
+                > = ArrayVec::new();
 
-        let mut signature_randomizer = ArrayVec::new();
-        let mut signature_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]> =
-            ArrayVec::new();
+                for i in 0..lmots_parameter.get_hash_function_output_size() as usize {
+                    signature_randomizer.push(i as u8);
+                }
 
-        for i in 0..lmots_parameter.get_hash_function_output_size() as usize {
-            signature_randomizer.push(i as u8);
-        }
+                for i in 0..lmots_parameter.get_hash_chain_count() as usize {
+                    signature_data.push(ArrayVec::new());
+                    for j in 0..lmots_parameter.get_hash_function_output_size() as usize {
+                        signature_data[i].push(j as u8);
+                    }
+                }
 
-        for i in 0..lmots_parameter.get_hash_chain_count() as usize {
-            signature_data.push(ArrayVec::new());
-            for j in 0..lmots_parameter.get_hash_function_output_size() as usize {
-                signature_data[i].push(j as u8);
+                let signature = LmotsSignature {
+                    signature_randomizer,
+                    signature_data,
+                    lmots_parameter,
+                    hash_iterations: 0,
+                };
+
+                let binary_rep = signature.to_binary_representation();
+                let deserialized_signature = InMemoryLmotsSignature::new(binary_rep.as_slice())
+                    .expect("Deserialization must succeed.");
+
+                assert!(deserialized_signature == signature);
             }
-        }
-
-        let signature = LmotsSignature {
-            signature_randomizer,
-            signature_data,
-            lmots_parameter,
-            hash_iterations: 0,
         };
-
-        let binary_rep = signature.to_binary_representation();
-        let deserialized_signature = InMemoryLmotsSignature::new(binary_rep.as_slice())
-            .expect("Deserialization must succeed.");
-
-        assert!(deserialized_signature == signature);
     }
+
+    generate_test!(lmots_sha256_n32_binary_representation_test, Sha256_256);
+
+    generate_test!(lmots_sha256_n24_binary_representation_test, Sha256_192);
+
+    generate_test!(lmots_sha256_n16_binary_representation_test, Sha256_128);
+
+    generate_test!(lmots_shake256_n32_binary_representation_test, Shake256);
 }

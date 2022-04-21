@@ -10,8 +10,8 @@ use core::{convert::TryFrom, marker::PhantomData};
 use tinyvec::ArrayVec;
 
 use crate::{
-    constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_LEN},
-    hss::aux::hss_is_aux_data_used,
+    constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REF_IMPL_MAX_PRIVATE_KEY_SIZE},
+    hss::{aux::hss_is_aux_data_used, reference_impl_private_key::Seed},
     signature::{Error, SignerMut, Verifier},
     HashChain, Signature, VerifierSignature,
 };
@@ -28,7 +28,7 @@ use self::{
  */
 #[derive(Clone, Debug, PartialEq)]
 pub struct SigningKey<H: HashChain> {
-    pub bytes: ArrayVec<[u8; REFERENCE_IMPL_PRIVATE_KEY_SIZE]>,
+    pub bytes: ArrayVec<[u8; REF_IMPL_MAX_PRIVATE_KEY_SIZE]>,
     phantom_data: PhantomData<H>,
 }
 
@@ -51,7 +51,7 @@ impl<H: HashChain> SigningKey<H> {
     }
 
     pub fn get_lifetime(&self) -> Result<u64, Error> {
-        let rfc_sk = ReferenceImplPrivateKey::from_binary_representation(&self.bytes)
+        let rfc_sk = ReferenceImplPrivateKey::from_binary_representation(self.bytes.as_slice())
             .map_err(|_| Error::new())?;
 
         let parsed_sk = HssPrivateKey::<H>::from(&rfc_sk, &mut None).map_err(|_| Error::new())?;
@@ -258,7 +258,8 @@ fn hss_sign_core<H: HashChain>(
  * # Example
  * ```
  * use rand::{rngs::OsRng, RngCore};
- * use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256};
+ * use tinyvec::ArrayVec;
+ * use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256_256, HashChain, Seed};
  *
  * let parameters = [
  *      HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5),
@@ -267,15 +268,15 @@ fn hss_sign_core<H: HashChain>(
  * let mut aux_data = vec![0u8; 10_000];
  * let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
  * let mut seed = Seed::default();
- * OsRng.fill_bytes(&mut seed);
+ * OsRng.fill_bytes(seed.as_mut_slice());
  *
  * let (signing_key, verifying_key) =
- *      keygen::<Sha256>(&parameters, &seed, Some(aux_slice)).unwrap();
+ *      keygen::<Sha256_256>(&parameters, &seed, Some(aux_slice)).unwrap();
  * ```
  */
 pub fn hss_keygen<H: HashChain>(
     parameters: &[HssParameter<H>],
-    seed: &[u8; SEED_LEN],
+    seed: &Seed<H>,
     aux_data: Option<&mut &mut [u8]>,
 ) -> Result<(SigningKey<H>, VerifyingKey<H>), Error> {
     let private_key =
@@ -290,12 +291,11 @@ pub fn hss_keygen<H: HashChain>(
 
 #[cfg(test)]
 mod tests {
-    use rand::{rngs::OsRng, RngCore};
-
+    use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
-        constants::{LMS_LEAF_IDENTIFIERS_SIZE, MAX_HASH_SIZE, SEED_LEN},
-        hasher::{sha256::Sha256, shake256::Shake256, HashChain},
-        LmotsAlgorithm, LmsAlgorithm, Seed,
+        constants::{LMS_LEAF_IDENTIFIERS_SIZE, MAX_HASH_SIZE},
+        hasher::{sha256::*, shake256::Shake256, HashChain},
+        LmotsAlgorithm, LmsAlgorithm,
     };
 
     use super::*;
@@ -305,9 +305,8 @@ mod tests {
         let message = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
-        type H = Sha256;
+        type H = Sha256_256;
+        let seed = gen_random_seed::<H>();
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH5;
@@ -345,9 +344,8 @@ mod tests {
         let message = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
-        type H = Sha256;
+        type H = Sha256_256;
+        let seed = gen_random_seed::<H>();
 
         let lmots = LmotsAlgorithm::LmotsW2;
         let lms = LmsAlgorithm::LmsH2;
@@ -358,8 +356,8 @@ mod tests {
         let keypair_lifetime = signing_key.get_lifetime().unwrap();
 
         assert_ne!(
-            signing_key.as_slice()[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
-            [0u8; SEED_LEN],
+            signing_key.as_slice()[(REF_IMPL_MAX_PRIVATE_KEY_SIZE - H::OUTPUT_SIZE as usize)..],
+            [0u8; H::OUTPUT_SIZE as usize],
         );
 
         for index in 0..keypair_lifetime {
@@ -392,8 +390,8 @@ mod tests {
             );
         }
         assert_eq!(
-            signing_key.as_slice()[(REFERENCE_IMPL_PRIVATE_KEY_SIZE - SEED_LEN)..],
-            [0u8; SEED_LEN],
+            signing_key.as_slice()[(REF_IMPL_MAX_PRIVATE_KEY_SIZE - H::OUTPUT_SIZE as usize)..],
+            [0u8; H::OUTPUT_SIZE as usize],
         );
     }
 
@@ -403,9 +401,8 @@ mod tests {
         let message = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
-        type H = Sha256;
+        type H = Sha256_256;
+        let seed = gen_random_seed::<H>();
 
         let lmots = LmotsAlgorithm::LmotsW2;
         let lms = LmsAlgorithm::LmsH2;
@@ -446,9 +443,8 @@ mod tests {
 
     #[test]
     fn keygen_with_forged_aux_data() {
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
-        type H = Sha256;
+        type H = Sha256_256;
+        let seed = gen_random_seed::<H>();
 
         let lmots = LmotsAlgorithm::LmotsW2;
         let lms = LmsAlgorithm::LmsH5;
@@ -470,8 +466,18 @@ mod tests {
     }
 
     #[test]
+    fn test_signing_sha128() {
+        test_signing_core::<Sha256_128>();
+    }
+
+    #[test]
+    fn test_signing_sha192() {
+        test_signing_core::<Sha256_192>();
+    }
+
+    #[test]
     fn test_signing_sha256() {
-        test_signing_core::<Sha256>();
+        test_signing_core::<Sha256_256>();
     }
 
     #[test]
@@ -480,8 +486,7 @@ mod tests {
     }
 
     fn test_signing_core<H: HashChain>() {
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        let seed = gen_random_seed::<H>();
         let (mut signing_key, verifying_key) = hss_keygen::<H>(
             &[
                 HssParameter::construct_default_parameters(),
@@ -524,9 +529,8 @@ mod tests {
     #[cfg(feature = "fast_verify")]
     #[test]
     fn test_signing_fast_verify() {
-        type H = Sha256;
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        type H = Sha256_256;
+        let seed = gen_random_seed::<H>();
 
         let (mut signing_key, verifying_key) = hss_keygen::<H>(
             &[

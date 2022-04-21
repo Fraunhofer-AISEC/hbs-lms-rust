@@ -2,21 +2,22 @@ use tinyvec::ArrayVec;
 
 use crate::{
     constants::{
-        LmsTreeIdentifier, Seed, ILEN, MAX_HASH_SIZE, PRNG_FF, PRNG_I, PRNG_J, PRNG_MAX_LEN,
-        PRNG_Q, PRNG_SEED, SEED_LEN,
+        LmsTreeIdentifier, ILEN, MAX_HASH_SIZE, PRNG_FF, PRNG_I, PRNG_J, PRNG_MAX_LEN, PRNG_Q,
+        PRNG_SEED,
     },
     hasher::HashChain,
+    Seed,
 };
 
-pub struct SeedDerive<'a> {
-    master_seed: &'a Seed,
+pub struct SeedDerive<'a, H: HashChain> {
+    master_seed: &'a Seed<H>,
     lms_tree_identifier: &'a LmsTreeIdentifier,
     lms_leaf_identifier: u32,
     child_seed: u16,
 }
 
-impl<'a> SeedDerive<'a> {
-    pub fn new(seed: &'a Seed, i: &'a LmsTreeIdentifier) -> Self {
+impl<'a, H: HashChain> SeedDerive<'a, H> {
+    pub fn new(seed: &'a Seed<H>, i: &'a LmsTreeIdentifier) -> Self {
         SeedDerive {
             master_seed: seed,
             lms_tree_identifier: i,
@@ -33,17 +34,15 @@ impl<'a> SeedDerive<'a> {
         self.child_seed = seed;
     }
 
-    pub fn seed_derive<H: HashChain>(
-        &mut self,
-        increment_j: bool,
-    ) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+    pub fn seed_derive(&mut self, increment_j: bool) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
         let mut buffer = [0u8; PRNG_MAX_LEN];
 
         buffer[PRNG_I..PRNG_I + ILEN].copy_from_slice(self.lms_tree_identifier);
         buffer[PRNG_Q..PRNG_Q + 4].copy_from_slice(&self.lms_leaf_identifier.to_be_bytes());
         buffer[PRNG_J..PRNG_J + 2].copy_from_slice(&self.child_seed.to_be_bytes());
         buffer[PRNG_FF] = 0xff;
-        buffer[PRNG_SEED..PRNG_SEED + SEED_LEN].copy_from_slice(self.master_seed);
+        buffer[PRNG_SEED..PRNG_SEED + self.master_seed.len()]
+            .copy_from_slice(self.master_seed.as_slice());
 
         if increment_j {
             self.child_seed += 1;

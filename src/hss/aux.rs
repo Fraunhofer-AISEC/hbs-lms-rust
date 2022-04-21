@@ -262,21 +262,19 @@ fn compute_hmac<H: HashChain>(key: &[u8], data: &[u8]) -> ArrayVec<[u8; MAX_HASH
 
 #[cfg(test)]
 mod tests {
-    use rand::{rngs::OsRng, RngCore};
-
-    use crate::hasher::sha256::Sha256;
+    use crate::hasher::sha256::Sha256_256;
+    use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
         constants::MAX_HASH_SIZE,
         hss::{aux::hss_expand_aux_data, hss_keygen},
-        HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed,
+        HssParameter, LmotsAlgorithm, LmsAlgorithm,
     };
 
     #[test]
     #[should_panic(expected = "expand_aux_data should return None!")]
     fn expand_aux_data_with_forged_aux_data() {
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
-        type H = Sha256;
+        type H = Sha256_256;
+        let seed = gen_random_seed::<H>();
 
         let lmots = LmotsAlgorithm::LmotsW2;
         let lms = LmsAlgorithm::LmsH5;
@@ -290,7 +288,7 @@ mod tests {
 
         aux_slice[2 * MAX_HASH_SIZE - 1] ^= 1;
 
-        hss_expand_aux_data::<H>(Some(aux_slice), Some(&seed))
+        hss_expand_aux_data::<H>(Some(aux_slice), Some(seed.as_slice()))
             .expect("expand_aux_data should return None!");
     }
 }

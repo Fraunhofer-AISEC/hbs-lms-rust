@@ -9,10 +9,14 @@ use super::{definitions::LmotsPublicKey, signing::InMemoryLmotsSignature};
 
 #[derive(Default)]
 struct HashChainArray<H: HashChain> {
-    pub array_w1: Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W1 as usize]>>,
-    pub array_w2: Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W2 as usize]>>,
-    pub array_w4: Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W4 as usize]>>,
-    pub array_w8: Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W8 as usize]>>,
+    pub array_w1:
+        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(1, MAX_HASH_SIZE)]>>,
+    pub array_w2:
+        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(2, MAX_HASH_SIZE)]>>,
+    pub array_w4:
+        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(4, MAX_HASH_SIZE)]>>,
+    pub array_w8:
+        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(8, MAX_HASH_SIZE)]>>,
     phantom_data: PhantomData<H>,
 }
 
@@ -21,19 +25,19 @@ impl<H: HashChain> HashChainArray<H> {
         let mut hash_chain_array = HashChainArray::<H>::default();
         if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW8 {
             hash_chain_array.array_w8 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W8 as usize],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(8, MAX_HASH_SIZE)],
             >::default());
         } else if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW4 {
             hash_chain_array.array_w4 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W4 as usize],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(4, MAX_HASH_SIZE)],
             >::default());
         } else if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW2 {
             hash_chain_array.array_w2 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W2 as usize],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(2, MAX_HASH_SIZE)],
             >::default());
         } else {
             hash_chain_array.array_w1 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; HASH_CHAIN_COUNT_W1 as usize],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(1, MAX_HASH_SIZE)],
             >::default());
         }
         hash_chain_array
@@ -135,8 +139,12 @@ pub fn generate_public_key_candiate<'a, H: HashChain>(
 mod tests {
     use tinyvec::ArrayVec;
 
-    use crate::constants::{LmsLeafIdentifier, LmsTreeIdentifier, Seed};
-    use crate::hasher::sha256::Sha256;
+    use crate::constants::{LmsLeafIdentifier, LmsTreeIdentifier, MAX_HASH_SIZE};
+    use crate::hasher::{
+        sha256::{Sha256_128, Sha256_192, Sha256_256},
+        HashChain,
+    };
+    use crate::hss::reference_impl_private_key::Seed;
     use crate::lm_ots::{
         definitions::LmotsPublicKey,
         keygen::{generate_private_key, generate_public_key},
@@ -148,23 +156,26 @@ mod tests {
     use rand::{rngs::OsRng, RngCore};
 
     macro_rules! generate_test {
-        ($name:ident, $type:expr) => {
+        ($name:ident, $type:expr, $hash_chain:ty) => {
             #[test]
             fn $name() {
                 let lms_tree_identifier: LmsTreeIdentifier = [2u8; 16];
                 let lms_leaf_identifier: LmsLeafIdentifier = [0u8; 4];
-                let seed: Seed = [
+                let seed: Seed<$hash_chain> = Seed::from([
                     74, 222, 147, 88, 142, 55, 215, 148, 59, 52, 12, 170, 167, 93, 94, 237, 90,
                     176, 213, 104, 226, 71, 9, 74, 130, 187, 214, 75, 151, 184, 216, 175,
-                ];
+                ]);
 
-                let parameter = $type.construct_parameter::<Sha256>().unwrap();
+                let parameter = $type.construct_parameter::<$hash_chain>().unwrap();
                 let private_key =
                     generate_private_key(lms_tree_identifier, lms_leaf_identifier, seed, parameter);
-                let public_key: LmotsPublicKey<Sha256> = generate_public_key(&private_key);
+                let public_key: LmotsPublicKey<$hash_chain> = generate_public_key(&private_key);
 
                 let mut message = [1, 3, 5, 9, 0];
-                let mut signature_randomizer = ArrayVec::from([0u8; 32]);
+                let mut signature_randomizer = ArrayVec::from_array_len(
+                    [0u8; MAX_HASH_SIZE],
+                    <$hash_chain>::OUTPUT_SIZE as usize,
+                );
                 OsRng.fill_bytes(&mut signature_randomizer);
 
                 let signature = LmotsSignature::sign(&private_key, &signature_randomizer, &message);
@@ -183,19 +194,73 @@ mod tests {
 
     generate_test!(
         lmots_sha256_n32_w1_verify_test,
-        parameters::LmotsAlgorithm::LmotsW1
+        parameters::LmotsAlgorithm::LmotsW1,
+        Sha256_256
+    );
+
+    generate_test!(
+        lmots_sha256_n24_w1_verify_test,
+        parameters::LmotsAlgorithm::LmotsW1,
+        Sha256_192
+    );
+
+    generate_test!(
+        lmots_sha256_n16_w1_verify_test,
+        parameters::LmotsAlgorithm::LmotsW1,
+        Sha256_128
     );
 
     generate_test!(
         lmots_sha256_n32_w2_verify_test,
-        parameters::LmotsAlgorithm::LmotsW2
+        parameters::LmotsAlgorithm::LmotsW2,
+        Sha256_256
     );
+
+    generate_test!(
+        lmots_sha256_n24_w2_verify_test,
+        parameters::LmotsAlgorithm::LmotsW2,
+        Sha256_192
+    );
+
+    generate_test!(
+        lmots_sha256_n16_w2_verify_test,
+        parameters::LmotsAlgorithm::LmotsW2,
+        Sha256_128
+    );
+
     generate_test!(
         lmots_sha256_n32_w4_verify_test,
-        parameters::LmotsAlgorithm::LmotsW4
+        parameters::LmotsAlgorithm::LmotsW4,
+        Sha256_256
     );
+
+    generate_test!(
+        lmots_sha256_n24_w4_verify_test,
+        parameters::LmotsAlgorithm::LmotsW4,
+        Sha256_192
+    );
+
+    generate_test!(
+        lmots_sha256_n16_w4_verify_test,
+        parameters::LmotsAlgorithm::LmotsW4,
+        Sha256_128
+    );
+
     generate_test!(
         lmots_sha256_n32_w8_verify_test,
-        parameters::LmotsAlgorithm::LmotsW8
+        parameters::LmotsAlgorithm::LmotsW8,
+        Sha256_256
+    );
+
+    generate_test!(
+        lmots_sha256_n24_w8_verify_test,
+        parameters::LmotsAlgorithm::LmotsW8,
+        Sha256_192
+    );
+
+    generate_test!(
+        lmots_sha256_n16_w8_verify_test,
+        parameters::LmotsAlgorithm::LmotsW8,
+        Sha256_128
     );
 }

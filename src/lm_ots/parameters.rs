@@ -2,12 +2,10 @@ use core::marker::PhantomData;
 
 use tinyvec::ArrayVec;
 
+use crate::constants::get_hash_chain_count;
 use crate::{
-    constants::{
-        FastVerifyCached, HASH_CHAIN_COUNT_W1, HASH_CHAIN_COUNT_W2, HASH_CHAIN_COUNT_W4,
-        HASH_CHAIN_COUNT_W8, MAX_HASH_SIZE,
-    },
-    hasher::{sha256::Sha256, HashChain},
+    constants::{FastVerifyCached, MAX_HASH_SIZE},
+    hasher::HashChain,
     util::coef::coef,
 };
 
@@ -42,17 +40,37 @@ impl From<u32> for LmotsAlgorithm {
 }
 
 impl LmotsAlgorithm {
-    pub fn construct_default_parameter() -> LmotsParameter {
+    pub fn construct_default_parameter<H: HashChain>() -> LmotsParameter<H> {
         LmotsAlgorithm::LmotsW1.construct_parameter().unwrap()
     }
 
     pub fn construct_parameter<H: HashChain>(&self) -> Option<LmotsParameter<H>> {
         match *self {
             LmotsAlgorithm::LmotsReserved => None,
-            LmotsAlgorithm::LmotsW1 => Some(LmotsParameter::new(1, 1, HASH_CHAIN_COUNT_W1, 7)),
-            LmotsAlgorithm::LmotsW2 => Some(LmotsParameter::new(2, 2, HASH_CHAIN_COUNT_W2, 6)),
-            LmotsAlgorithm::LmotsW4 => Some(LmotsParameter::new(3, 4, HASH_CHAIN_COUNT_W4, 4)),
-            LmotsAlgorithm::LmotsW8 => Some(LmotsParameter::new(4, 8, HASH_CHAIN_COUNT_W8, 0)),
+            LmotsAlgorithm::LmotsW1 => Some(LmotsParameter::new(
+                1,
+                1,
+                get_hash_chain_count(1, H::OUTPUT_SIZE as usize) as u16,
+                7,
+            )),
+            LmotsAlgorithm::LmotsW2 => Some(LmotsParameter::new(
+                2,
+                2,
+                get_hash_chain_count(2, H::OUTPUT_SIZE as usize) as u16,
+                6,
+            )),
+            LmotsAlgorithm::LmotsW4 => Some(LmotsParameter::new(
+                3,
+                4,
+                get_hash_chain_count(4, H::OUTPUT_SIZE as usize) as u16,
+                4,
+            )),
+            LmotsAlgorithm::LmotsW8 => Some(LmotsParameter::new(
+                4,
+                8,
+                get_hash_chain_count(8, H::OUTPUT_SIZE as usize) as u16,
+                0,
+            )),
         }
     }
 
@@ -68,7 +86,7 @@ impl LmotsAlgorithm {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LmotsParameter<H: HashChain = Sha256> {
+pub struct LmotsParameter<H: HashChain> {
     type_id: u32,
     winternitz: u8,
     hash_chain_count: u16,

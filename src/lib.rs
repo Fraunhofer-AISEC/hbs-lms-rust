@@ -13,25 +13,26 @@
 //! # Example
 //! ```
 //! use rand::{rngs::OsRng, RngCore};
+//! use tinyvec::ArrayVec;
 //! use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm,
 //!     Signature, signature::{SignerMut, Verifier},
-//!     Sha256, Seed,
+//!     Sha256_256, HashChain, Seed,
 //! };
 //!
 //! let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32];
 //!
 //! // Generate keys for a 2-level HSS system (RootTree W1/H5, ChildTree W2/H5)
 //! let hss_parameter = [
-//!         HssParameter::<Sha256>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5),
-//!         HssParameter::<Sha256>::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+//!         HssParameter::<Sha256_256>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5),
+//!         HssParameter::<Sha256_256>::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
 //! ];
 //!
 //! let mut seed = Seed::default();
-//! OsRng.fill_bytes(&mut seed);
+//! OsRng.fill_bytes(seed.as_mut_slice());
 //! let aux_data = None;
 //!
 //! let (mut signing_key, verifying_key) =
-//!     hbs_lms::keygen::<Sha256>(&hss_parameter, &seed, aux_data).unwrap();
+//!     hbs_lms::keygen::<Sha256_256>(&hss_parameter, &seed, aux_data).unwrap();
 //!
 //! let signature = signing_key.try_sign(&message).unwrap();
 //!
@@ -81,6 +82,8 @@
 //! If the crate is compiled with the std library, the effort of the generation of fast verifiable
 //! signatures can be split to multiple threads using the `HBS_LMS_THREADS`.
 
+extern crate core;
+
 mod constants;
 mod hasher;
 mod hss;
@@ -92,9 +95,15 @@ mod util;
 pub use signature::{self};
 
 #[doc(hidden)]
-pub use crate::constants::{Seed, MAX_HASH_SIZE};
+pub use crate::constants::MAX_HASH_SIZE;
+#[doc(hidden)]
+pub use crate::hss::reference_impl_private_key::Seed;
 
-pub use crate::hasher::{sha256::Sha256, shake256::Shake256, HashChain, HashChainData};
+pub use crate::hasher::{
+    sha256::{Sha256_128, Sha256_192, Sha256_256},
+    shake256::Shake256,
+    HashChain, HashChainData,
+};
 
 pub use crate::hss::parameter::HssParameter;
 pub use crate::lm_ots::parameters::LmotsAlgorithm;
@@ -177,19 +186,18 @@ impl<'a> signature::Signature for VerifierSignature<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256};
+    use crate::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256_256};
     use crate::{
         signature::{SignerMut, Verifier},
         SigningKey, VerifierSignature, VerifyingKey,
     };
 
-    use rand::{rngs::OsRng, RngCore};
+    use crate::util::helper::test_helper::gen_random_seed;
 
     #[test]
     fn get_signing_and_verifying_key() {
-        type H = Sha256;
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        type H = Sha256_256;
+        let seed = gen_random_seed::<H>();
 
         let (signing_key, verifying_key) = keygen::<H>(
             &[HssParameter::new(
@@ -210,10 +218,10 @@ mod tests {
         let message = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
         ];
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        type H = Sha256_256;
+        let seed = gen_random_seed::<H>();
 
-        let (mut signing_key, verifying_key) = keygen::<Sha256>(
+        let (mut signing_key, verifying_key) = keygen::<H>(
             &[
                 HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
                 HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),

@@ -12,11 +12,11 @@ pub mod sha256;
 pub mod shake256;
 
 pub struct HashChainData {
-    data: [u8; ITER_MAX_LEN],
+    data: ArrayVec<[u8; ITER_MAX_LEN]>,
 }
 
 impl Deref for HashChainData {
-    type Target = [u8; ITER_MAX_LEN];
+    type Target = ArrayVec<[u8; ITER_MAX_LEN]>;
 
     fn deref(&self) -> &Self::Target {
         &self.data
@@ -53,8 +53,9 @@ pub trait HashChain:
         lms_leaf_identifier: &[u8],
     ) -> HashChainData {
         let mut hc_data = HashChainData {
-            data: [0u8; ITER_MAX_LEN],
+            data: ArrayVec::new(),
         };
+        hc_data.resize(iter_len(Self::OUTPUT_SIZE as usize), 0u8);
         hc_data[ITER_I..ITER_Q].copy_from_slice(lms_tree_identifier);
         hc_data[ITER_Q..ITER_K].copy_from_slice(lms_leaf_identifier);
         hc_data

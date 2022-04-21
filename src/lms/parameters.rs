@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::hasher::{sha256::Sha256, HashChain};
+use crate::hasher::{sha256::Sha256_256, HashChain};
 
 /// Specifies the used Tree height.
 #[derive(Clone, Copy)]
@@ -37,7 +37,7 @@ impl From<u32> for LmsAlgorithm {
 }
 
 impl LmsAlgorithm {
-    pub fn construct_default_parameter() -> LmsParameter {
+    pub fn construct_default_parameter() -> LmsParameter<Sha256_256> {
         LmsAlgorithm::LmsH5.construct_parameter().unwrap()
     }
 
@@ -69,7 +69,7 @@ impl LmsAlgorithm {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LmsParameter<H: HashChain = Sha256> {
+pub struct LmsParameter<H: HashChain> {
     type_id: u32,
     tree_height: u8,
     phantom_data: PhantomData<H>,

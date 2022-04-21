@@ -246,9 +246,8 @@ impl<'a, H: HashChain> InMemoryHssSignedPublicKey<'a, H> {
 
 #[cfg(test)]
 mod tests {
-    use crate::HssParameter;
     use crate::{
-        hasher::sha256::Sha256,
+        hasher::sha256::Sha256_256,
         hss::{
             reference_impl_private_key::ReferenceImplPrivateKey,
             signing::{
@@ -256,20 +255,24 @@ mod tests {
                 SeedAndLmsTreeIdentifier,
             },
         },
-        lms, Seed,
+        lms,
     };
+    use crate::{HashChain, HssParameter};
 
     use super::{HssPrivateKey, HssSignature, HssSignedPublicKey};
 
+    use crate::constants::LmsTreeIdentifier;
+    use crate::util::helper::test_helper::gen_random_seed;
     use rand::{rngs::OsRng, RngCore};
     use tinyvec::ArrayVec;
+
+    type Hasher = Sha256_256;
 
     #[test]
     #[should_panic(expected = "Signing should panic!")]
     fn reuse_loaded_keypair() {
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
-        let private_key = ReferenceImplPrivateKey::<Sha256>::generate(
+        let seed = gen_random_seed::<Hasher>();
+        let private_key = ReferenceImplPrivateKey::<Hasher>::generate(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
@@ -291,9 +294,11 @@ mod tests {
 
     #[test]
     fn test_signed_public_key_binary_representation() {
-        let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
-        OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
-        let mut keypair = lms::generate_key_pair::<Sha256>(
+        let seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier {
+            seed: gen_random_seed::<Hasher>(),
+            lms_tree_identifier: LmsTreeIdentifier::default(),
+        };
+        let mut keypair = lms::generate_key_pair::<Hasher>(
             &seed_and_lms_tree_identifier,
             &HssParameter::construct_default_parameters(),
             &0,
@@ -301,7 +306,8 @@ mod tests {
         );
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
-        let mut signature_randomizer = ArrayVec::from([0u8; 32]);
+        let mut signature_randomizer =
+            ArrayVec::from_array_len([0u8; 32], Hasher::OUTPUT_SIZE as usize);
         OsRng.fill_bytes(&mut signature_randomizer);
         let signature = LmsSignature::sign(
             &mut keypair.private_key,
@@ -325,9 +331,8 @@ mod tests {
 
     #[test]
     fn test_hss_signature_binary_representation() {
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
-        let private_key = ReferenceImplPrivateKey::<Sha256>::generate(
+        let seed = gen_random_seed::<Hasher>();
+        let private_key = ReferenceImplPrivateKey::<Hasher>::generate(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
@@ -346,7 +351,7 @@ mod tests {
             .expect("Should generate HSS signature");
 
         let binary_representation = signature.to_binary_representation();
-        let deserialized = InMemoryHssSignature::<Sha256>::new(binary_representation.as_slice())
+        let deserialized = InMemoryHssSignature::<Hasher>::new(binary_representation.as_slice())
             .expect("Deserialization should work.");
 
         assert!(deserialized == signature);

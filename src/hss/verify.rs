@@ -31,23 +31,23 @@ pub fn verify<'a, H: HashChain>(
 #[cfg(test)]
 mod tests {
     use crate::{
-        hasher::{sha256::Sha256, HashChain},
+        hasher::{sha256::Sha256_256, HashChain},
         hss::{
             definitions::{HssPrivateKey, HssPublicKey, InMemoryHssPublicKey},
             reference_impl_private_key::ReferenceImplPrivateKey,
             signing::{HssSignature, InMemoryHssSignature},
             verify::verify,
         },
-        HssParameter, Seed,
+        HssParameter,
     };
 
-    use rand::{rngs::OsRng, RngCore};
+    use crate::util::helper::test_helper::gen_random_seed;
 
     #[test]
     fn test_hss_verify() {
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
-        let rfc_key = ReferenceImplPrivateKey::<Sha256>::generate(
+        type H = Sha256_256;
+        let seed = gen_random_seed::<H>();
+        let rfc_key = ReferenceImplPrivateKey::<H>::generate(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),

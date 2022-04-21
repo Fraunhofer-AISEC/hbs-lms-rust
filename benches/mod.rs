@@ -6,7 +6,7 @@ mod tests {
     use rand::{rngs::OsRng, RngCore};
     use test::Bencher;
 
-    use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256};
+    use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256_256};
     use hbs_lms::{
         signature::{SignerMut, Verifier},
         Signature, SigningKey, VerifierSignature, VerifyingKey,
@@ -17,21 +17,21 @@ mod tests {
     ];
 
     fn generate_signing_key(
-        hss_parameter: &[HssParameter<Sha256>],
+        hss_parameter: &[HssParameter<Sha256_256>],
         aux_data: Option<&mut &mut [u8]>,
-    ) -> SigningKey<Sha256> {
+    ) -> SigningKey<Sha256_256> {
         let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        OsRng.fill_bytes(seed.as_mut_slice());
 
-        let (signing_key, _) = keygen::<Sha256>(hss_parameter, &seed, aux_data).unwrap();
+        let (signing_key, _) = keygen::<Sha256_256>(hss_parameter, &seed, aux_data).unwrap();
 
         signing_key
     }
 
-    fn generate_verifying_key_and_signature() -> (VerifyingKey<Sha256>, Signature) {
+    fn generate_verifying_key_and_signature() -> (VerifyingKey<Sha256_256>, Signature) {
         let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
-        let (mut signing_key, verifying_key) = keygen::<Sha256>(
+        OsRng.fill_bytes(seed.as_mut_slice());
+        let (mut signing_key, verifying_key) = keygen::<Sha256_256>(
             &[HssParameter::new(
                 LmotsAlgorithm::LmotsW2,
                 LmsAlgorithm::LmsH5,
@@ -49,21 +49,21 @@ mod tests {
     #[bench]
     fn keygen_h5w2(b: &mut Bencher) {
         let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        OsRng.fill_bytes(seed.as_mut_slice());
         let hss_parameter = [HssParameter::new(
             LmotsAlgorithm::LmotsW2,
             LmsAlgorithm::LmsH5,
         )];
 
         b.iter(|| {
-            let _ = keygen::<Sha256>(&hss_parameter, &seed, None);
+            let _ = keygen::<Sha256_256>(&hss_parameter, &seed, None);
         });
     }
 
     #[bench]
     fn keygen_with_aux_h5w2(b: &mut Bencher) {
         let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        OsRng.fill_bytes(seed.as_mut_slice());
         let hss_parameter = [HssParameter::new(
             LmotsAlgorithm::LmotsW2,
             LmsAlgorithm::LmsH5,
@@ -73,28 +73,28 @@ mod tests {
             let mut aux_data = vec![0u8; 100_000];
             let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-            let _ = keygen::<Sha256>(&hss_parameter, &seed, Some(aux_slice));
+            let _ = keygen::<Sha256_256>(&hss_parameter, &seed, Some(aux_slice));
         });
     }
 
     #[bench]
     fn keygen_h5w2_h5w2(b: &mut Bencher) {
         let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        OsRng.fill_bytes(seed.as_mut_slice());
         let hss_parameter = [
             HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
             HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
         ];
 
         b.iter(|| {
-            let _ = keygen::<Sha256>(&hss_parameter, &seed, None);
+            let _ = keygen::<Sha256_256>(&hss_parameter, &seed, None);
         });
     }
 
     #[bench]
     fn keygen_with_aux_h5w2_h5w2(b: &mut Bencher) {
         let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        OsRng.fill_bytes(seed.as_mut_slice());
         let hss_parameter = [
             HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
             HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
@@ -104,7 +104,7 @@ mod tests {
             let mut aux_data = vec![0u8; 100_000];
             let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-            let _ = keygen::<Sha256>(&hss_parameter, &seed, Some(aux_slice));
+            let _ = keygen::<Sha256_256>(&hss_parameter, &seed, Some(aux_slice));
         });
     }
 

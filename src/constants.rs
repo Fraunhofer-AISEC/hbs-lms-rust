@@ -49,11 +49,8 @@ pub const MAX_HASH_BLOCK_SIZE: usize = 64;
 
 pub const PRNG_MAX_LEN: usize = prng_len(MAX_HASH_SIZE);
 
-pub const HASH_CHAIN_COUNT_W1: u16 = 265;
-pub const HASH_CHAIN_COUNT_W2: u16 = 133;
-pub const HASH_CHAIN_COUNT_W4: u16 = 67;
-pub const HASH_CHAIN_COUNT_W8: u16 = 34;
-pub const MAX_HASH_CHAIN_COUNT: usize = get_hash_chain_count(MIN_WINTERNITZ_PARAMETER);
+pub const MAX_HASH_CHAIN_COUNT: usize =
+    get_hash_chain_count(MIN_WINTERNITZ_PARAMETER, MAX_HASH_SIZE);
 
 pub const MAX_LMOTS_SIGNATURE_LENGTH: usize =
     lmots_signature_length(MAX_HASH_SIZE, MAX_HASH_CHAIN_COUNT);
@@ -68,14 +65,27 @@ pub const MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH: usize =
     hss_signed_public_key_length(MAX_HASH_SIZE, MAX_HASH_CHAIN_COUNT, MAX_TREE_HEIGHT);
 pub const MAX_HSS_SIGNATURE_LENGTH: usize = get_hss_signature_length();
 
-pub const fn get_hash_chain_count(winternitz_parameter: usize) -> usize {
-    match winternitz_parameter {
-        1 => HASH_CHAIN_COUNT_W1 as usize,
-        2 => HASH_CHAIN_COUNT_W2 as usize,
-        4 => HASH_CHAIN_COUNT_W4 as usize,
-        8 => HASH_CHAIN_COUNT_W8 as usize,
+/// Calculated using the formula from RFC 8554 Appendix B
+/// https://datatracker.ietf.org/doc/html/rfc8554#appendix-B
+const HASH_CHAIN_COUNTS: [usize; 12] = [136, 200, 265, 68, 101, 133, 35, 51, 67, 18, 26, 34];
+
+pub const fn get_hash_chain_count(winternitz_parameter: usize, output_size: usize) -> usize {
+    let w_i = match winternitz_parameter {
+        1 => 0usize,
+        2 => 1usize,
+        4 => 2usize,
+        8 => 3usize,
         _ => panic!("Invalid Winternitz parameter. Allowed is: 1, 2, 4 or 8"),
-    }
+    };
+
+    let o_i = match output_size {
+        16 => 0usize,
+        24 => 1usize,
+        32 => 2usize,
+        _ => panic!("Invalid Output Size. Allowed is: 16, 24 or 32"),
+    };
+
+    HASH_CHAIN_COUNTS[w_i * 3 + o_i]
 }
 
 pub const fn lmots_signature_length(hash_size: usize, hash_chain_count: usize) -> usize {
@@ -118,7 +128,7 @@ pub const fn get_hss_signature_length() -> usize {
     while level > 0 {
         length += hss_signed_public_key_length(
             MAX_HASH_SIZE,
-            get_hash_chain_count(WINTERNITZ_PARAMETERS[level]),
+            get_hash_chain_count(WINTERNITZ_PARAMETERS[level], MAX_HASH_SIZE),
             TREE_HEIGHTS[level],
         );
         level -= 1;
@@ -127,7 +137,7 @@ pub const fn get_hss_signature_length() -> usize {
     length
         + lms_signature_length(
             MAX_HASH_SIZE,
-            get_hash_chain_count(WINTERNITZ_PARAMETERS[0]),
+            get_hash_chain_count(WINTERNITZ_PARAMETERS[0], MAX_HASH_SIZE),
             TREE_HEIGHTS[0],
         )
 }
@@ -152,4 +162,25 @@ pub mod winternitz_chain {
     }
 
     pub const ITER_MAX_LEN: usize = iter_len(MAX_HASH_SIZE);
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::constants::get_hash_chain_count;
+
+    #[test]
+    fn test_get_hash_chain_count() {
+        assert_eq!(get_hash_chain_count(1, 32), 265);
+        assert_eq!(get_hash_chain_count(2, 32), 133);
+        assert_eq!(get_hash_chain_count(4, 32), 67);
+        assert_eq!(get_hash_chain_count(8, 32), 34);
+        assert_eq!(get_hash_chain_count(1, 24), 200);
+        assert_eq!(get_hash_chain_count(2, 24), 101);
+        assert_eq!(get_hash_chain_count(4, 24), 51);
+        assert_eq!(get_hash_chain_count(8, 24), 26);
+        assert_eq!(get_hash_chain_count(1, 16), 136);
+        assert_eq!(get_hash_chain_count(2, 16), 68);
+        assert_eq!(get_hash_chain_count(4, 16), 35);
+        assert_eq!(get_hash_chain_count(8, 16), 18);
+    }
 }

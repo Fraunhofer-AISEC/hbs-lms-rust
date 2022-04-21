@@ -5,7 +5,6 @@ use std::{
     fmt,
     fs::{read, File},
     io::{Read, Write},
-    mem::size_of,
     process::exit,
 };
 
@@ -40,13 +39,15 @@ impl DemoError {
     }
 }
 
+type Hasher = Sha256_256;
+
 struct GenKeyParameter {
-    parameter: Vec<HssParameter<Sha256>>,
+    parameter: Vec<HssParameter<Hasher>>,
     aux_data: usize,
 }
 
 impl GenKeyParameter {
-    pub fn new(parameter: Vec<HssParameter<Sha256>>, aux_data: Option<usize>) -> Self {
+    pub fn new(parameter: Vec<HssParameter<Hasher>>, aux_data: Option<usize>) -> Self {
         let aux_data = aux_data.unwrap_or(AUX_DATA_DEFAULT_SIZE);
         Self {
             parameter,
@@ -140,14 +141,14 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
 
     let result = if let Some(aux_data) = aux_data.as_mut() {
         let aux_slice = &mut &mut aux_data[..];
-        hbs_lms::sign::<Sha256>(
+        hbs_lms::sign::<Hasher>(
             &message_data,
             &private_key_data,
             &mut private_key_update_function,
             Some(aux_slice),
         )
     } else {
-        hbs_lms::sign::<Sha256>(
+        hbs_lms::sign::<Hasher>(
             &message_data,
             &private_key_data,
             &mut private_key_update_function,
@@ -192,14 +193,14 @@ fn sign_mut(args: &ArgMatches) -> Result<(), std::io::Error> {
 
     let signature_result = if let Some(aux_data) = aux_data.as_mut() {
         let aux_slice = &mut &mut aux_data[..];
-        hbs_lms::sign_mut::<Sha256>(
+        hbs_lms::sign_mut::<Hasher>(
             &mut message_data,
             &private_key_data,
             &mut private_key_update_function,
             Some(aux_slice),
         )
     } else {
-        hbs_lms::sign_mut::<Sha256>(
+        hbs_lms::sign_mut::<Hasher>(
             &mut message_data,
             &private_key_data,
             &mut private_key_update_function,
@@ -236,7 +237,7 @@ fn verify(args: &ArgMatches) -> bool {
     let message_data = read_file(&message_name);
     let public_key_data = read_file(&public_key_name);
 
-    hbs_lms::verify::<Sha256>(&message_data, &signature_data, &public_key_data).is_ok()
+    hbs_lms::verify::<Hasher>(&message_data, &signature_data, &public_key_data).is_ok()
 }
 
 fn get_public_key_name(keyname: &str) -> String {
@@ -288,13 +289,13 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let genkey_parameter = parse_genkey_parameter(&get_parameter(PARAMETER_PARAMETER, args));
     let parameter = genkey_parameter.parameter;
 
-    let seed: Seed = if let Some(seed) = args.value_of(SEED_PARAMETER) {
+    let seed: Seed<Hasher> = if let Some(seed) = args.value_of(SEED_PARAMETER) {
         let decoded = hex::decode(seed)?;
-        if decoded.len() < size_of::<Seed>() {
+        if decoded.len() < Hasher::OUTPUT_SIZE as usize {
             return DemoError::raise("Seed is too short");
         }
         let mut seed = Seed::default();
-        seed.copy_from_slice(&decoded[..]);
+        seed.as_mut_slice().copy_from_slice(&decoded[..]);
         seed
     } else {
         return DemoError::raise("Seed was not given");

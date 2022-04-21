@@ -56,14 +56,14 @@ impl<H: HashChain> LmotsPublicKey<H> {
 
 #[cfg(test)]
 mod tests {
-    use crate::hasher::sha256::Sha256;
+    use crate::hasher::sha256::{Sha256_128, Sha256_192, Sha256_256};
     use crate::lm_ots::parameters;
 
     macro_rules! generate_parameter_test {
-        ($name:ident, $parameter:expr, $n:literal, $w:literal, $p:literal, $ls:literal, $type:literal) => {
+        ($name:ident, $parameter:expr, $hash_chain:ty, $n:literal, $w:literal, $p:literal, $ls:literal, $type:literal) => {
             #[test]
             fn $name() {
-                let parameter = $parameter.construct_parameter::<Sha256>().unwrap();
+                let parameter = $parameter.construct_parameter::<$hash_chain>().unwrap();
                 assert_eq!(parameter.get_hash_function_output_size(), $n);
                 assert_eq!(parameter.get_winternitz(), $w);
                 assert_eq!(parameter.get_hash_chain_count(), $p);
@@ -76,6 +76,7 @@ mod tests {
     generate_parameter_test!(
         lmots_sha256_n32_w1_parameter_test,
         parameters::LmotsAlgorithm::LmotsW1,
+        Sha256_256,
         32,
         1,
         265,
@@ -83,8 +84,29 @@ mod tests {
         1
     );
     generate_parameter_test!(
+        lmots_sha256_n24_w1_parameter_test,
+        parameters::LmotsAlgorithm::LmotsW1,
+        Sha256_192,
+        24,
+        1,
+        200,
+        7,
+        1
+    );
+    generate_parameter_test!(
+        lmots_sha256_n16_w1_parameter_test,
+        parameters::LmotsAlgorithm::LmotsW1,
+        Sha256_128,
+        16,
+        1,
+        136,
+        7,
+        1
+    );
+    generate_parameter_test!(
         lmots_sha256_n32_w2_parameter_test,
         parameters::LmotsAlgorithm::LmotsW2,
+        Sha256_256,
         32,
         2,
         133,
@@ -92,8 +114,29 @@ mod tests {
         2
     );
     generate_parameter_test!(
+        lmots_sha256_n24_w2_parameter_test,
+        parameters::LmotsAlgorithm::LmotsW2,
+        Sha256_192,
+        24,
+        2,
+        101,
+        6,
+        2
+    );
+    generate_parameter_test!(
+        lmots_sha256_n16_w2_parameter_test,
+        parameters::LmotsAlgorithm::LmotsW2,
+        Sha256_128,
+        16,
+        2,
+        68,
+        6,
+        2
+    );
+    generate_parameter_test!(
         lmots_sha256_n32_w4_parameter_test,
         parameters::LmotsAlgorithm::LmotsW4,
+        Sha256_256,
         32,
         4,
         67,
@@ -101,11 +144,52 @@ mod tests {
         3
     );
     generate_parameter_test!(
+        lmots_sha256_n24_w4_parameter_test,
+        parameters::LmotsAlgorithm::LmotsW4,
+        Sha256_192,
+        24,
+        4,
+        51,
+        4,
+        3
+    );
+    generate_parameter_test!(
+        lmots_sha256_n16_w4_parameter_test,
+        parameters::LmotsAlgorithm::LmotsW4,
+        Sha256_128,
+        16,
+        4,
+        35,
+        4,
+        3
+    );
+    generate_parameter_test!(
         lmots_sha256_n32_w8_parameter_test,
         parameters::LmotsAlgorithm::LmotsW8,
+        Sha256_256,
         32,
         8,
         34,
+        0,
+        4
+    );
+    generate_parameter_test!(
+        lmots_sha256_n24_w8_parameter_test,
+        parameters::LmotsAlgorithm::LmotsW8,
+        Sha256_192,
+        24,
+        8,
+        26,
+        0,
+        4
+    );
+    generate_parameter_test!(
+        lmots_sha256_n16_w8_parameter_test,
+        parameters::LmotsAlgorithm::LmotsW8,
+        Sha256_128,
+        16,
+        8,
+        18,
         0,
         4
     );

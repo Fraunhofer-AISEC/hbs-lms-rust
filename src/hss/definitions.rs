@@ -1,4 +1,5 @@
 use core::convert::TryInto;
+
 use tinyvec::ArrayVec;
 
 use crate::{
@@ -17,11 +18,11 @@ use crate::{
 };
 use crate::{hss::aux::hss_get_aux_data_len, lms::signing::LmsSignature};
 
-use super::reference_impl_private_key::ReferenceImplPrivateKey;
 use super::{
     aux::{hss_is_aux_data_used, MutableExpandedAuxData},
     reference_impl_private_key::{
         generate_child_seed_and_lms_tree_identifier, generate_signature_randomizer,
+        ReferenceImplPrivateKey,
     },
 };
 
@@ -95,7 +96,7 @@ impl<H: HashChain> HssPrivateKey<H> {
         let aux_data = aux_data?;
 
         if is_aux_data_used {
-            return hss_expand_aux_data::<H>(Some(aux_data), Some(&private_key.seed));
+            return hss_expand_aux_data::<H>(Some(aux_data), Some(private_key.seed.as_slice()));
         }
 
         // Shrink input slice
@@ -185,7 +186,7 @@ impl<H: HashChain> HssPublicKey<H> {
 
         if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
             if !is_aux_data_used {
-                hss_finalize_aux_data::<H>(expanded_aux_data, &private_key.seed);
+                hss_finalize_aux_data::<H>(expanded_aux_data, private_key.seed.as_slice());
             }
         }
 
@@ -224,22 +225,24 @@ impl<'a, H: HashChain> InMemoryHssPublicKey<'a, H> {
 
 #[cfg(test)]
 mod tests {
-    use super::{HssPrivateKey, HssPublicKey};
+    use rand::{rngs::OsRng, RngCore};
+
+    use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
-        hasher::sha256::Sha256,
+        hasher::sha256::Sha256_256,
         hss::{
             definitions::InMemoryHssPublicKey,
             reference_impl_private_key::{ReferenceImplPrivateKey, SeedAndLmsTreeIdentifier},
             HashChain, HssParameter,
         },
-        lms, LmotsAlgorithm, LmsAlgorithm, Seed,
+        lms, LmotsAlgorithm, LmsAlgorithm,
     };
 
-    use rand::{rngs::OsRng, RngCore};
+    use super::{HssPrivateKey, HssPublicKey};
 
     #[test]
     fn child_tree_lms_leaf_update() {
-        type H = Sha256;
+        type H = Sha256_256;
         let (hss_key, hss_key_second) = tree_lms_leaf_update::<H>(1);
 
         // 1 increment of the key updates the leaf in the top child tree.
@@ -257,7 +260,7 @@ mod tests {
 
     #[test]
     fn intermediate_tree_lms_leaf_update() {
-        type H = Sha256;
+        type H = Sha256_256;
         let (hss_key, hss_key_second) = tree_lms_leaf_update::<H>(4);
 
         // 4 increments of the key updates leafs in the top child tree and the intermediate
@@ -279,7 +282,7 @@ mod tests {
 
     #[test]
     fn root_tree_lms_leaf_update() {
-        type H = Sha256;
+        type H = Sha256_256;
         let (hss_key, hss_key_second) = tree_lms_leaf_update::<H>(16);
 
         // 16 increments of the key updates leafs in the top child tree, the intermediate
@@ -310,8 +313,7 @@ mod tests {
             HssParameter::<H>::new(lmots, lms),
         ];
 
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        let seed = gen_random_seed::<H>();
         let mut rfc_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
 
         let hss_key_before = HssPrivateKey::from(&rfc_key, &mut None).unwrap();
@@ -327,7 +329,7 @@ mod tests {
 
     #[test]
     fn lifetime() {
-        type H = Sha256;
+        type H = Sha256_256;
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
@@ -337,8 +339,7 @@ mod tests {
             HssParameter::<H>::new(lmots, lms),
         ];
 
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        let seed = gen_random_seed::<H>();
         let mut private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
         let hss_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
 
@@ -364,7 +365,7 @@ mod tests {
 
     #[test]
     fn deterministic_signed_public_key_signatures() {
-        type H = Sha256;
+        type H = Sha256_256;
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
@@ -373,8 +374,7 @@ mod tests {
             HssParameter::<H>::new(lmots, lms),
         ];
 
-        let mut seed = Seed::default();
-        OsRng.fill_bytes(&mut seed);
+        let seed = gen_random_seed::<H>();
         let private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
 
         let hss_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
@@ -385,14 +385,14 @@ mod tests {
     #[test]
     fn test_public_key_binary_representation() {
         let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
-        OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
+        OsRng.fill_bytes(seed_and_lms_tree_identifier.seed.as_mut_slice());
         let public_key = lms::generate_key_pair(
             &seed_and_lms_tree_identifier,
             &HssParameter::construct_default_parameters(),
             &0,
             &mut None,
         );
-        let public_key: HssPublicKey<Sha256> = HssPublicKey {
+        let public_key: HssPublicKey<Sha256_256> = HssPublicKey {
             level: 18,
             public_key: public_key.public_key,
         };

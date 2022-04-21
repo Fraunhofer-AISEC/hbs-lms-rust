@@ -1,10 +1,10 @@
-use hbs_lms::Sha256;
+use hbs_lms::Sha256_256;
 
 // This file is testing our implementation against the first testcase of the RFC
 
 #[test]
 fn test() {
-    assert!(hbs_lms::verify::<Sha256>(MESSAGE, SIGNATURE, PUBLIC_KEY).is_ok());
+    assert!(hbs_lms::verify::<Sha256_256>(MESSAGE, SIGNATURE, PUBLIC_KEY).is_ok());
 }
 
 static PUBLIC_KEY: &[u8] = &[

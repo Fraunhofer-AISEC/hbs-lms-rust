@@ -90,7 +90,7 @@ mod tests {
             signing::{InMemoryLmsSignature, LmsSignature},
             SeedAndLmsTreeIdentifier,
         },
-        Sha256,
+        Sha256_256,
     };
 
     use rand::{rngs::OsRng, RngCore};
@@ -98,7 +98,7 @@ mod tests {
 
     #[test]
     fn test_verification() {
-        type Hasher = Sha256;
+        type Hasher = Sha256_256;
 
         let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
         OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);

@@ -13,12 +13,13 @@ use crate::{
 
 use core::{convert::TryInto, marker::PhantomData, mem::size_of};
 use tinyvec::ArrayVec;
+use zeroize::ZeroizeOnDrop;
 
 /**
 To be compatible with the reference implementation
  */
 
-#[derive(Default)]
+#[derive(Default, ZeroizeOnDrop)]
 pub struct SeedAndLmsTreeIdentifier {
     pub seed: Seed,
     pub lms_tree_identifier: LmsTreeIdentifier,
@@ -37,11 +38,12 @@ impl SeedAndLmsTreeIdentifier {
     }
 }
 
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, ZeroizeOnDrop)]
 pub struct ReferenceImplPrivateKey<H: HashChain> {
     pub compressed_used_leafs_indexes: CompressedUsedLeafsIndexes,
     pub compressed_parameter: CompressedParameterSet,
     pub seed: Seed,
+    #[zeroize(skip)]
     phantom: PhantomData<H>,
 }
 
@@ -171,7 +173,7 @@ pub fn generate_signature_randomizer<H: HashChain>(
 
 const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set
 
-#[derive(PartialEq)]
+#[derive(PartialEq, ZeroizeOnDrop)]
 pub struct CompressedParameterSet([u8; MAX_ALLOWED_HSS_LEVELS]);
 
 impl Default for CompressedParameterSet {
@@ -237,7 +239,7 @@ impl CompressedParameterSet {
     }
 }
 
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, ZeroizeOnDrop)]
 pub struct CompressedUsedLeafsIndexes {
     count: u64,
 }

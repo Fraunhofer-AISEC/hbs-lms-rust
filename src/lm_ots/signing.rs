@@ -378,6 +378,12 @@ mod tests {
                 };
 
                 let binary_rep = signature.to_binary_representation();
+
+                // check signature len
+                let output_size = lmots_parameter.get_hash_function_output_size() as usize;
+                let hash_chain_count = lmots_parameter.get_hash_chain_count() as usize;
+                assert_eq!(binary_rep.len(), 4 + output_size * (hash_chain_count + 1));
+
                 let deserialized_signature = InMemoryLmotsSignature::new(binary_rep.as_slice())
                     .expect("Deserialization must succeed.");
 

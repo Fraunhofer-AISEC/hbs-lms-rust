@@ -294,7 +294,7 @@ mod tests {
     use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
         constants::{LMS_LEAF_IDENTIFIERS_SIZE, MAX_HASH_SIZE},
-        hasher::{sha256::*, shake256::Shake256, HashChain},
+        hasher::{sha256::{Sha256_128, Sha256_192, Sha256_256}, shake256::Shake256, HashChain},
         LmotsAlgorithm, LmsAlgorithm,
     };
 

@@ -4,10 +4,10 @@ use tinyvec::ArrayVec;
 include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 
 pub const ILEN: usize = 16;
-pub const SEED_LEN: usize = 32;
+pub const MAX_SEED_LEN: usize = 32;
 
 pub type LmsTreeIdentifier = [u8; ILEN];
-pub type Seed = [u8; SEED_LEN];
+pub type Seed = ArrayVec<[u8; MAX_SEED_LEN]>;
 pub type LmsLeafIdentifier = [u8; 4];
 
 type FvcMax = u16;
@@ -41,8 +41,8 @@ pub const fn prng_len(seed_len: usize) -> usize {
 
 pub const LMS_LEAF_IDENTIFIERS_SIZE: usize = 8;
 pub const REF_IMPL_MAX_ALLOWED_HSS_LEVELS: usize = 8;
-pub const REFERENCE_IMPL_PRIVATE_KEY_SIZE: usize =
-    LMS_LEAF_IDENTIFIERS_SIZE + REF_IMPL_MAX_ALLOWED_HSS_LEVELS + size_of::<Seed>();
+pub const REF_IMPL_MAX_PRIVATE_KEY_SIZE: usize =
+    LMS_LEAF_IDENTIFIERS_SIZE + REF_IMPL_MAX_ALLOWED_HSS_LEVELS + MAX_SEED_LEN;
 
 pub const MAX_HASH_SIZE: usize = 32;
 pub const MAX_HASH_BLOCK_SIZE: usize = 64;

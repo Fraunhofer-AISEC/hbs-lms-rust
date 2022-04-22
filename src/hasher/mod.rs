@@ -53,9 +53,11 @@ pub trait HashChain:
         lms_leaf_identifier: &[u8],
     ) -> HashChainData {
         let mut hc_data = HashChainData {
-            data: ArrayVec::new(),
+            data: ArrayVec::from_array_len(
+                [0u8; ITER_MAX_LEN],
+                iter_len(Self::OUTPUT_SIZE as usize),
+            ),
         };
-        hc_data.resize(iter_len(Self::OUTPUT_SIZE as usize), 0u8);
         hc_data[ITER_I..ITER_Q].copy_from_slice(lms_tree_identifier);
         hc_data[ITER_Q..ITER_K].copy_from_slice(lms_leaf_identifier);
         hc_data

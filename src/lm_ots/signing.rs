@@ -341,7 +341,7 @@ mod tests {
         constants::{MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
         hasher::{
             sha256::{Sha256_128, Sha256_192, Sha256_256},
-            shake256::Shake256,
+            shake256::{Shake256_128, Shake256_192, Shake256_256},
         },
         lm_ots::{
             parameters::LmotsAlgorithm, signing::InMemoryLmotsSignature, signing::LmotsSignature,
@@ -398,5 +398,9 @@ mod tests {
 
     generate_test!(lmots_sha256_n16_binary_representation_test, Sha256_128);
 
-    generate_test!(lmots_shake256_n32_binary_representation_test, Shake256);
+    generate_test!(lmots_shake256_n32_binary_representation_test, Shake256_128);
+
+    generate_test!(lmots_shake256_n24_binary_representation_test, Shake256_192);
+
+    generate_test!(lmots_shake256_n16_binary_representation_test, Shake256_256);
 }

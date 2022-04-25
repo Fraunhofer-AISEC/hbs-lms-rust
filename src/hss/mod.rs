@@ -296,7 +296,7 @@ mod tests {
         constants::{LMS_LEAF_IDENTIFIERS_SIZE, MAX_HASH_SIZE},
         hasher::{
             sha256::{Sha256_128, Sha256_192, Sha256_256},
-            shake256::Shake256,
+            shake256::{Shake256_128, Shake256_192, Shake256_256},
             HashChain,
         },
         LmotsAlgorithm, LmsAlgorithm,
@@ -470,23 +470,33 @@ mod tests {
     }
 
     #[test]
-    fn test_signing_sha128() {
+    fn test_signing_sha256_128() {
         test_signing_core::<Sha256_128>();
     }
 
     #[test]
-    fn test_signing_sha192() {
+    fn test_signing_sha256_192() {
         test_signing_core::<Sha256_192>();
     }
 
     #[test]
-    fn test_signing_sha256() {
+    fn test_signing_sha256_256() {
         test_signing_core::<Sha256_256>();
     }
 
     #[test]
-    fn test_signing_shake256() {
-        test_signing_core::<Shake256>();
+    fn test_signing_shake256_128() {
+        test_signing_core::<Shake256_128>();
+    }
+
+    #[test]
+    fn test_signing_shake256_192() {
+        test_signing_core::<Shake256_192>();
+    }
+
+    #[test]
+    fn test_signing_shake256_256() {
+        test_signing_core::<Shake256_256>();
     }
 
     fn test_signing_core<H: HashChain>() {

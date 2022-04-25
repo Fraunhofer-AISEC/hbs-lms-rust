@@ -101,7 +101,7 @@ pub use crate::hss::reference_impl_private_key::Seed;
 
 pub use crate::hasher::{
     sha256::{Sha256_128, Sha256_192, Sha256_256},
-    shake256::Shake256,
+    shake256::{Shake256_128, Shake256_192, Shake256_256},
     HashChain, HashChainData,
 };
 

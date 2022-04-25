@@ -1,12 +1,12 @@
 use crate::constants::*;
 use crate::hasher::HashChain;
-use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::parameters::{LmotsAlgorithm, LmotsParameter};
 use crate::lms::helper::get_tree_element;
 use crate::lms::parameters::LmsAlgorithm;
 use crate::lms::MutableExpandedAuxData;
 use crate::util::helper::read_and_advance;
+use crate::{lm_ots, Seed};
 
 use core::convert::TryInto;
 use tinyvec::ArrayVec;
@@ -17,14 +17,14 @@ use super::parameters::LmsParameter;
 pub struct LmsPrivateKey<H: HashChain> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub used_leafs_index: u32,
-    pub seed: Seed,
+    pub seed: Seed<H>,
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
 }
 
 impl<H: HashChain> LmsPrivateKey<H> {
     pub fn new(
-        seed: Seed,
+        seed: Seed<H>,
         lms_tree_identifier: LmsTreeIdentifier,
         used_leafs_index: u32,
         lmots_parameter: LmotsParameter<H>,
@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn test_public_key_binary_representation() {
         let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
-        OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
+        OsRng.fill_bytes(seed_and_lms_tree_identifier.seed.as_mut_slice());
         let private_key = LmsPrivateKey::new(
             seed_and_lms_tree_identifier.seed,
             seed_and_lms_tree_identifier.lms_tree_identifier,

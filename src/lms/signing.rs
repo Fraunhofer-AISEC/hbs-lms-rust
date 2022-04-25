@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn test_binary_representation_of_signature() {
         let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::default();
-        OsRng.fill_bytes(&mut seed_and_lms_tree_identifier.seed);
+        OsRng.fill_bytes(seed_and_lms_tree_identifier.seed.as_mut_slice());
         let mut private_key = LmsPrivateKey::new(
             seed_and_lms_tree_identifier.seed,
             seed_and_lms_tree_identifier.lms_tree_identifier,

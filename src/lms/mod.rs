@@ -17,7 +17,7 @@ pub struct LmsKeyPair<H: HashChain> {
 }
 
 pub fn generate_key_pair<H: HashChain>(
-    seed: &SeedAndLmsTreeIdentifier,
+    seed: &SeedAndLmsTreeIdentifier<H>,
     parameter: &HssParameter<H>,
     used_leafs_index: &u32,
     aux_data: &mut Option<MutableExpandedAuxData>,

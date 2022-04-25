@@ -3,12 +3,13 @@ use super::parameters::LmotsParameter;
 use crate::constants::*;
 use crate::constants::{D_PBLC, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE};
 use crate::hasher::HashChain;
+use crate::Seed;
 use tinyvec::ArrayVec;
 
 pub fn generate_private_key<H: HashChain>(
     lms_tree_identifier: LmsTreeIdentifier,
     lms_leaf_identifier: LmsLeafIdentifier,
-    seed: Seed,
+    seed: Seed<H>,
     lmots_parameter: LmotsParameter<H>,
 ) -> LmotsPrivateKey<H> {
     let mut key = ArrayVec::new();
@@ -20,7 +21,7 @@ pub fn generate_private_key<H: HashChain>(
         hasher.update(&lms_leaf_identifier);
         hasher.update(&(index as u16).to_be_bytes());
         hasher.update(&[0xff]);
-        hasher.update(&seed);
+        hasher.update(seed.as_slice());
 
         key.push(hasher.finalize_reset());
     }

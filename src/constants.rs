@@ -7,7 +7,6 @@ pub const ILEN: usize = 16;
 pub const MAX_SEED_LEN: usize = 32;
 
 pub type LmsTreeIdentifier = [u8; ILEN];
-pub type Seed = ArrayVec<[u8; MAX_SEED_LEN]>;
 pub type LmsLeafIdentifier = [u8; 4];
 
 type FvcMax = u16;

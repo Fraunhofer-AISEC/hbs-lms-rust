@@ -9,7 +9,7 @@ use crate::lms::MutableExpandedAuxData;
 use crate::util::helper::read_and_advance;
 
 use core::convert::TryInto;
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use super::parameters::LmsParameter;
 
@@ -60,7 +60,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct LmsPublicKey<H: HashChain> {
-    pub key: ArrayVec<[u8; MAX_HASH_SIZE]>,
+    pub key: TinyVec<[u8; MAX_HASH_SIZE]>,
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lmots_parameter: LmotsParameter<H>,
     pub lms_parameter: LmsParameter<H>,
@@ -81,8 +81,8 @@ impl<H: HashChain> LmsPublicKey<H> {
         }
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_LMS_PUBLIC_KEY_LENGTH]> {
-        let mut result = ArrayVec::new();
+    pub fn to_binary_representation(&self) -> TinyVec<[u8; MAX_LMS_PUBLIC_KEY_LENGTH]> {
+        let mut result = TinyVec::new();
 
         result.extend_from_slice(&self.lms_parameter.get_type_id().to_be_bytes());
         result.extend_from_slice(&self.lmots_parameter.get_type_id().to_be_bytes());

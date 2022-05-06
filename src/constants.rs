@@ -1,5 +1,5 @@
 use core::mem::size_of;
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 
@@ -13,7 +13,7 @@ pub type LmsLeafIdentifier = [u8; 4];
 type FvcMax = u16;
 type FvcSum = u16;
 type FvcCoef = (usize, u16, u64); // (index, shift, mask)
-pub type FastVerifyCached = (FvcMax, FvcSum, ArrayVec<[FvcCoef; MAX_HASH_CHAIN_COUNT]>);
+pub type FastVerifyCached = (FvcMax, FvcSum, TinyVec<[FvcCoef; MAX_HASH_CHAIN_COUNT]>);
 
 pub const D_PBLC: [u8; 2] = [0x80, 0x80];
 pub const D_MESG: [u8; 2] = [0x81, 0x81];

@@ -16,7 +16,7 @@ categories = ["cryptography", "no-std"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tinyvec = { version = "1.5.1", features = ["rustc_1_55"] }
+tinyvec = { version = "1.5.1", features = ["rustc_1_55", "alloc"] }
 subtle = { version = "2.4.1", default-features = false }
 signature = { version = "1.4.0", default-features = false }
 digest = { version = "0.10.2", default-features = false }

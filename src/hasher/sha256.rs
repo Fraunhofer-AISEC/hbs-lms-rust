@@ -1,5 +1,5 @@
 use core::convert::TryFrom;
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use sha2::{
     digest::{typenum::U32, FixedOutput, FixedOutputReset, Output, OutputSizeUser, Reset, Update},
@@ -22,12 +22,12 @@ impl HashChain for Sha256 {
     const OUTPUT_SIZE: u16 = 32;
     const BLOCK_SIZE: u16 = 64;
 
-    fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
-        ArrayVec::try_from(self.hasher.finalize_fixed().as_slice()).unwrap()
+    fn finalize(self) -> TinyVec<[u8; MAX_HASH_SIZE]> {
+        TinyVec::try_from(self.hasher.finalize_fixed().as_slice()).unwrap()
     }
 
-    fn finalize_reset(&mut self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
-        ArrayVec::try_from(self.hasher.finalize_fixed_reset().as_slice()).unwrap()
+    fn finalize_reset(&mut self) -> TinyVec<[u8; MAX_HASH_SIZE]> {
+        TinyVec::try_from(self.hasher.finalize_fixed_reset().as_slice()).unwrap()
     }
 }
 

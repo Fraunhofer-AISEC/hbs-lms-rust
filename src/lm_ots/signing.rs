@@ -6,7 +6,7 @@ use crate::{
 };
 
 use core::convert::TryInto;
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 #[cfg(feature = "fast_verify")]
 use {
@@ -23,8 +23,8 @@ use super::parameters::LmotsParameter;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct LmotsSignature<H: HashChain> {
-    pub signature_randomizer: ArrayVec<[u8; MAX_HASH_SIZE]>,
-    pub signature_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]>,
+    pub signature_randomizer: TinyVec<[u8; MAX_HASH_SIZE]>,
+    pub signature_data: TinyVec<[TinyVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]>,
     pub lmots_parameter: LmotsParameter<H>,
     pub hash_iterations: u16,
 }
@@ -62,7 +62,7 @@ impl<'a, H: HashChain> PartialEq<LmotsSignature<H>> for InMemoryLmotsSignature<'
 impl<H: HashChain> LmotsSignature<H> {
     fn calculate_message_hash(
         private_key: &LmotsPrivateKey<H>,
-        signature_randomizer: &ArrayVec<[u8; MAX_HASH_SIZE]>,
+        signature_randomizer: &TinyVec<[u8; MAX_HASH_SIZE]>,
         message: &[u8],
     ) -> H {
         let lmots_parameter = private_key.lmots_parameter;
@@ -79,7 +79,7 @@ impl<H: HashChain> LmotsSignature<H> {
     #[cfg(feature = "fast_verify")]
     fn calculate_message_hash_fast_verify(
         private_key: &LmotsPrivateKey<H>,
-        signature_randomizer: &mut ArrayVec<[u8; MAX_HASH_SIZE]>,
+        signature_randomizer: &mut TinyVec<[u8; MAX_HASH_SIZE]>,
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
     ) -> H {
@@ -112,13 +112,13 @@ impl<H: HashChain> LmotsSignature<H> {
 
     fn calculate_signature(
         private_key: &LmotsPrivateKey<H>,
-        message_hash_with_checksum: &ArrayVec<[u8; MAX_HASH_SIZE + 2]>,
-    ) -> ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]> {
+        message_hash_with_checksum: &TinyVec<[u8; MAX_HASH_SIZE + 2]>,
+    ) -> TinyVec<[TinyVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]> {
         let lmots_parameter = private_key.lmots_parameter;
 
         let mut hasher = lmots_parameter.get_hasher();
 
-        let mut signature_data = ArrayVec::new();
+        let mut signature_data = TinyVec::new();
 
         for i in 0..lmots_parameter.get_hash_chain_count() {
             let a = coef(
@@ -126,7 +126,7 @@ impl<H: HashChain> LmotsSignature<H> {
                 i,
                 lmots_parameter.get_winternitz(),
             ) as usize;
-            let initial = private_key.key[i as usize];
+            let initial = private_key.key[i as usize].clone();
             let mut hash_chain_data = H::prepare_hash_chain_data(
                 &private_key.lms_tree_identifier,
                 &private_key.lms_leaf_identifier,
@@ -141,7 +141,7 @@ impl<H: HashChain> LmotsSignature<H> {
 
     pub fn sign(
         private_key: &LmotsPrivateKey<H>,
-        signature_randomizer: &ArrayVec<[u8; MAX_HASH_SIZE]>,
+        signature_randomizer: &TinyVec<[u8; MAX_HASH_SIZE]>,
         message: &[u8],
     ) -> Self {
         let mut hasher =
@@ -152,7 +152,7 @@ impl<H: HashChain> LmotsSignature<H> {
     #[cfg(feature = "fast_verify")]
     pub fn sign_fast_verify(
         private_key: &LmotsPrivateKey<H>,
-        signature_randomizer: &mut ArrayVec<[u8; MAX_HASH_SIZE]>,
+        signature_randomizer: &mut TinyVec<[u8; MAX_HASH_SIZE]>,
         message: Option<&[u8]>,
         message_mut: Option<&mut [u8]>,
     ) -> Self {
@@ -168,11 +168,11 @@ impl<H: HashChain> LmotsSignature<H> {
     fn sign_core(
         private_key: &LmotsPrivateKey<H>,
         hasher: &mut H,
-        signature_randomizer: &ArrayVec<[u8; MAX_HASH_SIZE]>,
+        signature_randomizer: &TinyVec<[u8; MAX_HASH_SIZE]>,
     ) -> Self {
         let lmots_parameter = private_key.lmots_parameter;
 
-        let message_hash: ArrayVec<[u8; MAX_HASH_SIZE]> = hasher.finalize_reset();
+        let message_hash: TinyVec<[u8; MAX_HASH_SIZE]> = hasher.finalize_reset();
         let message_hash_with_checksum =
             lmots_parameter.append_checksum_to(message_hash.as_slice());
 
@@ -188,15 +188,15 @@ impl<H: HashChain> LmotsSignature<H> {
         });
 
         LmotsSignature {
-            signature_randomizer: *signature_randomizer,
+            signature_randomizer: signature_randomizer.clone(),
             signature_data,
             lmots_parameter,
             hash_iterations,
         }
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_LMOTS_SIGNATURE_LENGTH]> {
-        let mut result = ArrayVec::new();
+    pub fn to_binary_representation(&self) -> TinyVec<[u8; MAX_LMOTS_SIGNATURE_LENGTH]> {
+        let mut result = TinyVec::new();
 
         result.extend_from_slice(&(self.lmots_parameter.get_type_id()).to_be_bytes());
         result.extend_from_slice(self.signature_randomizer.as_slice());
@@ -251,10 +251,10 @@ fn optimize_message_hash<H: HashChain>(
     message: Option<&[u8]>,
 ) {
     let message = message
-        .map(|message: &[u8]| ArrayVec::try_from(message).unwrap())
+        .map(|message: &[u8]| TinyVec::try_from(message).unwrap())
         .unwrap_or_default();
 
-    assert_eq!(message, ArrayVec::new());
+    assert_eq!(message, TinyVec::new());
     let fast_verify_cached = lmots_parameter.fast_verify_eval_init();
 
     let rx = {
@@ -292,12 +292,12 @@ fn thread_optimize_message_hash<H: HashChain>(
     hasher: &H,
     lmots_parameter: &LmotsParameter<H>,
     fast_verify_cached: &FastVerifyCached,
-    message: &ArrayVec<[u8; MAX_LMS_PUBLIC_KEY_LENGTH]>,
-) -> (u16, ArrayVec<[u8; MAX_HASH_SIZE]>) {
+    message: &TinyVec<[u8; MAX_LMS_PUBLIC_KEY_LENGTH]>,
+) -> (u16, TinyVec<[u8; MAX_HASH_SIZE]>) {
     let mut max_hash_iterations = 0;
 
-    let mut trial_randomizer: ArrayVec<[u8; MAX_HASH_SIZE]> = ArrayVec::new();
-    let mut randomizer: ArrayVec<[u8; MAX_HASH_SIZE]> = ArrayVec::new();
+    let mut trial_randomizer: TinyVec<[u8; MAX_HASH_SIZE]> = TinyVec::new();
+    let mut randomizer: TinyVec<[u8; MAX_HASH_SIZE]> = TinyVec::new();
 
     for _ in 0..lmots_parameter.get_hash_function_output_size() {
         trial_randomizer.push(0u8);
@@ -312,7 +312,7 @@ fn thread_optimize_message_hash<H: HashChain>(
             .chain(&trial_randomizer)
             .finalize();
 
-        let message_hash: ArrayVec<[u8; MAX_HASH_SIZE]> = hasher
+        let message_hash: TinyVec<[u8; MAX_HASH_SIZE]> = hasher
             .clone()
             .chain(trial_randomizer.as_slice())
             .chain(message)
@@ -331,7 +331,7 @@ fn thread_optimize_message_hash<H: HashChain>(
 
 #[cfg(test)]
 mod tests {
-    use tinyvec::ArrayVec;
+    use tinyvec::TinyVec;
 
     use crate::{
         constants::{MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
@@ -344,16 +344,16 @@ mod tests {
     fn test_binary_representation() {
         let lmots_parameter = LmotsAlgorithm::construct_default_parameter();
 
-        let mut signature_randomizer = ArrayVec::new();
-        let mut signature_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]> =
-            ArrayVec::new();
+        let mut signature_randomizer = TinyVec::new();
+        let mut signature_data: TinyVec<[TinyVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]> =
+            TinyVec::new();
 
         for i in 0..lmots_parameter.get_hash_function_output_size() as usize {
             signature_randomizer.push(i as u8);
         }
 
         for i in 0..lmots_parameter.get_hash_chain_count() as usize {
-            signature_data.push(ArrayVec::new());
+            signature_data.push(TinyVec::new());
             for j in 0..lmots_parameter.get_hash_function_output_size() as usize {
                 signature_data[i].push(j as u8);
             }

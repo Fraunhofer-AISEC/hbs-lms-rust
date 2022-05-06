@@ -1,5 +1,5 @@
 use core::convert::TryInto;
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use crate::{
     constants::{MAX_ALLOWED_HSS_LEVELS, MAX_HSS_PUBLIC_KEY_LENGTH},
@@ -27,9 +27,9 @@ use super::{
 
 #[derive(Debug, Default, PartialEq)]
 pub struct HssPrivateKey<H: HashChain> {
-    pub private_key: ArrayVec<[LmsPrivateKey<H>; MAX_ALLOWED_HSS_LEVELS]>,
-    pub public_key: ArrayVec<[LmsPublicKey<H>; MAX_ALLOWED_HSS_LEVELS - 1]>,
-    pub signatures: ArrayVec<[LmsSignature<H>; MAX_ALLOWED_HSS_LEVELS - 1]>, // Only L - 1 signatures needed
+    pub private_key: TinyVec<[LmsPrivateKey<H>; MAX_ALLOWED_HSS_LEVELS]>,
+    pub public_key: TinyVec<[LmsPublicKey<H>; MAX_ALLOWED_HSS_LEVELS - 1]>,
+    pub signatures: TinyVec<[LmsSignature<H>; MAX_ALLOWED_HSS_LEVELS - 1]>, // Only L - 1 signatures needed
 }
 
 impl<H: HashChain> HssPrivateKey<H> {
@@ -111,7 +111,7 @@ impl<H: HashChain> HssPrivateKey<H> {
 
     pub fn get_lifetime(&self) -> u64 {
         let mut lifetime: u64 = 0;
-        let mut trees_total_lmots_keys: ArrayVec<[u64; MAX_ALLOWED_HSS_LEVELS]> = ArrayVec::new();
+        let mut trees_total_lmots_keys: TinyVec<[u64; MAX_ALLOWED_HSS_LEVELS]> = TinyVec::new();
 
         for lms_private_key in (&self.private_key).into_iter().rev() {
             let total_lmots_keys = lms_private_key.lms_parameter.number_of_lm_ots_keys() as u64;
@@ -194,8 +194,8 @@ impl<H: HashChain> HssPublicKey<H> {
             level: levels,
         })
     }
-    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]> {
-        let mut result = ArrayVec::new();
+    pub fn to_binary_representation(&self) -> TinyVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]> {
+        let mut result = TinyVec::new();
 
         result.extend_from_slice(&(self.level as u32).to_be_bytes());
         result.extend_from_slice(self.public_key.to_binary_representation().as_slice());

@@ -29,11 +29,13 @@
 //! let mut seed = Seed::default();
 //! OsRng.fill_bytes(&mut seed);
 //! let aux_data = None;
-//!
+//! 
 //! let (mut signing_key, verifying_key) =
 //!     hbs_lms::keygen::<Sha256>(&hss_parameter, &seed, aux_data).unwrap();
 //!
 //! let signature = signing_key.try_sign(&message).unwrap();
+//! 
+//! panic!("success");
 //!
 //! let valid_signature = verifying_key.verify(&message, &signature);
 //!
@@ -109,7 +111,7 @@ pub use crate::hss::{SigningKey, VerifyingKey};
 
 use core::convert::TryFrom;
 use signature::Error;
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use constants::MAX_HSS_SIGNATURE_LENGTH;
 
@@ -118,14 +120,14 @@ use constants::MAX_HSS_SIGNATURE_LENGTH;
  */
 #[derive(Debug)]
 pub struct Signature {
-    bytes: ArrayVec<[u8; MAX_HSS_SIGNATURE_LENGTH]>,
+    bytes: TinyVec<[u8; MAX_HSS_SIGNATURE_LENGTH]>,
     #[cfg(feature = "verbose")]
     pub hash_iterations: u32,
 }
 
 impl Signature {
     pub(crate) fn from_bytes_verbose(bytes: &[u8], _hash_iterations: u32) -> Result<Self, Error> {
-        let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
+        let bytes = TinyVec::try_from(bytes).map_err(|_| Error::new())?;
 
         Ok(Self {
             bytes,
@@ -199,7 +201,7 @@ mod tests {
             &seed,
             None,
         )
-        .unwrap();
+        .expect("Should work and not overflow");
 
         let _: SigningKey<H> = signing_key;
         let _: VerifyingKey<H> = verifying_key;

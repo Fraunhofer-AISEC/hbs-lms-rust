@@ -19,12 +19,12 @@ use crate::{
 use super::definitions::HssPrivateKey;
 
 use core::convert::TryInto;
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 #[derive(PartialEq)]
 pub struct HssSignature<H: HashChain> {
     pub level: usize,
-    pub signed_public_keys: ArrayVec<[HssSignedPublicKey<H>; MAX_ALLOWED_HSS_LEVELS - 1]>,
+    pub signed_public_keys: TinyVec<[HssSignedPublicKey<H>; MAX_ALLOWED_HSS_LEVELS - 1]>,
     pub signature: LmsSignature<H>,
 }
 
@@ -78,7 +78,7 @@ impl<H: HashChain> HssSignature<H> {
         sig.push(new_signature);
 
         // Create list of signed keys
-        let mut signed_public_keys = ArrayVec::new();
+        let mut signed_public_keys = TinyVec::new();
         for i in 0..max_level - 1 {
             signed_public_keys.push(HssSignedPublicKey::new(sig[i].clone(), public[i].clone()));
         }
@@ -90,8 +90,8 @@ impl<H: HashChain> HssSignature<H> {
         })
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_SIGNATURE_LENGTH]> {
-        let mut result = ArrayVec::new();
+    pub fn to_binary_representation(&self) -> TinyVec<[u8; MAX_HSS_SIGNATURE_LENGTH]> {
+        let mut result = TinyVec::new();
 
         result.extend_from_slice(&(self.level as u32).to_be_bytes());
 
@@ -111,7 +111,7 @@ impl<H: HashChain> HssSignature<H> {
 pub struct InMemoryHssSignature<'a, H: HashChain> {
     pub level: usize,
     pub signed_public_keys:
-        ArrayVec<[Option<InMemoryHssSignedPublicKey<'a, H>>; MAX_ALLOWED_HSS_LEVELS - 1]>,
+        TinyVec<[Option<InMemoryHssSignedPublicKey<'a, H>>; MAX_ALLOWED_HSS_LEVELS - 1]>,
     pub signature: InMemoryLmsSignature<'a, H>,
 }
 
@@ -148,7 +148,7 @@ impl<'a, H: HashChain> InMemoryHssSignature<'a, H> {
         let level =
             u32::from_be_bytes(read_and_advance(data, 4, &mut index).try_into().unwrap()) as usize;
 
-        let mut signed_public_keys = ArrayVec::new();
+        let mut signed_public_keys = TinyVec::new();
 
         for _ in 0..level {
             let signed_public_key = InMemoryHssSignedPublicKey::<'a, H>::new(&data[index..])?;
@@ -195,8 +195,8 @@ impl<H: HashChain> HssSignedPublicKey<H> {
         }
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH]> {
-        let mut result = ArrayVec::new();
+    pub fn to_binary_representation(&self) -> TinyVec<[u8; MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH]> {
+        let mut result = TinyVec::new();
 
         result.extend_from_slice(self.sig.to_binary_representation().as_slice());
         result.extend_from_slice(self.public_key.to_binary_representation().as_slice());
@@ -262,7 +262,7 @@ mod tests {
     use super::{HssPrivateKey, HssSignature, HssSignedPublicKey};
 
     use rand::{rngs::OsRng, RngCore};
-    use tinyvec::ArrayVec;
+    use tinyvec::TinyVec;
 
     #[test]
     #[should_panic(expected = "Signing should panic!")]
@@ -301,7 +301,7 @@ mod tests {
         );
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
-        let mut signature_randomizer = ArrayVec::from([0u8; 32]);
+        let mut signature_randomizer = TinyVec::from([0u8; 32]);
         OsRng.fill_bytes(&mut signature_randomizer);
         let signature = LmsSignature::sign(
             &mut keypair.private_key,

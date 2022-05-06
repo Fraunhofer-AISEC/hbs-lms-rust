@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use crate::{
     constants::{
@@ -124,7 +124,7 @@ impl<H: HashChain> LmotsParameter<H> {
         let max_word_size = (1 << self.get_winternitz()) - 1;
         let sum = max * max_word_size;
 
-        let mut coef = ArrayVec::new();
+        let mut coef = TinyVec::new();
         for i in 0..self.get_hash_chain_count() {
             coef.push(coef_helper(i, self.get_winternitz()));
         }
@@ -173,8 +173,8 @@ impl<H: HashChain> LmotsParameter<H> {
         sum << self.get_checksum_left_shift()
     }
 
-    pub fn append_checksum_to(&self, byte_string: &[u8]) -> ArrayVec<[u8; MAX_HASH_SIZE + 2]> {
-        let mut result = ArrayVec::new();
+    pub fn append_checksum_to(&self, byte_string: &[u8]) -> TinyVec<[u8; MAX_HASH_SIZE + 2]> {
+        let mut result = TinyVec::new();
 
         let checksum = self.checksum(byte_string);
 

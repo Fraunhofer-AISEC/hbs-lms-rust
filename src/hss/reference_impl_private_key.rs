@@ -12,7 +12,7 @@ use crate::{
 };
 
 use core::{convert::TryInto, marker::PhantomData, mem::size_of};
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 /**
 To be compatible with the reference implementation
@@ -64,8 +64,8 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         Ok(private_key)
     }
 
-    pub fn to_binary_representation(&self) -> ArrayVec<[u8; REFERENCE_IMPL_PRIVATE_KEY_SIZE]> {
-        let mut result = ArrayVec::new();
+    pub fn to_binary_representation(&self) -> TinyVec<[u8; REFERENCE_IMPL_PRIVATE_KEY_SIZE]> {
+        let mut result = TinyVec::new();
 
         result.extend_from_slice(&self.compressed_used_leafs_indexes.count.to_be_bytes());
         result.extend_from_slice(&self.compressed_parameter.0);
@@ -118,7 +118,7 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         hash_preimage[TOPSEED_WHICH] = 0x01;
         hasher.update(&hash_preimage);
 
-        let seed = hasher.finalize_reset().into_inner();
+        let seed: [u8; 32] = hasher.finalize_reset().into_iter().as_slice().try_into().unwrap();
 
         hash_preimage[TOPSEED_WHICH] = 0x02;
         hasher.update(&hash_preimage);
@@ -150,7 +150,7 @@ pub fn generate_child_seed_and_lms_tree_identifier<H: HashChain>(
     derive.set_lms_leaf_identifier(*parent_lms_leaf_identifier);
     derive.set_child_seed(SEED_CHILD_SEED);
 
-    let seed = derive.seed_derive::<H>(true).into_inner();
+    let seed = derive.seed_derive::<H>(true).into_iter().as_slice().try_into().unwrap();
     let mut lms_tree_identifier = LmsTreeIdentifier::default();
     lms_tree_identifier.copy_from_slice(&derive.seed_derive::<H>(false)[..ILEN]);
 
@@ -160,7 +160,7 @@ pub fn generate_child_seed_and_lms_tree_identifier<H: HashChain>(
 pub fn generate_signature_randomizer<H: HashChain>(
     child_seed: &SeedAndLmsTreeIdentifier,
     parent_lms_leaf_identifier: &u32,
-) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+) -> TinyVec<[u8; MAX_HASH_SIZE]> {
     let mut derive = SeedDerive::new(&child_seed.seed, &child_seed.lms_tree_identifier);
 
     derive.set_lms_leaf_identifier(*parent_lms_leaf_identifier);
@@ -210,8 +210,8 @@ impl CompressedParameterSet {
 
     pub fn to<H: HashChain>(
         &self,
-    ) -> Result<ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>, ()> {
-        let mut result = ArrayVec::new();
+    ) -> Result<TinyVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>, ()> {
+        let mut result = TinyVec::new();
 
         for level in 0..MAX_ALLOWED_HSS_LEVELS {
             let parameter = self.0[level];
@@ -255,7 +255,7 @@ impl CompressedUsedLeafsIndexes {
 
     pub fn to<H: HashChain>(
         &self,
-        parameters: &ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>,
+        parameters: &TinyVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>,
     ) -> [u32; MAX_ALLOWED_HSS_LEVELS] {
         let mut lms_leaf_identifier_set = [0u32; MAX_ALLOWED_HSS_LEVELS];
         let mut compressed_used_leafs_indexes = self.count;
@@ -271,7 +271,7 @@ impl CompressedUsedLeafsIndexes {
 
     pub fn increment(
         &mut self,
-        tree_heights: &ArrayVec<[u8; MAX_ALLOWED_HSS_LEVELS]>,
+        tree_heights: &TinyVec<[u8; MAX_ALLOWED_HSS_LEVELS]>,
     ) -> Result<(), ()> {
         let total_tree_height: u32 = tree_heights.iter().sum::<u8>().into();
 
@@ -294,7 +294,7 @@ mod tests {
     };
 
     use rand::{rngs::OsRng, RngCore};
-    use tinyvec::ArrayVec;
+    use tinyvec::TinyVec;
 
     type Hasher = Sha256;
 
@@ -315,7 +315,7 @@ mod tests {
         let tree_heights = parameters
             .iter()
             .map(|parameter| parameter.get_lms_parameter().get_tree_height())
-            .collect::<ArrayVec<[u8; MAX_ALLOWED_HSS_LEVELS]>>();
+            .collect::<TinyVec<[u8; MAX_ALLOWED_HSS_LEVELS]>>();
 
         for _ in 0..2u64.pow(tree_heights.as_slice().iter().sum::<u8>().into()) {
             assert_eq!(rfc_private_key.seed, seed);

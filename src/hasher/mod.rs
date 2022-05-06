@@ -4,7 +4,7 @@ use core::{
     ops::{Deref, DerefMut},
 };
 use digest::{FixedOutput, Update};
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use crate::constants::{winternitz_chain::*, MAX_HASH_SIZE};
 
@@ -45,8 +45,8 @@ pub trait HashChain:
     const OUTPUT_SIZE: u16;
     const BLOCK_SIZE: u16;
 
-    fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]>;
-    fn finalize_reset(&mut self) -> ArrayVec<[u8; MAX_HASH_SIZE]>;
+    fn finalize(self) -> TinyVec<[u8; MAX_HASH_SIZE]>;
+    fn finalize_reset(&mut self) -> TinyVec<[u8; MAX_HASH_SIZE]>;
 
     fn prepare_hash_chain_data(
         lms_tree_identifier: &[u8],
@@ -67,13 +67,13 @@ pub trait HashChain:
         initial_value: &[u8],
         from: usize,
         to: usize,
-    ) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+    ) -> TinyVec<[u8; MAX_HASH_SIZE]> {
         hc_data[ITER_K..ITER_J].copy_from_slice(&hash_chain_id.to_be_bytes());
         hc_data[ITER_PREV..].copy_from_slice(initial_value);
 
         self.do_actual_hash_chain(hc_data, from, to);
 
-        ArrayVec::try_from(&hc_data[ITER_PREV..]).unwrap()
+        TinyVec::try_from(&hc_data[ITER_PREV..]).unwrap()
     }
 
     fn do_actual_hash_chain(&mut self, hc_data: &mut HashChainData, from: usize, to: usize) {

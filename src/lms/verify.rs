@@ -1,4 +1,4 @@
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use crate::constants::{D_INTR, D_LEAF, MAX_HASH_SIZE};
 use crate::hasher::HashChain;
@@ -32,7 +32,7 @@ fn generate_public_key_candiate<'a, H: HashChain>(
     signature: &InMemoryLmsSignature<'a, H>,
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],
-) -> Result<ArrayVec<[u8; MAX_HASH_SIZE]>, ()> {
+) -> Result<TinyVec<[u8; MAX_HASH_SIZE]>, ()> {
     let leafs = signature.lms_parameter.number_of_lm_ots_keys() as u32;
 
     let curr = signature.lms_leaf_identifier;
@@ -94,7 +94,7 @@ mod tests {
     };
 
     use rand::{rngs::OsRng, RngCore};
-    use tinyvec::ArrayVec;
+    use tinyvec::TinyVec;
 
     #[test]
     fn test_verification() {
@@ -116,7 +116,7 @@ mod tests {
 
         let mut first_message = [0u8, 4, 2, 7, 4, 2, 58, 3, 69, 3];
         let mut second_message = [1u8, 2, 3, 4, 5, 6, 7, 0];
-        let mut signature_randomizer = ArrayVec::from([0u8; 32]);
+        let mut signature_randomizer = TinyVec::from([0u8; 32]);
         OsRng.fill_bytes(&mut signature_randomizer);
 
         let first_signature = LmsSignature::sign(

@@ -1,4 +1,4 @@
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use sha3::{
     digest::{
@@ -24,16 +24,16 @@ impl HashChain for Shake256 {
     const OUTPUT_SIZE: u16 = 32;
     const BLOCK_SIZE: u16 = 64;
 
-    fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+    fn finalize(self) -> TinyVec<[u8; MAX_HASH_SIZE]> {
         let mut digest = [0u8; Self::OUTPUT_SIZE as usize];
         self.hasher.finalize_xof().read(&mut digest);
-        ArrayVec::from(digest)
+        TinyVec::from(digest)
     }
 
-    fn finalize_reset(&mut self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+    fn finalize_reset(&mut self) -> TinyVec<[u8; MAX_HASH_SIZE]> {
         let mut digest = [0u8; Self::OUTPUT_SIZE as usize];
         self.hasher.finalize_xof_reset().read(&mut digest);
-        ArrayVec::from(digest)
+        TinyVec::from(digest)
     }
 }
 

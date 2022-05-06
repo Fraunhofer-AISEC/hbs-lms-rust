@@ -1,4 +1,4 @@
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use crate::constants::{D_INTR, D_LEAF, MAX_HASH_SIZE};
 use crate::hasher::HashChain;
@@ -11,7 +11,7 @@ pub fn get_tree_element<H: HashChain>(
     index: usize,
     private_key: &LmsPrivateKey<H>,
     aux_data: &mut Option<MutableExpandedAuxData>,
-) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+) -> TinyVec<[u8; MAX_HASH_SIZE]> {
     // Check if we already have the value cached
     if let Some(aux_data) = aux_data {
         if let Some(result) = hss_extract_aux_data::<H>(aux_data, index) {

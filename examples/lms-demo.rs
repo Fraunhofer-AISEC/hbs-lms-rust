@@ -291,7 +291,7 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let seed: Seed = if let Some(seed) = args.value_of(SEED_PARAMETER) {
         let decoded = hex::decode(seed)?;
         if decoded.len() < size_of::<Seed>() {
-            return DemoError::raise("Seed is too short");
+            return DemoError::raise("Seed is too short. Should be 64 hex characters.");
         }
         let mut seed = Seed::default();
         seed.copy_from_slice(&decoded[..]);

@@ -33,10 +33,7 @@ impl<'a> SeedDerive<'a> {
         self.child_seed = seed;
     }
 
-    pub fn seed_derive<H: HashChain>(
-        &mut self,
-        increment_j: bool,
-    ) -> TinyVec<[u8; MAX_HASH_SIZE]> {
+    pub fn seed_derive<H: HashChain>(&mut self, increment_j: bool) -> TinyVec<[u8; MAX_HASH_SIZE]> {
         let mut buffer = [0u8; PRNG_MAX_LEN];
 
         buffer[PRNG_I..PRNG_I + ILEN].copy_from_slice(self.lms_tree_identifier);

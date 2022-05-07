@@ -29,12 +29,12 @@
 //! let mut seed = Seed::default();
 //! OsRng.fill_bytes(&mut seed);
 //! let aux_data = None;
-//! 
+//!
 //! let (mut signing_key, verifying_key) =
 //!     hbs_lms::keygen::<Sha256>(&hss_parameter, &seed, aux_data).unwrap();
-//! 
+//!
 //! let signature = signing_key.try_sign(&message).unwrap();
-//! 
+//!
 //!
 //! let valid_signature = verifying_key.verify(&message, &signature);
 //!
@@ -195,7 +195,7 @@ mod tests {
         let (mut signing_key, verifying_key) = keygen::<H>(
             &[HssParameter::new(
                 LmotsAlgorithm::LmotsW2,
-                LmsAlgorithm::LmsH10,
+                LmsAlgorithm::LmsH5,
             )],
             &seed,
             None,

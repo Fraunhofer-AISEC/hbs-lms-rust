@@ -118,7 +118,12 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         hash_preimage[TOPSEED_WHICH] = 0x01;
         hasher.update(&hash_preimage);
 
-        let seed: [u8; 32] = hasher.finalize_reset().into_iter().as_slice().try_into().unwrap();
+        let seed: [u8; 32] = hasher
+            .finalize_reset()
+            .into_iter()
+            .as_slice()
+            .try_into()
+            .unwrap();
 
         hash_preimage[TOPSEED_WHICH] = 0x02;
         hasher.update(&hash_preimage);
@@ -150,7 +155,12 @@ pub fn generate_child_seed_and_lms_tree_identifier<H: HashChain>(
     derive.set_lms_leaf_identifier(*parent_lms_leaf_identifier);
     derive.set_child_seed(SEED_CHILD_SEED);
 
-    let seed = derive.seed_derive::<H>(true).into_iter().as_slice().try_into().unwrap();
+    let seed = derive
+        .seed_derive::<H>(true)
+        .into_iter()
+        .as_slice()
+        .try_into()
+        .unwrap();
     let mut lms_tree_identifier = LmsTreeIdentifier::default();
     lms_tree_identifier.copy_from_slice(&derive.seed_derive::<H>(false)[..ILEN]);
 

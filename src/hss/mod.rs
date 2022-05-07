@@ -1,5 +1,5 @@
-pub mod hss_aux;
 pub mod definitions;
+pub mod hss_aux;
 pub mod parameter;
 pub mod reference_impl_private_key;
 mod seed_derive;

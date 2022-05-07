@@ -1,4 +1,4 @@
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use sha3::{
     digest::{
@@ -26,16 +26,16 @@ macro_rules! define_shake {
             const OUTPUT_SIZE: u16 = $output_size;
             const BLOCK_SIZE: u16 = 64;
 
-            fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+            fn finalize(self) -> TinyVec<[u8; MAX_HASH_SIZE]> {
                 let mut digest = [0u8; MAX_HASH_SIZE];
                 self.hasher.finalize_xof().read(&mut digest);
-                ArrayVec::from_array_len(digest, Self::OUTPUT_SIZE as usize)
+                TinyVec::from_array_len(digest, Self::OUTPUT_SIZE as usize)
             }
 
-            fn finalize_reset(&mut self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+            fn finalize_reset(&mut self) -> TinyVec<[u8; MAX_HASH_SIZE]> {
                 let mut digest = [0u8; MAX_HASH_SIZE];
                 self.hasher.finalize_xof_reset().read(&mut digest);
-                ArrayVec::from_array_len(digest, Self::OUTPUT_SIZE as usize)
+                TinyVec::from_array_len(digest, Self::OUTPUT_SIZE as usize)
             }
         }
 

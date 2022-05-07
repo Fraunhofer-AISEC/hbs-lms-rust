@@ -1,6 +1,6 @@
 use core::{marker::PhantomData, usize};
 
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use crate::lm_ots::parameters::LmotsParameter;
 use crate::{constants::*, hasher::HashChain, util::coef::coef, LmotsAlgorithm};
@@ -10,13 +10,13 @@ use super::{definitions::LmotsPublicKey, signing::InMemoryLmotsSignature};
 #[derive(Default)]
 struct HashChainArray<H: HashChain> {
     pub array_w1:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(1, MAX_HASH_SIZE)]>>,
+        Option<TinyVec<[TinyVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(1, MAX_HASH_SIZE)]>>,
     pub array_w2:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(2, MAX_HASH_SIZE)]>>,
+        Option<TinyVec<[TinyVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(2, MAX_HASH_SIZE)]>>,
     pub array_w4:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(4, MAX_HASH_SIZE)]>>,
+        Option<TinyVec<[TinyVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(4, MAX_HASH_SIZE)]>>,
     pub array_w8:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(8, MAX_HASH_SIZE)]>>,
+        Option<TinyVec<[TinyVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(8, MAX_HASH_SIZE)]>>,
     phantom_data: PhantomData<H>,
 }
 
@@ -24,38 +24,38 @@ impl<H: HashChain> HashChainArray<H> {
     pub fn new(lmots_parameter: &LmotsParameter<H>) -> Self {
         let mut hash_chain_array = HashChainArray::<H>::default();
         if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW8 {
-            hash_chain_array.array_w8 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(8, MAX_HASH_SIZE)],
+            hash_chain_array.array_w8 = Some(TinyVec::<
+                [TinyVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(8, MAX_HASH_SIZE)],
             >::default());
         } else if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW4 {
-            hash_chain_array.array_w4 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(4, MAX_HASH_SIZE)],
+            hash_chain_array.array_w4 = Some(TinyVec::<
+                [TinyVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(4, MAX_HASH_SIZE)],
             >::default());
         } else if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW2 {
-            hash_chain_array.array_w2 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(2, MAX_HASH_SIZE)],
+            hash_chain_array.array_w2 = Some(TinyVec::<
+                [TinyVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(2, MAX_HASH_SIZE)],
             >::default());
         } else {
-            hash_chain_array.array_w1 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(1, MAX_HASH_SIZE)],
+            hash_chain_array.array_w1 = Some(TinyVec::<
+                [TinyVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(1, MAX_HASH_SIZE)],
             >::default());
         }
         hash_chain_array
     }
 
-    pub fn push(&mut self, data: &ArrayVec<[u8; MAX_HASH_SIZE]>) {
+    pub fn push(&mut self, data: &TinyVec<[u8; MAX_HASH_SIZE]>) {
         if let Some(array_w8) = &mut self.array_w8 {
-            array_w8.push(*data);
+            array_w8.push(data.clone());
         } else if let Some(array_w4) = &mut self.array_w4 {
-            array_w4.push(*data);
+            array_w4.push(data.clone());
         } else if let Some(array_w2) = &mut self.array_w2 {
-            array_w2.push(*data);
+            array_w2.push(data.clone());
         } else if let Some(array_w1) = &mut self.array_w1 {
-            array_w1.push(*data);
+            array_w1.push(data.clone());
         }
     }
 
-    pub fn as_slice(&mut self) -> &[ArrayVec<[u8; MAX_HASH_SIZE]>] {
+    pub fn as_slice(&mut self) -> &[TinyVec<[u8; MAX_HASH_SIZE]>] {
         if let Some(array_w8) = &self.array_w8 {
             array_w8.as_slice()
         } else if let Some(array_w4) = &self.array_w4 {
@@ -93,7 +93,7 @@ pub fn generate_public_key_candiate<'a, H: HashChain>(
     lms_tree_identifier: &[u8],
     lms_leaf_identifier: u32,
     message: &[u8],
-) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+) -> TinyVec<[u8; MAX_HASH_SIZE]> {
     let lmots_parameter = signature.lmots_parameter;
     let mut hasher = lmots_parameter.get_hasher();
 
@@ -137,7 +137,7 @@ pub fn generate_public_key_candiate<'a, H: HashChain>(
 
 #[cfg(test)]
 mod tests {
-    use tinyvec::ArrayVec;
+    use tinyvec::TinyVec;
 
     use crate::constants::{LmsLeafIdentifier, LmsTreeIdentifier, MAX_HASH_SIZE};
     use crate::hasher::{
@@ -172,7 +172,7 @@ mod tests {
                 let public_key: LmotsPublicKey<$hash_chain> = generate_public_key(&private_key);
 
                 let mut message = [1, 3, 5, 9, 0];
-                let mut signature_randomizer = ArrayVec::from_array_len(
+                let mut signature_randomizer = TinyVec::from_array_len(
                     [0u8; MAX_HASH_SIZE],
                     <$hash_chain>::OUTPUT_SIZE as usize,
                 );

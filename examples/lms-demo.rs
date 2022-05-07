@@ -292,13 +292,13 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let seed: Seed<Hasher> = if let Some(seed) = args.value_of(SEED_PARAMETER) {
         let decoded = hex::decode(seed)?;
         if decoded.len() < Hasher::OUTPUT_SIZE as usize {
-            return DemoError::raise("Seed is too short");
+            return DemoError::raise("Seed (--seed) is too short. Needs to be 64 hexadecimal characters.");
         }
         let mut seed = Seed::default();
         seed.as_mut_slice().copy_from_slice(&decoded[..]);
         seed
     } else {
-        return DemoError::raise("Seed was not given");
+        return DemoError::raise("Seed (--seed) was not given. Needs to be 64 hexadecimal characters.");
     };
 
     let mut aux_data = vec![0u8; genkey_parameter.aux_data];

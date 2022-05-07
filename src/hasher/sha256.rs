@@ -1,5 +1,5 @@
 use core::convert::TryFrom;
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use sha2::{
     digest::{typenum::U32, FixedOutput, FixedOutputReset, Output, OutputSizeUser, Reset, Update},
@@ -24,13 +24,13 @@ macro_rules! define_sha {
             const OUTPUT_SIZE: u16 = $output_size;
             const BLOCK_SIZE: u16 = 64;
 
-            fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
-                ArrayVec::try_from(&self.hasher.finalize_fixed()[..(Self::OUTPUT_SIZE as usize)])
+            fn finalize(self) -> TinyVec<[u8; MAX_HASH_SIZE]> {
+                TinyVec::try_from(&self.hasher.finalize_fixed()[..(Self::OUTPUT_SIZE as usize)])
                     .unwrap()
             }
 
-            fn finalize_reset(&mut self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
-                ArrayVec::try_from(
+            fn finalize_reset(&mut self) -> TinyVec<[u8; MAX_HASH_SIZE]> {
+                TinyVec::try_from(
                     &self.hasher.finalize_fixed_reset()[..(Self::OUTPUT_SIZE as usize)],
                 )
                 .unwrap()

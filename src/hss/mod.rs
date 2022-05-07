@@ -1,5 +1,5 @@
-pub mod aux;
 pub mod definitions;
+pub mod hss_aux;
 pub mod parameter;
 pub mod reference_impl_private_key;
 mod seed_derive;
@@ -7,11 +7,11 @@ pub mod signing;
 pub mod verify;
 
 use core::{convert::TryFrom, marker::PhantomData};
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use crate::{
     constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REF_IMPL_MAX_PRIVATE_KEY_SIZE},
-    hss::{aux::hss_is_aux_data_used, reference_impl_private_key::Seed},
+    hss::{hss_aux::hss_is_aux_data_used, reference_impl_private_key::Seed},
     signature::{Error, SignerMut, Verifier},
     HashChain, Signature, VerifierSignature,
 };
@@ -28,13 +28,13 @@ use self::{
  */
 #[derive(Clone, Debug, PartialEq)]
 pub struct SigningKey<H: HashChain> {
-    pub bytes: ArrayVec<[u8; REF_IMPL_MAX_PRIVATE_KEY_SIZE]>,
+    pub bytes: TinyVec<[u8; REF_IMPL_MAX_PRIVATE_KEY_SIZE]>,
     phantom_data: PhantomData<H>,
 }
 
 impl<H: HashChain> SigningKey<H> {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
+        let bytes = TinyVec::try_from(bytes).map_err(|_| Error::new())?;
 
         Ok(Self {
             bytes,
@@ -64,7 +64,7 @@ impl<H: HashChain> SigningKey<H> {
         msg: &[u8],
         aux_data: Option<&mut &mut [u8]>,
     ) -> Result<Signature, Error> {
-        let private_key = self.bytes;
+        let private_key = self.bytes.clone();
         let mut private_key_update_function = |new_key: &[u8]| {
             self.bytes.as_mut_slice().copy_from_slice(new_key);
             Ok(())
@@ -90,13 +90,13 @@ impl<H: HashChain> SignerMut<Signature> for SigningKey<H> {
  */
 #[derive(Clone, Debug, PartialEq)]
 pub struct VerifyingKey<H: HashChain> {
-    pub bytes: ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]>,
+    pub bytes: TinyVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]>,
     phantom_data: PhantomData<H>,
 }
 
 impl<H: HashChain> VerifyingKey<H> {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        let bytes = ArrayVec::try_from(bytes).map_err(|_| Error::new())?;
+        let bytes = TinyVec::try_from(bytes).map_err(|_| Error::new())?;
 
         Ok(Self {
             bytes,
@@ -258,7 +258,7 @@ fn hss_sign_core<H: HashChain>(
  * # Example
  * ```
  * use rand::{rngs::OsRng, RngCore};
- * use tinyvec::ArrayVec;
+ * use tinyvec::TinyVec;
  * use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256_256, HashChain, Seed};
  *
  * let parameters = [
@@ -281,7 +281,7 @@ pub fn hss_keygen<H: HashChain>(
 ) -> Result<(SigningKey<H>, VerifyingKey<H>), Error> {
     let private_key =
         ReferenceImplPrivateKey::generate(parameters, seed).map_err(|_| Error::new())?;
-
+    //panic!("test");
     let hss_public_key = HssPublicKey::from(&private_key, aux_data).map_err(|_| Error::new())?;
 
     let signing_key = SigningKey::from_bytes(&private_key.to_binary_representation())?;

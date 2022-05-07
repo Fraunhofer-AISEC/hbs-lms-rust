@@ -1,8 +1,8 @@
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use crate::constants::{D_INTR, D_LEAF, MAX_HASH_SIZE};
 use crate::hasher::HashChain;
-use crate::hss::aux::{hss_extract_aux_data, hss_save_aux_data, MutableExpandedAuxData};
+use crate::hss::hss_aux::{hss_extract_aux_data, hss_save_aux_data, MutableExpandedAuxData};
 use crate::lm_ots;
 
 use super::definitions::LmsPrivateKey;
@@ -11,7 +11,7 @@ pub fn get_tree_element<H: HashChain>(
     index: usize,
     private_key: &LmsPrivateKey<H>,
     aux_data: &mut Option<MutableExpandedAuxData>,
-) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+) -> TinyVec<[u8; MAX_HASH_SIZE]> {
     // Check if we already have the value cached
     if let Some(aux_data) = aux_data {
         if let Some(result) = hss_extract_aux_data::<H>(aux_data, index) {
@@ -29,7 +29,7 @@ pub fn get_tree_element<H: HashChain>(
         let lms_ots_private_key = lm_ots::keygen::generate_private_key(
             private_key.lms_tree_identifier,
             ((index - max_private_keys) as u32).to_be_bytes(),
-            private_key.seed,
+            private_key.seed.clone(),
             private_key.lmots_parameter,
         );
         let lm_ots_public_key = lm_ots::keygen::generate_public_key(&lms_ots_private_key);

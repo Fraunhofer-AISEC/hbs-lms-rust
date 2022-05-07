@@ -4,7 +4,7 @@ use core::{
     ops::{Deref, DerefMut},
 };
 use digest::{FixedOutput, Update};
-use tinyvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use crate::constants::{winternitz_chain::*, MAX_HASH_SIZE};
 
@@ -12,11 +12,11 @@ pub mod sha256;
 pub mod shake256;
 
 pub struct HashChainData {
-    data: ArrayVec<[u8; ITER_MAX_LEN]>,
+    data: TinyVec<[u8; ITER_MAX_LEN]>,
 }
 
 impl Deref for HashChainData {
-    type Target = ArrayVec<[u8; ITER_MAX_LEN]>;
+    type Target = TinyVec<[u8; ITER_MAX_LEN]>;
 
     fn deref(&self) -> &Self::Target {
         &self.data
@@ -45,15 +45,15 @@ pub trait HashChain:
     const OUTPUT_SIZE: u16;
     const BLOCK_SIZE: u16;
 
-    fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]>;
-    fn finalize_reset(&mut self) -> ArrayVec<[u8; MAX_HASH_SIZE]>;
+    fn finalize(self) -> TinyVec<[u8; MAX_HASH_SIZE]>;
+    fn finalize_reset(&mut self) -> TinyVec<[u8; MAX_HASH_SIZE]>;
 
     fn prepare_hash_chain_data(
         lms_tree_identifier: &[u8],
         lms_leaf_identifier: &[u8],
     ) -> HashChainData {
         let mut hc_data = HashChainData {
-            data: ArrayVec::from_array_len(
+            data: TinyVec::from_array_len(
                 [0u8; ITER_MAX_LEN],
                 iter_len(Self::OUTPUT_SIZE as usize),
             ),
@@ -70,13 +70,13 @@ pub trait HashChain:
         initial_value: &[u8],
         from: usize,
         to: usize,
-    ) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+    ) -> TinyVec<[u8; MAX_HASH_SIZE]> {
         hc_data[ITER_K..ITER_J].copy_from_slice(&hash_chain_id.to_be_bytes());
         hc_data[ITER_PREV..].copy_from_slice(initial_value);
 
         self.do_actual_hash_chain(hc_data, from, to);
 
-        ArrayVec::try_from(&hc_data[ITER_PREV..]).unwrap()
+        TinyVec::try_from(&hc_data[ITER_PREV..]).unwrap()
     }
 
     fn do_actual_hash_chain(&mut self, hc_data: &mut HashChainData, from: usize, to: usize) {

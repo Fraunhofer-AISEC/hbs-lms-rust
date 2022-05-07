@@ -32,10 +32,9 @@
 //! 
 //! let (mut signing_key, verifying_key) =
 //!     hbs_lms::keygen::<Sha256>(&hss_parameter, &seed, aux_data).unwrap();
-//!
+//! 
 //! let signature = signing_key.try_sign(&message).unwrap();
 //! 
-//! panic!("success");
 //!
 //! let valid_signature = verifying_key.verify(&message, &signature);
 //!
@@ -193,15 +192,19 @@ mod tests {
         let mut seed = Seed::default();
         OsRng.fill_bytes(&mut seed);
 
-        let (signing_key, verifying_key) = keygen::<H>(
+        let (mut signing_key, verifying_key) = keygen::<H>(
             &[HssParameter::new(
                 LmotsAlgorithm::LmotsW2,
-                LmsAlgorithm::LmsH5,
+                LmsAlgorithm::LmsH10,
             )],
             &seed,
             None,
         )
         .expect("Should work and not overflow");
+
+        let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32];
+
+        signing_key.try_sign(&message).unwrap();
 
         let _: SigningKey<H> = signing_key;
         let _: VerifyingKey<H> = verifying_key;

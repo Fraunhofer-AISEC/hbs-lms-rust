@@ -2,7 +2,7 @@ use crate::constants::{
     LmsLeafIdentifier, MAX_HASH_SIZE, MAX_LMS_SIGNATURE_LENGTH, MAX_TREE_HEIGHT,
 };
 use crate::hasher::HashChain;
-use crate::hss::aux::MutableExpandedAuxData;
+use crate::hss::hss_aux::MutableExpandedAuxData;
 use crate::lm_ots;
 use crate::lm_ots::definitions::LmotsPrivateKey;
 use crate::lm_ots::parameters::LmotsAlgorithm;

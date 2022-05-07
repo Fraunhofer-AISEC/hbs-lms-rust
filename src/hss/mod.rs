@@ -1,4 +1,4 @@
-pub mod aux;
+pub mod hss_aux;
 pub mod definitions;
 pub mod parameter;
 pub mod reference_impl_private_key;
@@ -11,7 +11,7 @@ use tinyvec::TinyVec;
 
 use crate::{
     constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REFERENCE_IMPL_PRIVATE_KEY_SIZE, SEED_LEN},
-    hss::aux::hss_is_aux_data_used,
+    hss::hss_aux::hss_is_aux_data_used,
     signature::{Error, SignerMut, Verifier},
     HashChain, Signature, VerifierSignature,
 };

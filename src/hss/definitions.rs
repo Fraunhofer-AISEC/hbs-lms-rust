@@ -4,7 +4,7 @@ use tinyvec::TinyVec;
 use crate::{
     constants::{MAX_ALLOWED_HSS_LEVELS, MAX_HSS_PUBLIC_KEY_LENGTH},
     hasher::HashChain,
-    hss::aux::{
+    hss::hss_aux::{
         hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
     },
     lms::{
@@ -15,11 +15,11 @@ use crate::{
     },
     util::helper::read_and_advance,
 };
-use crate::{hss::aux::hss_get_aux_data_len, lms::signing::LmsSignature};
+use crate::{hss::hss_aux::hss_get_aux_data_len, lms::signing::LmsSignature};
 
 use super::reference_impl_private_key::ReferenceImplPrivateKey;
 use super::{
-    aux::{hss_is_aux_data_used, MutableExpandedAuxData},
+    hss_aux::{hss_is_aux_data_used, MutableExpandedAuxData},
     reference_impl_private_key::{
         generate_child_seed_and_lms_tree_identifier, generate_signature_randomizer,
     },

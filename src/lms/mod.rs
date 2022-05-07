@@ -1,5 +1,5 @@
 use crate::hasher::HashChain;
-use crate::hss::aux::MutableExpandedAuxData;
+use crate::hss::hss_aux::MutableExpandedAuxData;
 use crate::hss::parameter::HssParameter;
 use crate::hss::reference_impl_private_key::SeedAndLmsTreeIdentifier;
 use crate::lms::definitions::LmsPrivateKey;

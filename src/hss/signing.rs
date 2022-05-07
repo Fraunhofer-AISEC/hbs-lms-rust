@@ -4,7 +4,7 @@ use crate::{
         MAX_HSS_SIGNATURE_LENGTH, MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH,
     },
     hss::{
-        aux::MutableExpandedAuxData,
+        hss_aux::MutableExpandedAuxData,
         reference_impl_private_key::{generate_signature_randomizer, SeedAndLmsTreeIdentifier},
     },
     lms::{

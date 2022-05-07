@@ -2,7 +2,7 @@ use tinyvec::TinyVec;
 
 use crate::constants::{D_INTR, D_LEAF, MAX_HASH_SIZE};
 use crate::hasher::HashChain;
-use crate::hss::aux::{hss_extract_aux_data, hss_save_aux_data, MutableExpandedAuxData};
+use crate::hss::hss_aux::{hss_extract_aux_data, hss_save_aux_data, MutableExpandedAuxData};
 use crate::lm_ots;
 
 use super::definitions::LmsPrivateKey;

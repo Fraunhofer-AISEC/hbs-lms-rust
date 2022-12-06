@@ -12,7 +12,7 @@ use crate::{
 use crate::util::coef::coef_helper;
 
 /// Specifies the used Winternitz parameter.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum LmotsAlgorithm {
     LmotsReserved = 0,
     LmotsW1 = 1,

@@ -26,7 +26,7 @@ use self::{
 /**
  * Implementation of [`SignerMut`] using [`Signature`].
  */
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SigningKey<H: HashChain> {
     pub bytes: ArrayVec<[u8; REF_IMPL_MAX_PRIVATE_KEY_SIZE]>,
     phantom_data: PhantomData<H>,
@@ -88,7 +88,7 @@ impl<H: HashChain> SignerMut<Signature> for SigningKey<H> {
 /**
  * Implementation of [`Verifier`] using [`Signature`] or [`VerifierSignature`].
  */
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VerifyingKey<H: HashChain> {
     pub bytes: ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]>,
     phantom_data: PhantomData<H>,

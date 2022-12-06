@@ -13,7 +13,7 @@ use crate::{
 use core::{convert::TryFrom, convert::TryInto, marker::PhantomData};
 use tinyvec::ArrayVec;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Seed<H: HashChain> {
     data: ArrayVec<[u8; MAX_SEED_LEN]>,
     phantom: PhantomData<H>,
@@ -106,7 +106,7 @@ impl<H: HashChain> SeedAndLmsTreeIdentifier<H> {
     }
 }
 
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, Eq)]
 pub struct ReferenceImplPrivateKey<H: HashChain> {
     pub compressed_used_leafs_indexes: CompressedUsedLeafsIndexes,
     pub compressed_parameter: CompressedParameterSet,
@@ -245,7 +245,7 @@ pub fn generate_signature_randomizer<H: HashChain>(
 
 const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub struct CompressedParameterSet([u8; MAX_ALLOWED_HSS_LEVELS]);
 
 impl Default for CompressedParameterSet {
@@ -311,7 +311,7 @@ impl CompressedParameterSet {
     }
 }
 
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, Eq)]
 pub struct CompressedUsedLeafsIndexes {
     count: u64,
 }

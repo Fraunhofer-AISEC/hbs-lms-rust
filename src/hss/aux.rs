@@ -176,7 +176,7 @@ pub fn hss_save_aux_data<H: HashChain>(
 pub fn hss_finalize_aux_data<H: HashChain>(data: &mut MutableExpandedAuxData, seed: &[u8]) {
     let aux_seed = compute_seed_derive::<H>(seed);
 
-    let mut hasher = compute_hmac_ipad::<H>(&aux_seed).chain(&data.level.to_be_bytes());
+    let mut hasher = compute_hmac_ipad::<H>(&aux_seed).chain(data.level.to_be_bytes());
 
     for i in 0..MAX_TREE_HEIGHT {
         if let Some(x) = data.data[i].as_mut() {
@@ -234,7 +234,7 @@ fn compute_hmac_ipad<H: HashChain>(key: &[u8]) -> H {
         .collect::<ArrayVec<[u8; MAX_HASH_SIZE]>>();
 
     H::default()
-        .chain(&key)
+        .chain(key)
         .chain(&IPAD_ARRAY[H::OUTPUT_SIZE.into()..H::BLOCK_SIZE.into()])
 }
 
@@ -249,9 +249,9 @@ fn compute_hmac_opad<H: HashChain>(hasher: &mut H, key: &[u8]) -> ArrayVec<[u8; 
         .collect::<ArrayVec<[u8; MAX_HASH_SIZE]>>();
 
     H::default()
-        .chain(&key)
+        .chain(key)
         .chain(&OPAD_ARRAY[H::OUTPUT_SIZE.into()..H::BLOCK_SIZE.into()])
-        .chain(&buffer)
+        .chain(buffer)
         .finalize_reset()
 }
 

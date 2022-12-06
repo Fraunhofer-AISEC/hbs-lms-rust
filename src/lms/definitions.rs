@@ -13,7 +13,7 @@ use tinyvec::ArrayVec;
 
 use super::parameters::LmsParameter;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct LmsPrivateKey<H: HashChain> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub used_leafs_index: u32,
@@ -58,7 +58,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct LmsPublicKey<H: HashChain> {
     pub key: ArrayVec<[u8; MAX_HASH_SIZE]>,
     pub lms_tree_identifier: LmsTreeIdentifier,

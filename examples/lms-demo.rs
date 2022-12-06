@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .arg(Arg::new(PARAMETER_PARAMETER).required(false).help(
                     "Specify LMS parameters (e.g. 15/4 (Treeheight 15 and Winternitz parameter 4))",
                 ).default_value("5/1"))
-                .arg(Arg::new(SEED_PARAMETER).long(SEED_PARAMETER).required(false).takes_value(true).value_name("seed")),
+                .arg(Arg::new(SEED_PARAMETER).long(SEED_PARAMETER).required(true).takes_value(true).value_name("seed")),
         )
         .subcommand(
             Command::new(VERIFY_COMMAND)

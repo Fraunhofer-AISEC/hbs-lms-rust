@@ -34,8 +34,8 @@ impl fmt::Display for DemoError {
 impl Error for DemoError {}
 
 impl DemoError {
-    pub fn raise<R>(message: &str) -> Result<R, Box<dyn Error>> {
-        Err(Box::new(Self(String::from(message))))
+    pub fn raise<R>(message: String) -> Result<R, Box<dyn Error>> {
+        Err(Box::new(Self(message)))
     }
 }
 
@@ -292,13 +292,18 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let seed: Seed<Hasher> = if let Some(seed) = args.value_of(SEED_PARAMETER) {
         let decoded = hex::decode(seed)?;
         if decoded.len() < Hasher::OUTPUT_SIZE as usize {
-            return DemoError::raise("Seed is too short");
+            let error = format!(
+                "Seed is too short ({} of {} required bytes)",
+                decoded.len(),
+                Hasher::OUTPUT_SIZE
+            );
+            return DemoError::raise(error);
         }
         let mut seed = Seed::default();
         seed.as_mut_slice().copy_from_slice(&decoded[..]);
         seed
     } else {
-        return DemoError::raise("Seed was not given");
+        return DemoError::raise("Seed was not given".to_string());
     };
 
     let mut aux_data = vec![0u8; genkey_parameter.aux_data];

@@ -169,7 +169,7 @@ impl<'a, H: HashChain> InMemoryHssSignature<'a, H> {
     }
 }
 
-#[derive(Default, Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq, Eq)]
 pub struct HssSignedPublicKey<H: HashChain> {
     pub sig: LmsSignature<H>,
     pub public_key: LmsPublicKey<H>,

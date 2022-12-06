@@ -18,7 +18,7 @@ use tinyvec::ArrayVec;
 use super::helper::get_tree_element;
 use super::parameters::LmsParameter;
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct LmsSignature<H: HashChain> {
     pub lms_leaf_identifier: LmsLeafIdentifier,
     pub lmots_signature: LmotsSignature<H>,

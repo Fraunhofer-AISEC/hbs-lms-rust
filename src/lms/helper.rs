@@ -22,8 +22,8 @@ pub fn get_tree_element<H: HashChain>(
     let max_private_keys = private_key.lms_parameter.number_of_lm_ots_keys();
 
     let hasher = H::default()
-        .chain(&private_key.lms_tree_identifier)
-        .chain(&(index as u32).to_be_bytes());
+        .chain(private_key.lms_tree_identifier)
+        .chain((index as u32).to_be_bytes());
 
     let result = if index >= max_private_keys {
         let lms_ots_private_key = lm_ots::keygen::generate_private_key(
@@ -35,7 +35,7 @@ pub fn get_tree_element<H: HashChain>(
         let lm_ots_public_key = lm_ots::keygen::generate_public_key(&lms_ots_private_key);
 
         hasher
-            .chain(&D_LEAF)
+            .chain(D_LEAF)
             .chain(lm_ots_public_key.key.as_slice())
             .finalize()
     } else {
@@ -43,7 +43,7 @@ pub fn get_tree_element<H: HashChain>(
         let right = get_tree_element(2 * index + 1, private_key, aux_data);
 
         hasher
-            .chain(&D_INTR)
+            .chain(D_INTR)
             .chain(left.as_slice())
             .chain(right.as_slice())
             .finalize()

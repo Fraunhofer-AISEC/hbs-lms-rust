@@ -205,7 +205,7 @@ fn reference_verify(temp_path: &TempDir) {
     let demo_path = get_demo_path();
 
     let result = Command::new(&demo_path)
-        .args(&["verify", KEY_NAME, MESSAGE_FILE_NAME])
+        .args(["verify", KEY_NAME, MESSAGE_FILE_NAME])
         .current_dir(temp_path)
         .output()
         .expect("Signing should succeed.");
@@ -225,7 +225,7 @@ fn reference_genkey(temp_path: &TempDir) {
     let demo_path = get_demo_path();
 
     let result = Command::new(&demo_path)
-        .args(&["genkey", KEY_NAME, PARAMETER])
+        .args(["genkey", KEY_NAME, PARAMETER])
         .current_dir(temp_path)
         .output()
         .expect("Reference key generation should succeed.");
@@ -246,7 +246,7 @@ fn reference_genkey_seed(temp_path: &TempDir, seed: &[u8]) {
     let i = String::from("i=") + &ascii;
 
     let result = Command::new(&demo_path)
-        .args(&["genkey", KEY_NAME, PARAMETER, &seed, &i])
+        .args(["genkey", KEY_NAME, PARAMETER, &seed, &i])
         .current_dir(temp_path)
         .output()
         .expect("Reference key generation should succeed.");
@@ -258,7 +258,7 @@ fn reference_sign(temp_path: &TempDir) {
     let demo_path = get_demo_path();
 
     let result = Command::new(&demo_path)
-        .args(&["sign", KEY_NAME, MESSAGE_FILE_NAME])
+        .args(["sign", KEY_NAME, MESSAGE_FILE_NAME])
         .current_dir(temp_path)
         .output()
         .expect("Reference signing should succeed.");

@@ -21,7 +21,7 @@ use {
 use super::definitions::LmotsPrivateKey;
 use super::parameters::LmotsParameter;
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct LmotsSignature<H: HashChain> {
     pub signature_randomizer: ArrayVec<[u8; MAX_HASH_SIZE]>,
     pub signature_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]>,
@@ -69,9 +69,9 @@ impl<H: HashChain> LmotsSignature<H> {
 
         lmots_parameter
             .get_hasher()
-            .chain(&private_key.lms_tree_identifier)
-            .chain(&private_key.lms_leaf_identifier)
-            .chain(&D_MESG)
+            .chain(private_key.lms_tree_identifier)
+            .chain(private_key.lms_leaf_identifier)
+            .chain(D_MESG)
             .chain(signature_randomizer)
             .chain(message)
     }
@@ -87,9 +87,9 @@ impl<H: HashChain> LmotsSignature<H> {
 
         let mut hasher = lmots_parameter
             .get_hasher()
-            .chain(&private_key.lms_tree_identifier)
-            .chain(&private_key.lms_leaf_identifier)
-            .chain(&D_MESG);
+            .chain(private_key.lms_tree_identifier)
+            .chain(private_key.lms_leaf_identifier)
+            .chain(D_MESG);
 
         if let Some(message_mut) = message_mut {
             let message_end = message_mut.len() - H::OUTPUT_SIZE as usize;
@@ -313,7 +313,7 @@ fn thread_optimize_message_hash<H: HashChain>(
     for _ in 0..MAX_HASH_OPTIMIZATIONS / THREADS {
         trial_randomizer = lmots_parameter
             .get_hasher()
-            .chain(&trial_randomizer)
+            .chain(trial_randomizer)
             .finalize();
 
         let message_hash: ArrayVec<[u8; MAX_HASH_SIZE]> = hasher

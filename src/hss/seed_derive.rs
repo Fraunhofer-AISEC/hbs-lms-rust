@@ -48,6 +48,6 @@ impl<'a, H: HashChain> SeedDerive<'a, H> {
             self.child_seed += 1;
         }
 
-        H::default().chain(&buffer).finalize()
+        H::default().chain(buffer).finalize()
     }
 }

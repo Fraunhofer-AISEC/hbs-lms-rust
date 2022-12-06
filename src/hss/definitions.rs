@@ -132,7 +132,7 @@ impl<H: HashChain> HssPrivateKey<H> {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub struct HssPublicKey<H: HashChain> {
     pub public_key: LmsPublicKey<H>,
     pub level: usize,

@@ -69,8 +69,8 @@ impl<H: HashChain> HashChainArray<H> {
 }
 
 #[allow(dead_code)]
-pub fn verify_signature_inmemory<'a, H: HashChain>(
-    signature: &InMemoryLmotsSignature<'a, H>,
+pub fn verify_signature_inmemory<H: HashChain>(
+    signature: &InMemoryLmotsSignature<'_, H>,
     public_key: &LmotsPublicKey<H>,
     message: &[u8],
 ) -> bool {
@@ -88,8 +88,8 @@ pub fn verify_signature_inmemory<'a, H: HashChain>(
     public_key_candidate == public_key.key
 }
 
-pub fn generate_public_key_candiate<'a, H: HashChain>(
-    signature: &InMemoryLmotsSignature<'a, H>,
+pub fn generate_public_key_candiate<H: HashChain>(
+    signature: &InMemoryLmotsSignature<'_, H>,
     lms_tree_identifier: &[u8],
     lms_leaf_identifier: u32,
     message: &[u8],

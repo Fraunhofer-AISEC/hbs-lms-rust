@@ -19,7 +19,7 @@ pub fn generate_private_key<H: HashChain>(
     for index in 0..lmots_parameter.get_hash_chain_count() {
         hasher.update(&lms_tree_identifier);
         hasher.update(&lms_leaf_identifier);
-        hasher.update(&(index as u16).to_be_bytes());
+        hasher.update(&index.to_be_bytes());
         hasher.update(&[0xff]);
         hasher.update(seed.as_slice());
 

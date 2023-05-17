@@ -196,9 +196,9 @@ pub fn hss_extract_aux_data<H: HashChain>(
     let level = core::mem::size_of::<usize>() * 8 - index.leading_zeros() as usize - 1;
     let lms_leaf_identifier: u32 = index as u32 - 2u32.pow(level as u32);
 
-    aux.data[level as usize].as_ref()?;
+    aux.data[level].as_ref()?;
 
-    let src = aux.data[level as usize].as_ref().unwrap();
+    let src = aux.data[level].as_ref().unwrap();
 
     let hash_size = H::OUTPUT_SIZE as usize;
 

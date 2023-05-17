@@ -204,7 +204,7 @@ fn own_verify(temp_path: &TempDir) {
 fn reference_verify(temp_path: &TempDir) {
     let demo_path = get_demo_path();
 
-    let result = Command::new(&demo_path)
+    let result = Command::new(demo_path)
         .args(["verify", KEY_NAME, MESSAGE_FILE_NAME])
         .current_dir(temp_path)
         .output()
@@ -224,7 +224,7 @@ fn create_message_file(temp_path: &TempDir) {
 fn reference_genkey(temp_path: &TempDir) {
     let demo_path = get_demo_path();
 
-    let result = Command::new(&demo_path)
+    let result = Command::new(demo_path)
         .args(["genkey", KEY_NAME, PARAMETER])
         .current_dir(temp_path)
         .output()
@@ -245,7 +245,7 @@ fn reference_genkey_seed(temp_path: &TempDir, seed: &[u8]) {
     let seed = String::from("seed=") + &ascii;
     let i = String::from("i=") + &ascii;
 
-    let result = Command::new(&demo_path)
+    let result = Command::new(demo_path)
         .args(["genkey", KEY_NAME, PARAMETER, &seed, &i])
         .current_dir(temp_path)
         .output()
@@ -257,7 +257,7 @@ fn reference_genkey_seed(temp_path: &TempDir, seed: &[u8]) {
 fn reference_sign(temp_path: &TempDir) {
     let demo_path = get_demo_path();
 
-    let result = Command::new(&demo_path)
+    let result = Command::new(demo_path)
         .args(["sign", KEY_NAME, MESSAGE_FILE_NAME])
         .current_dir(temp_path)
         .output()

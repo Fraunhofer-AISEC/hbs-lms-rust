@@ -58,8 +58,7 @@ impl<H: HashChain> HssPrivateKey<H> {
         hss_private_key.private_key.push(lms_private_key);
 
         for (i, parameter) in parameters.iter().enumerate().skip(1) {
-            let parent_used_leafs_index: u32 =
-                hss_private_key.private_key[i - 1].used_leafs_index as u32;
+            let parent_used_leafs_index: u32 = hss_private_key.private_key[i - 1].used_leafs_index;
 
             current_seed = generate_child_seed_and_lms_tree_identifier::<H>(
                 &current_seed,

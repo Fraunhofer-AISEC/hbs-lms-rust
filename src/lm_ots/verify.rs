@@ -78,7 +78,7 @@ pub fn verify_signature_inmemory<H: HashChain>(
         return false;
     }
 
-    let public_key_candidate = generate_public_key_candiate(
+    let public_key_candidate = generate_public_key_candidate(
         signature,
         &public_key.lms_tree_identifier,
         u32::from_be_bytes(public_key.lms_leaf_identifier),
@@ -88,7 +88,7 @@ pub fn verify_signature_inmemory<H: HashChain>(
     public_key_candidate == public_key.key
 }
 
-pub fn generate_public_key_candiate<H: HashChain>(
+pub fn generate_public_key_candidate<H: HashChain>(
     signature: &InMemoryLmotsSignature<'_, H>,
     lms_tree_identifier: &[u8],
     lms_leaf_identifier: u32,

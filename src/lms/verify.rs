@@ -19,7 +19,7 @@ pub fn verify<'a, H: HashChain>(
         return Err(());
     }
 
-    let public_key_canditate = generate_public_key_candiate(signature, public_key, message)?;
+    let public_key_canditate = generate_public_key_candidate(signature, public_key, message)?;
 
     if public_key_canditate.as_slice() == public_key.key {
         Ok(())
@@ -28,7 +28,7 @@ pub fn verify<'a, H: HashChain>(
     }
 }
 
-fn generate_public_key_candiate<'a, H: HashChain>(
+fn generate_public_key_candidate<'a, H: HashChain>(
     signature: &InMemoryLmsSignature<'a, H>,
     public_key: &InMemoryLmsPublicKey<'a, H>,
     message: &[u8],
@@ -40,7 +40,7 @@ fn generate_public_key_candiate<'a, H: HashChain>(
         return Err(());
     }
 
-    let ots_public_key_canditate = lm_ots::verify::generate_public_key_candiate(
+    let ots_public_key_canditate = lm_ots::verify::generate_public_key_candidate(
         &signature.lmots_signature,
         public_key.lms_tree_identifier,
         signature.lms_leaf_identifier,

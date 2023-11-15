@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ master ]
   push:
-    branches: [ master ]
+    branches: [ master, dist_state_mgmt ]
 
 env:
   MSRV: 1.57.0

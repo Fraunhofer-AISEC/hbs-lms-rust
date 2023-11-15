@@ -70,7 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - id: msrv
-        run: echo "::set-output name=msrv::$(grep rust-version Cargo.toml | cut -d'"' -f2-2)"
+        run: echo "msrv::$(grep rust-version Cargo.toml | cut -d'"' -f2-2)" >> $GITHUB_OUTPUT
 
   build:
     needs: set-msrv

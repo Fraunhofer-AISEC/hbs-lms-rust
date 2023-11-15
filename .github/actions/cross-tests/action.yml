@@ -14,12 +14,10 @@ runs:
   using: "composite"
   steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: ${{ inputs.rust }}
-          target: ${{ inputs.target }}
-          override: true
+          targets: ${{ inputs.target }}
       - uses: RustCrypto/actions/cross-install@master
       - run: |
           # cd ${{ inputs.package }} Not needed, as only a single crate is located in this repository

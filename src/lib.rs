@@ -90,6 +90,7 @@ mod hss;
 mod lm_ots;
 mod lms;
 mod util;
+mod sst;
 
 // Re-export the `signature` crate
 pub use signature::{self};
@@ -115,6 +116,9 @@ pub use crate::hss::hss_sign as sign;
 pub use crate::hss::hss_sign_mut as sign_mut;
 pub use crate::hss::hss_verify as verify;
 pub use crate::hss::{SigningKey, VerifyingKey};
+
+// @TODO: Re-export: API for distributed state management (SST, SingleSubTree)
+pub use crate::sst::*; // {gen_key, sign, verify};
 
 use core::convert::TryFrom;
 use signature::Error;

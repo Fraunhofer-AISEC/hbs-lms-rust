@@ -90,7 +90,7 @@ mod hss;
 mod lm_ots;
 mod lms;
 mod util;
-mod sst;
+pub mod sst;
 
 // Re-export the `signature` crate
 pub use signature::{self};

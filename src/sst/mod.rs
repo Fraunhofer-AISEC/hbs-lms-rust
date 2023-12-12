@@ -1,7 +1,8 @@
-/*
- * Description of the module/API
- */
+//! Module sst
 
-pub mod gen_key;
-pub mod sign;
-pub mod verify;
+mod gen_key;
+pub use gen_key::*;
+mod sign;
+pub use sign::*;
+mod verify;
+pub use verify::*;

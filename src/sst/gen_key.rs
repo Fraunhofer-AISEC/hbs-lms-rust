@@ -1,7 +1,7 @@
 //use crate::{signature::Error, HssParameter, Sha256_256};
 use crate::signature::Error;
 
-pub fn gen_hss_key() -> Result<(), Error> {
+pub fn gen_sst_subtree() -> Result<(), Error> {
     // @TODO: nyi
     Ok(())
 }

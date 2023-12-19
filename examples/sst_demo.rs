@@ -7,6 +7,7 @@ use std::{
     io::{Read, Write},
     process::exit,
 };
+use tinyvec::ArrayVec;
 
 const GENKEY_COMMAND: &str = "genkey";
 const VERIFY_COMMAND: &str = "verify";
@@ -15,10 +16,10 @@ const SIGN_COMMAND: &str = "sign";
 #[cfg(feature = "fast_verify")]
 const SIGN_MUT_COMMAND: &str = "sign_mut";
 
-const KEYNAME_PARAMETER: &str = "keyname";
-const MESSAGE_PARAMETER: &str = "file";
-const PARAMETER_PARAMETER: &str = "parameter";
-const SEED_PARAMETER: &str = "seed";
+const ARG_KEYNAME: &str = "keyname";
+const ARG_MESSAGE: &str = "file";
+const ARG_SSTS_PARAMETER: &str = "parameter";
+const ARG_SEED: &str = "seed";
 
 const AUX_DATA_DEFAULT_SIZE: usize = 100_000_000;
 
@@ -42,12 +43,12 @@ impl DemoError {
 type Hasher = Sha256_256;
 
 struct GenKeyParameter {
-    parameter: Vec<HssParameter<Hasher>>,
+    parameter: SstsParameter<Hasher>,
     aux_data: usize,
 }
 
 impl GenKeyParameter {
-    pub fn new(parameter: Vec<HssParameter<Hasher>>, aux_data: Option<usize>) -> Self {
+    pub fn new(parameter: SstsParameter<Hasher>, aux_data: Option<usize>) -> Self {
         let aux_data = aux_data.unwrap_or(AUX_DATA_DEFAULT_SIZE);
         Self {
             parameter,
@@ -58,6 +59,7 @@ impl GenKeyParameter {
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+
     let message = [32; 0]; // 32 elements init. with 0
     let _hss_key = match hbs_lms::sst::gen_sst_subtree() {
         // save aux data here or in gen_sst_subtree()? -> rather here, compare with lms-demo
@@ -81,35 +83,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("sst::verify failed");
         exit(1);
     }
+
     println!("sst::verify OK");
 
 
     // ********** code from "lms-demo.rs" to steal/import parameter parsing etc. **********
-    let command = Command::new("LMS Demo")
-    .about("Generates a LMS key pair")
+    let command = Command::new("SSTS Demo")
+    .about("Generates SSTS keys and uses them for signing and verifying.")
     .subcommand(
         Command::new(GENKEY_COMMAND)
-            .arg(Arg::new(KEYNAME_PARAMETER).required(true))
-            .arg(Arg::new(PARAMETER_PARAMETER).required(false).help(
-                "Specify LMS parameters (e.g. 15/4 (Treeheight 15 and Winternitz parameter 4))",
-            ).default_value("5/1"))
-            .arg(Arg::new(SEED_PARAMETER).long(SEED_PARAMETER).required(true).takes_value(true).value_name("seed")),
+            .arg(Arg::new(ARG_KEYNAME).required(true))
+            .arg(Arg::new(ARG_SSTS_PARAMETER).required(true).help(
+                "Specify LMS parameters (e.g. 5/4/2 (tree height 5, Winternitz parameter 4, top height 2))"))
+            .arg(Arg::new(ARG_SEED).long(ARG_SEED).required(true).takes_value(true).value_name("seed")),
     )
     .subcommand(
         Command::new(VERIFY_COMMAND)
-        .arg(Arg::new(KEYNAME_PARAMETER).required(true))
-        .arg(Arg::new(MESSAGE_PARAMETER).required(true).help("File to verify")))
+        .arg(Arg::new(ARG_KEYNAME).required(true))
+        .arg(Arg::new(ARG_MESSAGE).required(true).help("File to verify")))
     .subcommand(
         Command::new(SIGN_COMMAND)
-        .arg(Arg::new(KEYNAME_PARAMETER).required(true))
-        .arg(Arg::new(MESSAGE_PARAMETER).required(true))
+        .arg(Arg::new(ARG_KEYNAME).required(true))
+        .arg(Arg::new(ARG_MESSAGE).required(true))
     );
 
     #[cfg(feature = "fast_verify")]
     let command = command.subcommand(
         Command::new(SIGN_MUT_COMMAND)
-            .arg(Arg::new(KEYNAME_PARAMETER).required(true))
-            .arg(Arg::new(MESSAGE_PARAMETER).required(true)),
+            .arg(Arg::new(ARG_KEYNAME).required(true))
+            .arg(Arg::new(ARG_MESSAGE).required(true)),
     );
 
     let matches = command.get_matches();
@@ -151,8 +153,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
 fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
-    let keyname = get_parameter(KEYNAME_PARAMETER, args);
-    let message_name = get_parameter(MESSAGE_PARAMETER, args);
+    let keyname = get_parameter(ARG_KEYNAME, args);
+    let message_name = get_parameter(ARG_MESSAGE, args);
 
     let private_key_name = get_private_key_name(&keyname);
     let signature_name = get_signature_name(&message_name);
@@ -199,8 +201,8 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
 
 #[cfg(feature = "fast_verify")]
 fn sign_mut(args: &ArgMatches) -> Result<(), std::io::Error> {
-    let keyname = get_parameter(KEYNAME_PARAMETER, args);
-    let message_name = get_parameter(MESSAGE_PARAMETER, args);
+    let keyname = get_parameter(ARG_KEYNAME, args);
+    let message_name = get_parameter(ARG_MESSAGE, args);
 
     let private_key_name = get_private_key_name(&keyname);
 
@@ -258,8 +260,8 @@ fn sign_mut(args: &ArgMatches) -> Result<(), std::io::Error> {
 }
 
 fn verify(args: &ArgMatches) -> bool {
-    let keyname: String = get_parameter(KEYNAME_PARAMETER, args);
-    let message_name: String = get_parameter(MESSAGE_PARAMETER, args);
+    let keyname: String = get_parameter(ARG_KEYNAME, args);
+    let message_name: String = get_parameter(ARG_MESSAGE, args);
 
     let public_key_name = get_public_key_name(&keyname);
     let signature_name = get_signature_name(&message_name);
@@ -315,12 +317,12 @@ fn read_file(file_name: &str) -> Vec<u8> {
 }
 
 fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
-    let keyname: String = get_parameter(KEYNAME_PARAMETER, args);
+    let keyname: String = get_parameter(ARG_KEYNAME, args);
 
-    let genkey_parameter = parse_genkey_parameter(&get_parameter(PARAMETER_PARAMETER, args));
+    let genkey_parameter = parse_genkey_parameter(&get_parameter(ARG_SSTS_PARAMETER, args));
     let parameter = genkey_parameter.parameter;
 
-    let seed: Seed<Hasher> = if let Some(seed) = args.value_of(SEED_PARAMETER) {
+    let seed: Seed<Hasher> = if let Some(seed) = args.value_of(ARG_SEED) {
         let decoded = hex::decode(seed)?;
         if decoded.len() < Hasher::OUTPUT_SIZE as usize {
             let error = format!(
@@ -340,7 +342,10 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let mut aux_data = vec![0u8; genkey_parameter.aux_data];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    let (signing_key, verifying_key) = keygen(&parameter, &seed, Some(aux_slice))
+    // to fix for time being, provide HssParameter param as vector
+    let hss_params= parameter.get_hss_parameters();
+
+    let (signing_key, verifying_key) = keygen(hss_params, &seed, Some(aux_slice))
         .unwrap_or_else(|_| panic!("Could not generate keys"));
 
     let public_key_filename = get_public_key_name(&keyname);
@@ -356,9 +361,10 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
-    let mut result = Vec::new();
+    let mut vec_hss_params: ArrayVec<[_; 5]> = Default::default();
 
     let mut aux_data_size: Option<usize> = None;
+    let mut top_part_height : u8 = 0; // @TODO later as option
 
     let parameter = if parameter.contains(':') {
         let mut splitted = parameter.split(':');
@@ -375,25 +381,37 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
         parameter
     };
 
-    // "," is supposed to split several HSS levels? 10/2,10/2,10/2 for three levels with tree=10 and w=2?
+    // "," is supposed to split several HSS levels; 10/2,10/2,10/2 for three levels with tree=10 and w=2
     let parameters = parameter.split(',');
 
     for parameter in parameters {
+        // for now we check and abort if several HSS params provided; leave the HSS-param-loop for use in future
+        if vec_hss_params.len() >= 1 {
+            break;
+        }
+
         let mut splitted = parameter.split('/');
 
         let height = splitted
             .next()
-            .expect("Merkle tree height not correct specified");
+            .expect("Merkle tree height invalid");
         let winternitz_parameter = splitted
             .next()
-            .expect("Winternitz parameter not correct specified");
+            .expect("Winternitz parameter invalid");
+        let tmp_top_part_height = splitted
+            .next()
+            .expect("Top part height invalid");
 
         let height: u8 = height
             .parse()
-            .expect("Merkle tree height not correct specified");
+            .expect("Merkle tree height invalid");
         let winternitz_parameter: u8 = winternitz_parameter
             .parse()
             .expect("Winternitz parameter not correct specified");
+
+        top_part_height = tmp_top_part_height
+            .parse()
+            .expect("Top part height invalid");
 
         let lm_ots = match winternitz_parameter {
             1 => LmotsAlgorithm::LmotsW1,
@@ -412,11 +430,13 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
             _ => panic!("Height not supported"),
         };
 
-        let parameter = HssParameter::new(lm_ots, lms);
-        result.push(parameter);
+        let hss_parameters = HssParameter::new(lm_ots, lms);
+        vec_hss_params.push(hss_parameters);
     }
 
-    GenKeyParameter::new(result, aux_data_size)
+    let ssts_param = SstsParameter::new(vec_hss_params, top_part_height);
+
+    GenKeyParameter::new(ssts_param, aux_data_size)
 }
 
 fn write(filename: &str, content: &[u8]) -> Result<(), std::io::Error> {

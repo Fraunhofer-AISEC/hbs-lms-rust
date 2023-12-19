@@ -119,6 +119,8 @@ pub use crate::hss::{SigningKey, VerifyingKey};
 
 // @TODO: Re-export: API for distributed state management (SST, SingleSubTree)
 pub use crate::sst::*; // {gen_key, sign, verify};
+pub use crate::sst::parameters::SstsParameter;
+
 
 use core::convert::TryFrom;
 use signature::Error;

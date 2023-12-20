@@ -13,7 +13,7 @@ use crate::{
 };
 
 // parameters
-pub fn gen_sst_subtree<H: HashChain>(top_height: u8, hss_param: &HssParameter<H>, seed: &Seed<H>, entity_idx: u8 )
+pub fn gen_sst_subtree<H: HashChain>(top_height: u8, entity_idx: u8, hss_param: &HssParameter<H>, seed: &Seed<H>)
     //-> Result<ArrayVec<[u8; MAX_HASH_SIZE]>, Error> {
     -> ArrayVec<[u8; MAX_HASH_SIZE]> {
     // @TODO: nyi

@@ -10,18 +10,20 @@ use tinyvec::ArrayVec;
 pub struct SstsParameter<H: HashChain> {
     hss_parameters: ArrayVec<[HssParameter<H>; 5]>, // @TODO replace 5 with some defined constant; currently min=max=1
     top_height: u8,
+    entity_idx: u8, // starting with 1
 }
 
 
 impl<H: HashChain> Copy for SstsParameter<H> {}
 
 impl<H: HashChain> SstsParameter<H> {
-    pub fn new(hss_params: ArrayVec<[HssParameter<H>; 5]>, top_height: u8) -> Self {
+    pub fn new(hss_params: ArrayVec<[HssParameter<H>; 5]>, top_height: u8, entity_idx: u8) -> Self {
 
         SstsParameter {
             hss_parameters: hss_params,
             top_height, // e.g. LMS height of 5 and top_height 3, we divide 3/3 (we consider one node as part of both tree parts)
                         // would give us 2^3 = 8 signing entities
+            entity_idx,
         }
     }
 
@@ -31,6 +33,10 @@ impl<H: HashChain> SstsParameter<H> {
 
     pub fn get_top_height(&self) -> u8 {
         self.top_height
+    }
+
+    pub fn get_entity_idx(&self) -> u8 {
+        self.entity_idx
     }
 }
 

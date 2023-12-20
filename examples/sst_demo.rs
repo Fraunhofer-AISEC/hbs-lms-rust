@@ -43,15 +43,15 @@ impl DemoError {
 type Hasher = Sha256_256;
 
 struct GenKeyParameter {
-    parameter: SstsParameter<Hasher>,
+    ssts_param: SstsParameter<Hasher>,
     aux_data: usize,
 }
 
 impl GenKeyParameter {
-    pub fn new(parameter: SstsParameter<Hasher>, aux_data: Option<usize>) -> Self {
+    pub fn new(ssts_param: SstsParameter<Hasher>, aux_data: Option<usize>) -> Self {
         let aux_data = aux_data.unwrap_or(AUX_DATA_DEFAULT_SIZE);
         Self {
-            parameter,
+            ssts_param,
             aux_data,
         }
     }
@@ -61,12 +61,13 @@ impl GenKeyParameter {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let message = [32; 0]; // 32 elements init. with 0
+    /*
     let _hss_key = match hbs_lms::sst::gen_sst_subtree() {
         // save aux data here or in gen_sst_subtree()? -> rather here, compare with lms-demo
         Ok(_) => println!("sst::gen_sst_subtree OK"),
         Err(error) => panic!("sst::gen_sst_subtree error {:?}", error),
     };
-
+    */
     let _sst_pubkey = match hbs_lms::sst::gen_sst_pubkey() {
         Ok(_) => println!("sst::gen_key OK"),
         Err(error) => panic!("sst::gen_key: error {:?}", error),
@@ -320,7 +321,7 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let keyname: String = get_parameter(ARG_KEYNAME, args);
 
     let genkey_parameter = parse_genkey_parameter(&get_parameter(ARG_SSTS_PARAMETER, args));
-    let parameter = genkey_parameter.parameter;
+    let ssts_param = genkey_parameter.ssts_param;
 
     let seed: Seed<Hasher> = if let Some(seed) = args.value_of(ARG_SEED) {
         let decoded = hex::decode(seed)?;
@@ -343,7 +344,36 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
     // to fix for time being, provide HssParameter param as vector
-    let hss_params= parameter.get_hss_parameters();
+    let hss_params= ssts_param.get_hss_parameters();
+
+    let num_signing_entities = 2_u32.pow(genkey_parameter.ssts_param.get_top_height() as u32);
+    let mut signing_entities_pubkey = Vec::<ArrayVec<[u8; MAX_HASH_SIZE]>>::with_capacity(num_signing_entities as usize);
+    let mut entity_idx = 0;
+    for signing_entity in &mut signing_entities_pubkey {
+        // @TODO move nach key_gen.rs
+        let mut node_value = ArrayVec::from([0u8; MAX_HASH_SIZE]);
+        entity_idx += 1;
+        node_value = gen_sst_subtree(genkey_parameter.ssts_param.get_top_height(), &hss_params[0], &seed, entity_idx );
+        // @TODO work:
+        // 1. - create key for "get_tree_element()"" with seed -- we need different seeds!
+        //      call lms::generate_key_pair ? I think except the seed, all parameters for key-gen are irrelevant
+        /*let seed : SeedAndLmsTreeIdentifier<H>,
+        parameter: &HssParameter<H>,
+        used_leafs_index: &u32,
+        aux_data: &mut Option<MutableExpandedAuxData>,*/
+        //let mut seed_and_lms_tree_identifier = hbs_lms::SeedAndLmsTreeIdentifier::default();
+        //OsRng.fill_bytes(seed_and_lms_tree_identifier.seed.as_mut_slice());
+        /*let mut private_key = hbs_lms::LmsPrivateKey::new(
+            seed_and_lms_tree_identifier.seed.clone(),
+            seed_and_lms_tree_identifier.lms_tree_identifier,
+            0,
+            LmotsAlgorithm::construct_default_parameter(),
+            LmsAlgorithm::construct_default_parameter(),
+        );*/
+
+        // 2. - call get_tree_element(idx, LmsPrivateKey, None)
+        *signing_entity = node_value;
+    }
 
     let (signing_key, verifying_key) = keygen(hss_params, &seed, Some(aux_slice))
         .unwrap_or_else(|_| panic!("Could not generate keys"));
@@ -409,6 +439,7 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
             .parse()
             .expect("Winternitz parameter not correct specified");
 
+        // @TODO check: invalid if "height - top_part_height < 1"
         top_part_height = tmp_top_part_height
             .parse()
             .expect("Top part height invalid");

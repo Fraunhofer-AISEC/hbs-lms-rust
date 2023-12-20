@@ -13,15 +13,15 @@ pub struct SstsParameter<H: HashChain> {
 }
 
 
-// @TODO: necessary? currently apparently not
-// impl<H: HashChain> Copy for SstsParameter<H> {}
+impl<H: HashChain> Copy for SstsParameter<H> {}
 
 impl<H: HashChain> SstsParameter<H> {
     pub fn new(hss_params: ArrayVec<[HssParameter<H>; 5]>, top_height: u8) -> Self {
 
         SstsParameter {
             hss_parameters: hss_params,
-            top_height,
+            top_height, // e.g. LMS height of 5 and top_height 3, we divide 3/3 (we consider one node as part of both tree parts)
+                        // would give us 2^3 = 8 signing entities
         }
     }
 

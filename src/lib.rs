@@ -127,6 +127,8 @@ use signature::Error;
 use tinyvec::ArrayVec;
 
 use constants::MAX_HSS_SIGNATURE_LENGTH;
+// @TODO review: okay in API?
+pub use crate::constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
 
 /**
  * Implementation of [`signature::Signature`].

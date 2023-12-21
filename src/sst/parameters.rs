@@ -1,6 +1,7 @@
 use crate::{
     hasher::HashChain,
     hss::parameter::HssParameter,
+    constants,
 };
 
 use tinyvec::ArrayVec;
@@ -8,7 +9,7 @@ use tinyvec::ArrayVec;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct SstsParameter<H: HashChain> {
-    hss_parameters: ArrayVec<[HssParameter<H>; 5]>, // @TODO replace 5 with some defined constant; currently min=max=1
+    hss_parameters: ArrayVec<[HssParameter<H>; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]>,
     top_height: u8,
     entity_idx: u8, // starting with 1
 }
@@ -17,7 +18,7 @@ pub struct SstsParameter<H: HashChain> {
 impl<H: HashChain> Copy for SstsParameter<H> {}
 
 impl<H: HashChain> SstsParameter<H> {
-    pub fn new(hss_params: ArrayVec<[HssParameter<H>; 5]>, top_height: u8, entity_idx: u8) -> Self {
+    pub fn new(hss_params: ArrayVec<[HssParameter<H>; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]>, top_height: u8, entity_idx: u8) -> Self {
 
         SstsParameter {
             hss_parameters: hss_params,
@@ -27,7 +28,7 @@ impl<H: HashChain> SstsParameter<H> {
         }
     }
 
-    pub fn get_hss_parameters(&self) -> &ArrayVec<[HssParameter<H>; 5]> {
+    pub fn get_hss_parameters(&self) -> &ArrayVec<[HssParameter<H>; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> {
         &self.hss_parameters
     }
 

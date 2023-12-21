@@ -9,7 +9,8 @@ use std::{
 };
 use tinyvec::ArrayVec;
 
-const GENKEY_COMMAND: &str = "genkey";
+const GENSUBTREE_COMMAND: &str = "gensubtree";
+const GENSSTS_COMMAND: &str = "genssts";
 const VERIFY_COMMAND: &str = "verify";
 const SIGN_COMMAND: &str = "sign";
 
@@ -92,12 +93,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let command = Command::new("SSTS Demo")
     .about("Generates SSTS keys and uses them for signing and verifying.")
     .subcommand(
-        Command::new(GENKEY_COMMAND)
+        Command::new(GENSUBTREE_COMMAND)
             .arg(Arg::new(ARG_KEYNAME).required(true))
             .arg(Arg::new(ARG_SSTS_PARAMETER).required(true).help(
-                "Specify LMS parameters (e.g. 5/4/2 (tree height 5, Winternitz parameter 4, top height 2))"))
+                "Specify LMS parameters (e.g. 5/4/2/1 (tree height = 5, Winternitz parameter = 4, top height = 2, signing entity = 1))"))
             .arg(Arg::new(ARG_SEED).long(ARG_SEED).required(true).takes_value(true).value_name("seed")),
     )
+    .subcommand(
+        Command::new(GENSSTS_COMMAND)
+        .arg(Arg::new(ARG_KEYNAME).required(true))
+        .arg(Arg::new(ARG_MESSAGE).required(true).help("Configuration file for SSTS generation")))
     .subcommand(
         Command::new(VERIFY_COMMAND)
         .arg(Arg::new(ARG_KEYNAME).required(true))
@@ -117,27 +122,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let matches = command.get_matches();
 
-    if let Some(args) = matches.subcommand_matches(GENKEY_COMMAND) {
-        genkey(args)?;
-        println!("Keys successful generated!");
+    if let Some(args) = matches.subcommand_matches(GENSUBTREE_COMMAND) {
+        gen_key_subtree(args)?;
+        println!("Subtree successfully generated!");
+        return Ok(());
+    }
+
+    if let Some(args) = matches.subcommand_matches(GENSUBTREE_COMMAND) {
+        gen_key_ssts(args)?;
+        println!("Single-subtree-structure successfully generated!");
+        return Ok(());
+    }
+
+    if let Some(args) = matches.subcommand_matches(SIGN_COMMAND) {
+        sign(args)?;
+        println!("Signature successfully generated!");
         return Ok(());
     }
 
     if let Some(args) = matches.subcommand_matches(VERIFY_COMMAND) {
         let result = verify(args);
         if result {
-            println!("Successful!");
+            println!("Verification successful!");
             exit(0);
         } else {
             println!("Wrong signature");
             exit(-1);
         }
-    }
-
-    if let Some(args) = matches.subcommand_matches(SIGN_COMMAND) {
-        sign(args)?;
-        println!("Signature successful generated!");
-        return Ok(());
     }
 
     #[cfg(feature = "fast_verify")]
@@ -147,10 +158,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-
     Ok(())
 }
-
 
 
 fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
@@ -317,7 +326,7 @@ fn read_file(file_name: &str) -> Vec<u8> {
     data
 }
 
-fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+fn gen_key_subtree(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let keyname: String = get_parameter(ARG_KEYNAME, args);
 
     let genkey_parameter = parse_genkey_parameter(&get_parameter(ARG_SSTS_PARAMETER, args));
@@ -349,26 +358,11 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     //let num_signing_entities = 2_u32.pow(genkey_parameter.ssts_param.get_top_height() as u32);
 
     let mut node_value = ArrayVec::from([0u8; MAX_HASH_SIZE]);
-    node_value = gen_sst_subtree(genkey_parameter.ssts_param.get_top_height(), genkey_parameter.ssts_param.get_entity_idx(), &hss_params[0], &seed);
-    // @TODO work:
-    // 1. - create key for "get_tree_element()"" with seed -- we need different seeds!
-    //      call lms::generate_key_pair ? I think except the seed, all parameters for key-gen are irrelevant
-    /*let seed : SeedAndLmsTreeIdentifier<H>,
-    parameter: &HssParameter<H>,
-    used_leafs_index: &u32,
-    aux_data: &mut Option<MutableExpandedAuxData>,*/
-    //let mut seed_and_lms_tree_identifier = hbs_lms::SeedAndLmsTreeIdentifier::default();
-    //OsRng.fill_bytes(seed_and_lms_tree_identifier.seed.as_mut_slice());
-    /*let mut private_key = hbs_lms::LmsPrivateKey::new(
-        seed_and_lms_tree_identifier.seed.clone(),
-        seed_and_lms_tree_identifier.lms_tree_identifier,
-        0,
-        LmotsAlgorithm::construct_default_parameter(),
-        LmsAlgorithm::construct_default_parameter(),
-    );*/
+    node_value = gen_sst_subtree(genkey_parameter.ssts_param.get_top_height(), genkey_parameter.ssts_param.get_entity_idx(), &hss_params[0], &seed)
+        .unwrap_or_else(|_| panic!("Could not generate keys"));
 
-    // 2. - call get_tree_element(idx, LmsPrivateKey, None)
 
+    // we have to break here to get the params for the key generation second step (i.e. whole tree generation)
 
     let (signing_key, verifying_key) = keygen(hss_params, &seed, Some(aux_slice))
         .unwrap_or_else(|_| panic!("Could not generate keys"));
@@ -385,8 +379,12 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn gen_key_ssts(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+    Ok(())
+}
+
 fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
-    let mut vec_hss_params: ArrayVec<[_; 5]> = Default::default();
+    let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
 
     let mut aux_data_size: Option<usize> = None;
     let mut top_part_height : u8 = 0; // @TODO later as option
@@ -444,7 +442,7 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
         top_part_height = s_top_part_height
             .parse()
             .expect("Top part height invalid");
-        // @TODO check: invalid if ...
+        // @TODO check: invalid if ...dep. on height and top_part_height
         entity_idx = s_entity_idx
             .parse()
             .expect("Signing entity index invalid");
@@ -470,8 +468,14 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
         vec_hss_params.push(hss_parameters);
     }
 
+    // @TODO how do I know whether this "vec_hss_params" is a move, and if not, how to achieve (avoid implicit "Copy")?
+    // ArrayVec implements trait "Clone", but I'm not sure about "Copy" (implicit)
     let ssts_param = SstsParameter::new(vec_hss_params, top_part_height, entity_idx);
+    // this here shouldn't be possible in case of "move", because then we don't have ownership anymore:
+    //let vec_hss_param_test: HssParameter<Sha256_256> = HssParameter::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
+    //vec_hss_params.push(vec_hss_param_test);
 
+    // same here: move or copy?
     GenKeyParameter::new(ssts_param, aux_data_size)
 }
 

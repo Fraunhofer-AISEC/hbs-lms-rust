@@ -15,6 +15,15 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 use super::parameters::LmsParameter;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
+pub struct SstExtension {
+    // for using only a part of the whole LMS's leaves, we need
+    // - our subtree height -> number of leaves! (total height + )
+    // - our instance number to calc. starting leaf -> put into "used_leafs_index" !!
+    pub signing_instance: u8,   // @TODO review: assuming we won't have > 128
+    pub top_tree_height: u8,    // TODO if used often to calc. num of leaves or similar, then use calculated value
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct LmsPrivateKey<H: HashChain> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub used_leafs_index: u32,
@@ -23,6 +32,7 @@ pub struct LmsPrivateKey<H: HashChain> {
     pub lmots_parameter: LmotsParameter<H>,
     #[zeroize(skip)]
     pub lms_parameter: LmsParameter<H>,
+    pub sst_ext: Option<SstExtension>,
 }
 
 impl<H: HashChain> LmsPrivateKey<H> {
@@ -32,13 +42,16 @@ impl<H: HashChain> LmsPrivateKey<H> {
         used_leafs_index: u32,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
+        sst_ext: Option<SstExtension>
     ) -> Self {
+        //let tmp_sst_ext = sst_ext.unwrap_or_else(|| SstExtension { signing_instance: 0, top_tree_height: 0 });
         LmsPrivateKey {
             seed,
             lms_tree_identifier,
             used_leafs_index,
             lmots_parameter,
             lms_parameter,
+            sst_ext
         }
     }
 
@@ -172,6 +185,7 @@ mod tests {
             0,
             LmotsAlgorithm::construct_default_parameter(),
             LmsAlgorithm::construct_default_parameter(),
+            None
         );
 
         let public_key = LmsPublicKey::new(&private_key, &mut None);

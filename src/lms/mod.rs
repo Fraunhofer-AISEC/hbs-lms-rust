@@ -31,6 +31,7 @@ pub fn generate_key_pair<H: HashChain>(
         *used_leafs_index,
         *lmots_parameter,
         *lms_parameter,
+        None,
     );
     let public_key = LmsPublicKey::new(&private_key, aux_data);
 

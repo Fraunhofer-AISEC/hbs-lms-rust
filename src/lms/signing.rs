@@ -233,6 +233,7 @@ mod tests {
             0,
             LmotsAlgorithm::construct_default_parameter(),
             LmsAlgorithm::construct_default_parameter(),
+            None,
         );
 
         let message = "Hi, what up?".as_bytes();

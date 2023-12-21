@@ -10,7 +10,7 @@ use crate::{
     },
     lms::{
         self,
-        definitions::{InMemoryLmsPublicKey, LmsPrivateKey, LmsPublicKey},
+        definitions::{InMemoryLmsPublicKey, LmsPrivateKey, LmsPublicKey, SstExtension},
         generate_key_pair,
         parameters::LmsParameter,
     },
@@ -54,6 +54,7 @@ impl<H: HashChain> HssPrivateKey<H> {
             lmots_parameter: *parameters[0].get_lmots_parameter(),
             lms_parameter: *parameters[0].get_lms_parameter(),
             used_leafs_index: used_leafs_indexes[0],
+            sst_ext: None
         };
         hss_private_key.private_key.push(lms_private_key);
 

@@ -357,8 +357,8 @@ fn gen_key_subtree(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
 
     //let num_signing_entities = 2_u32.pow(genkey_parameter.ssts_param.get_top_height() as u32);
 
-    let mut node_value = ArrayVec::from([0u8; MAX_HASH_SIZE]);
-    node_value = gen_sst_subtree(genkey_parameter.ssts_param.get_top_height(), genkey_parameter.ssts_param.get_entity_idx(), &hss_params[0], &seed)
+    let mut _node_value = ArrayVec::from([0u8; MAX_HASH_SIZE]);
+    _node_value = gen_sst_subtree(genkey_parameter.ssts_param.get_top_height(), genkey_parameter.ssts_param.get_entity_idx(), &hss_params[0], &seed)
         .unwrap_or_else(|_| panic!("Could not generate keys"));
 
 
@@ -379,7 +379,7 @@ fn gen_key_subtree(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
-fn gen_key_ssts(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+fn gen_key_ssts(_args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
@@ -387,8 +387,6 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
     let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
 
     let mut aux_data_size: Option<usize> = None;
-    let mut top_part_height : u8 = 0; // @TODO later as option
-    let mut entity_idx : u8 = 0; // @TODO later as option
 
     let parameter = if parameter.contains(':') {
         let mut splitted = parameter.split(':');
@@ -405,16 +403,12 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
         parameter
     };
 
-    // "," is supposed to split several HSS levels; 10/2,10/2,10/2 for three levels with tree=10 and w=2
     let parameters = parameter.split(',');
     let mut entity_idx: u8 = 0;
     let mut top_part_height: u8 = 0;
+    let mut is_first_loop = true;
 
     for parameter in parameters {
-        // for now we check and abort if several HSS params provided; leave the HSS-param-loop for use in future
-        if vec_hss_params.len() >= 1 {
-            break;
-        }
 
         let mut splitted = parameter.split('/');
 
@@ -424,12 +418,6 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
         let winternitz_parameter = splitted
             .next()
             .expect("Winternitz parameter invalid");
-        let s_top_part_height = splitted
-            .next()
-            .expect("Top part height invalid");
-        let s_entity_idx = splitted
-            .next()
-            .expect("Top part height invalid");
 
         let height: u8 = height
             .parse()
@@ -437,15 +425,24 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
         let winternitz_parameter: u8 = winternitz_parameter
             .parse()
             .expect("Winternitz parameter not correct specified");
-        // @TODO check: only optional, and only in first loop
-        // @TODO check: invalid if "height - top_part_height < 1"
-        top_part_height = s_top_part_height
-            .parse()
-            .expect("Top part height invalid");
-        // @TODO check: invalid if ...dep. on height and top_part_height
-        entity_idx = s_entity_idx
-            .parse()
-            .expect("Signing entity index invalid");
+
+        if true == is_first_loop {
+            is_first_loop = false;
+            if let Some(s_top_part_height) = splitted.next() {
+                // if we have a top_part_height, we also need an entity idx
+                let s_entity_idx = splitted
+                    .next()
+                    .expect("Top part height provided, but signing entity number missing.");
+                // @TODO check: invalid if "height - top_part_height < 1"
+                top_part_height = s_top_part_height
+                    .parse()
+                    .expect("Top part height invalid");
+                // @TODO check: invalid if ...dep. on height and top_part_height
+                entity_idx = s_entity_idx
+                    .parse()
+                    .expect("Signing entity index invalid");
+            }
+        }
 
         let lm_ots = match winternitz_parameter {
             1 => LmotsAlgorithm::LmotsW1,

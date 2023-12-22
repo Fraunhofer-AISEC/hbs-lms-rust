@@ -14,8 +14,7 @@ use crate::{
 
 // parameters
 pub fn gen_sst_subtree<H: HashChain>(top_height: u8, entity_idx: u8, hss_param: &HssParameter<H>, seed: &Seed<H>)
-    //-> Result<ArrayVec<[u8; MAX_HASH_SIZE]>, Error> {
-    -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+    -> Result<ArrayVec<[u8; MAX_HASH_SIZE]>, Error> {
     // @TODO: nyi
     // 1. we need an HSS SigningKey/VerifyingKey ; pretend to have a full LMS here to fulfill
     //    param. requirements for existing functions.
@@ -50,8 +49,7 @@ pub fn gen_sst_subtree<H: HashChain>(top_height: u8, entity_idx: u8, hss_param: 
     //);
     // 2. - call get_tree_element(idx, LmsPrivateKey, None)
 
-    //Ok(node_value)
-    node_value
+    Ok(node_value)
 }
 
 /// Parameters:

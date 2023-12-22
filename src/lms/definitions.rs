@@ -7,6 +7,8 @@ use crate::lms::parameters::LmsAlgorithm;
 use crate::lms::MutableExpandedAuxData;
 use crate::util::helper::read_and_advance;
 use crate::{lm_ots, Seed};
+use crate::sst::helper::get_sst_first_leaf_idx;
+use crate::sst::helper::get_sst_last_leaf_idx;
 
 use core::convert::TryInto;
 use tinyvec::ArrayVec;
@@ -16,11 +18,8 @@ use super::parameters::LmsParameter;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct SstExtension {
-    // for using only a part of the whole LMS's leaves, we need
-    // - our subtree height -> number of leaves! (total height + )
-    // - our instance number to calc. starting leaf -> put into "used_leafs_index" !!
     pub signing_instance: u8,   // @TODO review: assuming we won't have > 128
-    pub top_tree_height: u8,    // TODO if used often to calc. num of leaves or similar, then use calculated value
+    pub top_tree_height: u8,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
@@ -44,11 +43,16 @@ impl<H: HashChain> LmsPrivateKey<H> {
         lms_parameter: LmsParameter<H>,
         sst_ext: Option<SstExtension>
     ) -> Self {
-        //let tmp_sst_ext = sst_ext.unwrap_or_else(|| SstExtension { signing_instance: 0, top_tree_height: 0 });
+        let mut my_used_leafs_index = used_leafs_index;
+        if let Some(my_sst_ext) = &sst_ext {
+            assert_eq!(used_leafs_index, 0); // make sure we are getting initialized
+            my_used_leafs_index = get_sst_first_leaf_idx(my_sst_ext.signing_instance, lms_parameter.get_tree_height(), my_sst_ext.top_tree_height)
+        }
+
         LmsPrivateKey {
             seed,
             lms_tree_identifier,
-            used_leafs_index,
+            used_leafs_index: my_used_leafs_index,
             lmots_parameter,
             lms_parameter,
             sst_ext
@@ -56,9 +60,16 @@ impl<H: HashChain> LmsPrivateKey<H> {
     }
 
     pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey<H>, ()> {
-        let number_of_lm_ots_keys = self.lms_parameter.number_of_lm_ots_keys();
+        let number_of_lm_ots_keys = {
+            if let Some(my_sst_ext) = &self.sst_ext {
+                get_sst_last_leaf_idx(my_sst_ext.signing_instance, self.lms_parameter.get_tree_height(), my_sst_ext.top_tree_height)
+            }
+            else {
+                self.lms_parameter.number_of_lm_ots_keys() as u32
+            }
+        };
 
-        if self.used_leafs_index as usize >= number_of_lm_ots_keys {
+        if self.used_leafs_index >= number_of_lm_ots_keys {
             return Err(());
         }
 

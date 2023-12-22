@@ -9,5 +9,8 @@ pub use sign::*;
 mod verify;
 pub use verify::*;
 
-mod helper;
+// @TODO how to allow "helper" for "lms", but not in API?
+pub mod helper;
+pub use helper::*;
+
 pub mod parameters;

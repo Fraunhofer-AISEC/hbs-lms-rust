@@ -352,20 +352,17 @@ fn gen_key_subtree(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
     let mut aux_data = vec![0u8; genkey_parameter.aux_data];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    // to fix for time being, provide HssParameter param as vector
-    let hss_params= ssts_param.get_hss_parameters();
-
-    //let num_signing_entities = 2_u32.pow(genkey_parameter.ssts_param.get_top_height() as u32);
-
-    let mut _node_value = ArrayVec::from([0u8; MAX_HASH_SIZE]);
-    _node_value = gen_sst_subtree(genkey_parameter.ssts_param.get_top_height(), genkey_parameter.ssts_param.get_entity_idx(), &hss_params[0], &seed)
+    // TODO get the subtree node value
+    let (signing_key, verifying_key) = gen_sst_subtree(&ssts_param, &seed, Some(aux_slice))
         .unwrap_or_else(|_| panic!("Could not generate keys"));
-
 
     // we have to break here to get the params for the key generation second step (i.e. whole tree generation)
 
-    let (signing_key, verifying_key) = keygen(hss_params, &seed, Some(aux_slice))
+    /*
+    let mut _node_value = ArrayVec::from([0u8; MAX_HASH_SIZE]);
+    _node_value = gen_sst_subtree(genkey_parameter.ssts_param.get_top_height(), genkey_parameter.ssts_param.get_entity_idx(), &hss_params[0], &seed)
         .unwrap_or_else(|_| panic!("Could not generate keys"));
+    */
 
     let public_key_filename = get_public_key_name(&keyname);
     let private_key_filename = get_private_key_name(&keyname);

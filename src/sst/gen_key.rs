@@ -1,19 +1,38 @@
-use crate::{signature::Error, HssParameter, Sha256_256};
-use tinyvec::ArrayVec;
+use crate::signature::Error;
 use crate::{
-    constants::{
-        //LmsTreeIdentifier,
-        MAX_HASH_SIZE,
-    },
     hasher::HashChain,
-    //hss::definitions::HssPrivateKey, //seed_derive::SeedDerive}
-    //LmotsAlgorithm, LmsAlgorithm,
-    hss::reference_impl_private_key::SeedAndLmsTreeIdentifier,
-    hss::reference_impl_private_key::Seed,
+    hss::{
+        reference_impl_private_key::{Seed, ReferenceImplPrivateKey},
+        definitions::HssPublicKey,
+        SigningKey,
+        VerifyingKey,
+    }
 };
+use super::parameters::SstsParameter;
 
-// parameters
-pub fn gen_sst_subtree<H: HashChain>(top_height: u8, entity_idx: u8, hss_param: &HssParameter<H>, seed: &Seed<H>)
+
+pub fn gen_sst_subtree<H: HashChain>(
+    parameters: &SstsParameter<H>,
+    seed: &Seed<H>,
+    aux_data: Option<&mut &mut [u8]>,
+) -> Result<(SigningKey<H>, VerifyingKey<H>), Error> {
+    println!("sst_keygen");
+
+    // private keys
+    let private_key =
+        ReferenceImplPrivateKey::generate(parameters, seed).map_err(|_| Error::new())?;
+    let signing_key = SigningKey::from_bytes(&private_key.to_binary_representation())?;
+
+    // public keys -> gen_sst_pubkey
+    let hss_public_key = HssPublicKey::from(&private_key, aux_data).map_err(|_| Error::new())?;
+    let verifying_key = VerifyingKey::from_bytes(&hss_public_key.to_binary_representation())?;
+
+    Ok((signing_key, verifying_key))
+}
+
+/*
+// -> shall be replaced by "sst_keygen()"
+pub fn gen_sst_subtree<H: HashChain>(_top_height: u8, _entity_idx: u8, _hss_param: &HssParameter<H>, _seed: &Seed<H>)
     -> Result<ArrayVec<[u8; MAX_HASH_SIZE]>, Error> {
     // @TODO: nyi
     // 1. we need an HSS SigningKey/VerifyingKey ; pretend to have a full LMS here to fulfill
@@ -27,7 +46,7 @@ pub fn gen_sst_subtree<H: HashChain>(top_height: u8, entity_idx: u8, hss_param: 
     //      - or rather the correct idx in the whole SSTS/LMS; we know our "sub-tree ID";
     //          then each sub-tree's seed is used as a "start a left-most leaf" seed
 
-    let mut node_value = ArrayVec::from([0u8; MAX_HASH_SIZE]);
+    let node_value = ArrayVec::from([0u8; MAX_HASH_SIZE]);
     // @TODO work:
     // 1. - create key for "get_tree_element()"" with seed -- we need different seeds!
     //   a)
@@ -35,8 +54,8 @@ pub fn gen_sst_subtree<H: HashChain>(top_height: u8, entity_idx: u8, hss_param: 
     //         hss::reference_impl_private_key.rs : SeedAndLmsTreeIdentifier<H>,
     //         hss::parameter.rs::HssParameter<H>,
     //         used_leafs_index: &u32,
-    //         aux_data: &mut Option<MutableExpandedAuxData>,*/
-    let mut seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::<Sha256_256>::default();
+    //         aux_data: &mut Option<MutableExpandedAuxData>,
+    let _seed_and_lms_tree_identifier = SeedAndLmsTreeIdentifier::<Sha256_256>::default();
     //OsRng.fill_bytes(seed_and_lms_tree_identifier.seed.as_mut_slice());
 
     //   b) lms::definitions.rs::LmsPrivateKey::new()
@@ -51,6 +70,7 @@ pub fn gen_sst_subtree<H: HashChain>(top_height: u8, entity_idx: u8, hss_param: 
 
     Ok(node_value)
 }
+*/
 
 /// Parameters:
 ///   other_hss_pub_keys: HSS public keys of other signing entities

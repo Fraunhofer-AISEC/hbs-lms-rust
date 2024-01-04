@@ -10,7 +10,7 @@ use crate::{
     },
     lms::{
         self,
-        definitions::{InMemoryLmsPublicKey, LmsPrivateKey, LmsPublicKey, SstExtension},
+        definitions::{InMemoryLmsPublicKey, LmsPrivateKey, LmsPublicKey},
         generate_key_pair,
         parameters::LmsParameter,
     },
@@ -227,17 +227,20 @@ impl<'a, H: HashChain> InMemoryHssPublicKey<'a, H> {
 mod tests {
     use rand::{rngs::OsRng, RngCore};
 
+    use crate::SstsParameter;
     use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
         hasher::sha256::Sha256_256,
         hss::{
             definitions::InMemoryHssPublicKey,
             reference_impl_private_key::{ReferenceImplPrivateKey, SeedAndLmsTreeIdentifier},
-            HashChain, HssParameter,
+            HashChain
         },
-        lms, LmotsAlgorithm, LmsAlgorithm,
+        lms, LmotsAlgorithm, LmsAlgorithm, HssParameter,
     };
 
+    use tinyvec::ArrayVec;
+    use crate::constants;
     use super::{HssPrivateKey, HssPublicKey};
 
     #[test]
@@ -307,14 +310,14 @@ mod tests {
     ) -> (HssPrivateKey<H>, HssPrivateKey<H>) {
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
-        let parameters = [
-            HssParameter::<H>::new(lmots, lms),
-            HssParameter::<H>::new(lmots, lms),
-            HssParameter::<H>::new(lmots, lms),
-        ];
+        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
 
         let seed = gen_random_seed::<H>();
-        let mut rfc_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
+        let mut rfc_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
 
         let hss_key_before = HssPrivateKey::from(&rfc_key, &mut None).unwrap();
 
@@ -333,14 +336,15 @@ mod tests {
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
-        let parameters = [
-            HssParameter::<H>::new(lmots, lms),
-            HssParameter::<H>::new(lmots, lms),
-            HssParameter::<H>::new(lmots, lms),
-        ];
+
+        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
 
         let seed = gen_random_seed::<H>();
-        let mut private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
+        let mut private_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
         let hss_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
 
         let tree_heights = hss_key
@@ -369,13 +373,13 @@ mod tests {
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
-        let parameters = [
-            HssParameter::<H>::new(lmots, lms),
-            HssParameter::<H>::new(lmots, lms),
-        ];
+        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
 
         let seed = gen_random_seed::<H>();
-        let private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
+        let private_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
 
         let hss_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
         let hss_key_second = HssPrivateKey::from(&private_key, &mut None).unwrap();

@@ -264,11 +264,14 @@ fn compute_hmac<H: HashChain>(key: &[u8], data: &[u8]) -> ArrayVec<[u8; MAX_HASH
 mod tests {
     use crate::hasher::sha256::Sha256_256;
     use crate::util::helper::test_helper::gen_random_seed;
+    use crate::constants;
+    use crate::SstsParameter;
     use crate::{
         constants::MAX_HASH_SIZE,
         hss::{aux::hss_expand_aux_data, hss_keygen},
         HssParameter, LmotsAlgorithm, LmsAlgorithm,
     };
+    use tinyvec::ArrayVec;
 
     #[test]
     #[should_panic(expected = "expand_aux_data should return None!")]
@@ -278,13 +281,17 @@ mod tests {
 
         let lmots = LmotsAlgorithm::LmotsW2;
         let lms = LmsAlgorithm::LmsH5;
-        let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
+
+        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::new(lmots, lms));
+        vec_hss_params.push(HssParameter::new(lmots, lms));
+        let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
 
         let mut aux_data = [0u8; 1_000];
         let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
         let _ =
-            hss_keygen::<H>(&parameters, &seed, Some(aux_slice)).expect("Should generate HSS keys");
+            hss_keygen::<H>(&sst_param, &seed, Some(aux_slice)).expect("Should generate HSS keys");
 
         aux_slice[2 * MAX_HASH_SIZE - 1] ^= 1;
 

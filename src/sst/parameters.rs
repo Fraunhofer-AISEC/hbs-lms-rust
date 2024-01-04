@@ -5,7 +5,7 @@ use crate::{
 };
 
 use tinyvec::ArrayVec;
-
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct SstsParameter<H: HashChain> {
@@ -60,3 +60,11 @@ impl<H: HashChain> Default for SstsParameter<H> {
     }
 }
  */
+
+
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
+pub struct SstExtension {
+    pub signing_instance: u8,   // @TODO review: assuming we won't have > 128
+    pub top_tree_height: u8,
+}

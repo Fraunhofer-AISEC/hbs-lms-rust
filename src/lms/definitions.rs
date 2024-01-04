@@ -9,6 +9,7 @@ use crate::util::helper::read_and_advance;
 use crate::{lm_ots, Seed};
 use crate::sst::helper::get_sst_first_leaf_idx;
 use crate::sst::helper::get_sst_last_leaf_idx;
+use crate::sst::parameters::SstExtension;
 
 use core::convert::TryInto;
 use tinyvec::ArrayVec;
@@ -16,11 +17,8 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use super::parameters::LmsParameter;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
-pub struct SstExtension {
-    pub signing_instance: u8,   // @TODO review: assuming we won't have > 128
-    pub top_tree_height: u8,
-}
+
+
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct LmsPrivateKey<H: HashChain> {

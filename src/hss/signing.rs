@@ -260,8 +260,10 @@ mod tests {
     use crate::{HashChain, HssParameter};
 
     use super::{HssPrivateKey, HssSignature, HssSignedPublicKey};
+    use crate::sst::parameters::SstsParameter;
 
     use crate::constants::LmsTreeIdentifier;
+    use crate::constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
     use crate::util::helper::test_helper::gen_random_seed;
     use rand::{rngs::OsRng, RngCore};
     use tinyvec::ArrayVec;
@@ -272,11 +274,14 @@ mod tests {
     #[should_panic(expected = "Signing should panic!")]
     fn reuse_loaded_keypair() {
         let seed = gen_random_seed::<Hasher>();
+
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        let sst_param = SstsParameter::<Hasher>::new(vec_hss_params, 0, 0);
+
         let private_key = ReferenceImplPrivateKey::<Hasher>::generate(
-            &[
-                HssParameter::construct_default_parameters(),
-                HssParameter::construct_default_parameters(),
-            ],
+            &sst_param,
             &seed,
         )
         .unwrap();
@@ -332,11 +337,14 @@ mod tests {
     #[test]
     fn test_hss_signature_binary_representation() {
         let seed = gen_random_seed::<Hasher>();
+
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        let sst_param = SstsParameter::<Hasher>::new(vec_hss_params, 0, 0);
+
         let private_key = ReferenceImplPrivateKey::<Hasher>::generate(
-            &[
-                HssParameter::construct_default_parameters(),
-                HssParameter::construct_default_parameters(),
-            ],
+            &sst_param,
             &seed,
         )
         .unwrap();

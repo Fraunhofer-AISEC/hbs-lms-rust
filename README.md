@@ -17,8 +17,8 @@ This demo application can be used in the console as follows:
 
 ```
 # Key generation
-# Generates `mykey.prv`, `mykey.pub` with merkle tree height 10 and winternitz parameter 2
-cargo run --release --example lms-demo -- genkey mykey 10/2 --seed 0123456701234567012345670123456701234567012345670123456701234567
+# Generates `mykey.prv`, `mykey.pub` with merkle tree height = 10, winternitz parameter = 2, top tree height = 3, signing instance = 2
+cargo run --release --example lms-demo -- genkey mykey 10/2/3/2 --seed 0123456701234567012345670123456701234567012345670123456701234567
 
 # Signing
 # Generates `message.txt.sig`

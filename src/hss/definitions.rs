@@ -14,7 +14,7 @@ use crate::{
         generate_key_pair,
         parameters::LmsParameter,
     },
-    util::helper::read_and_advance,
+    util::helper::read_and_advance, parameters::SstExtension,
 };
 use crate::{hss::aux::hss_get_aux_data_len, lms::signing::LmsSignature};
 
@@ -48,13 +48,22 @@ impl<H: HashChain> HssPrivateKey<H> {
         let parameters = private_key.compressed_parameter.to::<H>()?;
         let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
 
+        let mut sst_ext_option = None;
+        let sst_ext = SstExtension {
+            signing_instance: private_key.sst_ext.signing_instance,
+            top_tree_height: private_key.sst_ext.top_tree_height,
+        };
+        if private_key.sst_ext.signing_instance != 0 {
+            sst_ext_option = Some(sst_ext);
+        }
+
         let lms_private_key = LmsPrivateKey {
             seed: current_seed.seed.clone(),
             lms_tree_identifier: current_seed.lms_tree_identifier,
             lmots_parameter: *parameters[0].get_lmots_parameter(),
             lms_parameter: *parameters[0].get_lms_parameter(),
             used_leafs_index: used_leafs_indexes[0],
-            sst_ext: None
+            sst_ext: sst_ext_option,
         };
         hss_private_key.private_key.push(lms_private_key);
 
@@ -69,7 +78,7 @@ impl<H: HashChain> HssPrivateKey<H> {
                 generate_signature_randomizer::<H>(&current_seed, &parent_used_leafs_index);
 
             let lms_keypair =
-                generate_key_pair(&current_seed, parameter, &used_leafs_indexes[i], &mut None);
+                generate_key_pair(&current_seed, parameter, &used_leafs_indexes[i], &mut None, None);
 
             let signature = lms::signing::LmsSignature::sign(
                 &mut hss_private_key.private_key[i - 1],
@@ -177,11 +186,21 @@ impl<H: HashChain> HssPublicKey<H> {
 
         let current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
 
+        let mut sst_ext_option = None;
+        let sst_ext = SstExtension {
+            signing_instance: private_key.sst_ext.signing_instance,
+            top_tree_height: private_key.sst_ext.top_tree_height,
+        };
+        if private_key.sst_ext.signing_instance != 0 {
+            sst_ext_option = Some(sst_ext);
+        }
+
         let lms_keypair = generate_key_pair(
             &current_seed,
             &parameters[0],
             &used_leafs_indexes[0],
             &mut expanded_aux_data,
+            sst_ext_option
         );
 
         if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
@@ -395,6 +414,7 @@ mod tests {
             &HssParameter::construct_default_parameters(),
             &0,
             &mut None,
+            None
         );
         let public_key: HssPublicKey<Sha256_256> = HssPublicKey {
             level: 18,

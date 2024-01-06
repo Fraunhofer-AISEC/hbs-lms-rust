@@ -7,7 +7,6 @@ use crate::lms::parameters::LmsAlgorithm;
 use crate::lms::MutableExpandedAuxData;
 use crate::util::helper::read_and_advance;
 use crate::{lm_ots, Seed};
-use crate::sst::helper::get_sst_first_leaf_idx;
 use crate::sst::helper::get_sst_last_leaf_idx;
 use crate::sst::parameters::SstExtension;
 
@@ -41,16 +40,10 @@ impl<H: HashChain> LmsPrivateKey<H> {
         lms_parameter: LmsParameter<H>,
         sst_ext: Option<SstExtension>
     ) -> Self {
-        let mut my_used_leafs_index = used_leafs_index;
-        if let Some(my_sst_ext) = &sst_ext {
-            assert_eq!(used_leafs_index, 0); // make sure we are getting initialized
-            my_used_leafs_index = get_sst_first_leaf_idx(my_sst_ext.signing_instance, lms_parameter.get_tree_height(), my_sst_ext.top_tree_height)
-        }
-
         LmsPrivateKey {
             seed,
             lms_tree_identifier,
-            used_leafs_index: my_used_leafs_index,
+            used_leafs_index,
             lmots_parameter,
             lms_parameter,
             sst_ext
@@ -60,7 +53,8 @@ impl<H: HashChain> LmsPrivateKey<H> {
     pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey<H>, ()> {
         let number_of_lm_ots_keys = {
             if let Some(my_sst_ext) = &self.sst_ext {
-                get_sst_last_leaf_idx(my_sst_ext.signing_instance, self.lms_parameter.get_tree_height(), my_sst_ext.top_tree_height)
+                // our last leafs function returns 0..total_num-1, but here we need 1..total_num
+                1 + get_sst_last_leaf_idx(my_sst_ext.signing_instance, self.lms_parameter.get_tree_height(), my_sst_ext.top_tree_height)
             }
             else {
                 self.lms_parameter.number_of_lm_ots_keys() as u32

@@ -3,6 +3,7 @@ use crate::{
         LmsTreeIdentifier, D_TOPSEED, ILEN, LMS_LEAF_IDENTIFIERS_SIZE, MAX_ALLOWED_HSS_LEVELS,
         MAX_HASH_SIZE, MAX_SEED_LEN, REF_IMPL_MAX_PRIVATE_KEY_SIZE, SEED_CHILD_SEED,
         SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
+        REF_IMPL_SSTS_EXT_SIZE,
     },
     hasher::HashChain,
     hss::{definitions::HssPrivateKey, seed_derive::SeedDerive},
@@ -132,6 +133,8 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; REF_IMPL_MAX_PRIVATE_KEY_SIZE]> {
         let mut result = ArrayVec::new();
 
+        result.extend_from_slice(&self.sst_ext.signing_instance.to_be_bytes());
+        result.extend_from_slice(&self.sst_ext.top_tree_height.to_be_bytes());
         result.extend_from_slice(&self.compressed_used_leafs_indexes.count.to_be_bytes());
         result.extend_from_slice(&self.compressed_parameter.0);
         result.extend_from_slice(self.seed.as_slice());
@@ -146,6 +149,9 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
 
         let mut result = Self::default();
         let mut index = 0;
+
+        let ssts_ext = read_and_advance(data, REF_IMPL_SSTS_EXT_SIZE, &mut index);
+        result.sst_ext = SstExtension::from_slice(ssts_ext)?;
 
         let compressed_used_leafs_indexes =
             read_and_advance(data, LMS_LEAF_IDENTIFIERS_SIZE, &mut index);

@@ -6,6 +6,7 @@ use crate::{
 
 use tinyvec::ArrayVec;
 use zeroize::{Zeroize, ZeroizeOnDrop};
+use core::convert::TryInto;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct SstsParameter<H: HashChain> {
@@ -22,8 +23,7 @@ impl<H: HashChain> SstsParameter<H> {
 
         SstsParameter {
             hss_parameters: hss_params,
-            top_height, // e.g. LMS height of 5 and top_height 3, we divide 3/3 (we consider one node as part of both tree parts)
-                        // would give us 2^3 = 8 signing entities
+            top_height, // e.g. LMS height of 5 and top_height 3: division top/bottom is 3/2 which would result in 2^3 = 8 signing entities
             entity_idx,
         }
     }
@@ -62,9 +62,24 @@ impl<H: HashChain> Default for SstsParameter<H> {
  */
 
 
-
 #[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct SstExtension {
-    pub signing_instance: u8,   // @TODO review: assuming we won't have > 128
+    pub signing_instance: u8,
     pub top_tree_height: u8,
+}
+
+impl SstExtension {
+    pub fn from_slice(data: &[u8]) -> Result<Self, ()> {
+        if data.len() != constants::REF_IMPL_SSTS_EXT_SIZE {
+            return Err(());
+        }
+
+        let tmp: u16 = u16::from_be_bytes(data.try_into().unwrap());
+        let sst_ext = SstExtension {
+            signing_instance: (tmp >> 8 ) as u8, // TODO correct?
+            top_tree_height:   tmp as u8,
+        };
+
+        Ok(sst_ext)
+    }
 }

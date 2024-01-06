@@ -1,6 +1,7 @@
 use crate::hasher::HashChain;
 use crate::hss::aux::MutableExpandedAuxData;
 use crate::hss::parameter::HssParameter;
+use crate::parameters::SstExtension;
 use crate::hss::reference_impl_private_key::SeedAndLmsTreeIdentifier;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
@@ -18,12 +19,13 @@ pub struct LmsKeyPair<H: HashChain> {
 
 pub fn generate_key_pair<H: HashChain>(
     seed: &SeedAndLmsTreeIdentifier<H>,
-    parameter: &HssParameter<H>,
+    hss_param: &HssParameter<H>,
     used_leafs_index: &u32,
     aux_data: &mut Option<MutableExpandedAuxData>,
+    sst_ext: Option<SstExtension>,
 ) -> LmsKeyPair<H> {
-    let lmots_parameter = parameter.get_lmots_parameter();
-    let lms_parameter = parameter.get_lms_parameter();
+    let lmots_parameter = hss_param.get_lmots_parameter();
+    let lms_parameter = hss_param.get_lms_parameter();
 
     let private_key = LmsPrivateKey::new(
         seed.seed.clone(),
@@ -31,7 +33,7 @@ pub fn generate_key_pair<H: HashChain>(
         *used_leafs_index,
         *lmots_parameter,
         *lms_parameter,
-        None,
+        sst_ext,
     );
     let public_key = LmsPublicKey::new(&private_key, aux_data);
 

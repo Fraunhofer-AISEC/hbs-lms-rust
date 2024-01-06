@@ -308,6 +308,7 @@ mod tests {
             &HssParameter::construct_default_parameters(),
             &0,
             &mut None,
+            None
         );
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];

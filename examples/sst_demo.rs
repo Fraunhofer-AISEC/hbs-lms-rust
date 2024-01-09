@@ -3,7 +3,7 @@ use hbs_lms::*;
 use std::{
     error::Error,
     fmt,
-    fs::{read, File},
+    fs::{read, File, OpenOptions},
     io::{Read, Write},
     process::exit,
 };
@@ -69,10 +69,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(error) => panic!("sst::gen_sst_subtree error {:?}", error),
     };
     */
+    /*
     let _sst_pubkey = match hbs_lms::sst::gen_sst_pubkey() {
         Ok(_) => println!("sst::gen_key OK"),
         Err(error) => panic!("sst::gen_key: error {:?}", error),
     };
+    */
 
     let _signature = match hbs_lms::sst::sign::<Hasher>(&message) {
         Ok(_) => println!("sst::sign OK"),
@@ -349,34 +351,56 @@ fn gen_key_subtree(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
         return DemoError::raise("Seed was not given".to_string());
     };
 
-    let mut aux_data = vec![0u8; genkey_parameter.aux_data];
-    let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
-
-    // TODO get the subtree node value
-    let (signing_key, verifying_key) = gen_sst_subtree(&ssts_param, &seed, Some(aux_slice))
+    // TODO should we generate aux data here onr in next step -- or in both?
+    // create our private key
+    let (signing_key, node_pubkey) = gen_sst_subtree(&ssts_param, &seed)
         .unwrap_or_else(|_| panic!("Could not generate keys"));
 
-    // we have to break here to get the params for the key generation second step (i.e. whole tree generation)
-
-    /*
-    let mut _node_value = ArrayVec::from([0u8; MAX_HASH_SIZE]);
-    _node_value = gen_sst_subtree(genkey_parameter.ssts_param.get_top_height(), genkey_parameter.ssts_param.get_entity_idx(), &hss_params[0], &seed)
-        .unwrap_or_else(|_| panic!("Could not generate keys"));
-    */
-
-    let public_key_filename = get_public_key_name(&keyname);
+    println!("sst_demo::gen_key_subtree(): node value: {:?}", node_pubkey);
     let private_key_filename = get_private_key_name(&keyname);
-
-    let aux_name = get_aux_name(&keyname);
-    write(&aux_name, aux_slice)?;
-
-    write(public_key_filename.as_str(), verifying_key.as_slice())?;
     write(private_key_filename.as_str(), signing_key.as_slice())?;
+
+    // write own node value and signing instance to file
+    // TODO     maybe also HSS/LMS/LM-OTS parameters, to ensure that we got the same parameters among all signing instances
+    let interm_node_filename =
+        String::from("node_si") + &(ssts_param.get_entity_idx().to_string()) + &String::from(".bin");
+
+    // if file exists, overwrite
+    write(interm_node_filename.as_str(), &ssts_param.get_entity_idx().to_be_bytes())?;
+    // append
+    let mut interm_node_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(true)
+        .open(interm_node_filename.as_str())
+        .unwrap();
+    interm_node_file.write_all(node_pubkey.as_slice())?;
 
     Ok(())
 }
 
-fn gen_key_ssts(_args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+
+fn gen_key_ssts(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+
+    // TODO 2nd call for verifying key! -> move to dofferent function!
+    // we have to break here to get the params for the key generation second step (i.e. whole tree generation)
+
+    //let public_key_filename = get_public_key_name(&keyname);
+
+    let keyname = get_parameter(ARG_KEYNAME, args);
+    let private_key_name = get_private_key_name(&keyname);
+    let private_key_data = read_file(&private_key_name);
+
+    let aux_data_name = get_aux_name(&keyname);
+    let mut aux_data = read(aux_data_name).ok();
+    //let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+
+    // retrieve PrivateKey private_key: &ReferenceImplPrivateKey<H>
+    //gen_sst_pubkey(&private_key_data, Some(aux_slice));
+
+    //write(public_key_filename.as_str(), verifying_key.as_slice())?;
+
+
     Ok(())
 }
 

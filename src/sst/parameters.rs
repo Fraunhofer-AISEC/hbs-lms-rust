@@ -12,7 +12,7 @@ use core::convert::TryInto;
 pub struct SstsParameter<H: HashChain> {
     hss_parameters: ArrayVec<[HssParameter<H>; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]>,
     top_height: u8,
-    entity_idx: u8, // starting with 1
+    signing_entity_idx: u8, // starting with 1
 }
 
 
@@ -24,7 +24,7 @@ impl<H: HashChain> SstsParameter<H> {
         SstsParameter {
             hss_parameters: hss_params,
             top_height, // e.g. LMS height of 5 and top_height 3: division top/bottom is 3/2 which would result in 2^3 = 8 signing entities
-            entity_idx,
+            signing_entity_idx: entity_idx,
         }
     }
 
@@ -37,7 +37,7 @@ impl<H: HashChain> SstsParameter<H> {
     }
 
     pub fn get_entity_idx(&self) -> u8 {
-        self.entity_idx
+        self.signing_entity_idx
     }
 }
 

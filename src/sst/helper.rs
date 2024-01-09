@@ -1,6 +1,6 @@
 // a function that provides our sub-tree top node idx within the SSTS
 // subtree_num counts from  left-most = 1 to top part's "number_of_leaves"
-fn _get_subtree_node_idx(signing_entity_idx: u8, total_height: u8, top_div: u8) -> u32 {
+pub fn get_subtree_node_idx(signing_entity_idx: u8, total_height: u8, top_div: u8) -> u32 {
     assert!(signing_entity_idx > 0);
     assert!(signing_entity_idx as u32 <= _get_num_leaves(top_div)); // number of nodes at that level
     assert!(top_div <= total_height);
@@ -57,44 +57,44 @@ mod tests {
 
     #[test]
     fn test_get_subtree_node_in_ssts_1() {
-        let subtree_node_idx = _get_subtree_node_idx(1, 4, 2);
+        let subtree_node_idx = get_subtree_node_idx(1, 4, 2);
         assert_eq!(4, subtree_node_idx);
     }
 
     #[test]
     fn test_get_subtree_node_in_ssts_2() {
-        let subtree_node_idx = _get_subtree_node_idx(2, 4, 2);
+        let subtree_node_idx = get_subtree_node_idx(2, 4, 2);
         assert_eq!(5, subtree_node_idx);
     }
 
     #[test]
     fn test_get_subtree_node_in_ssts_3() {
-        let subtree_node_idx = _get_subtree_node_idx(1, 4, 3);
+        let subtree_node_idx = get_subtree_node_idx(1, 4, 3);
         assert_eq!(8, subtree_node_idx);
     }
 
     #[test]
     fn test_get_subtree_node_in_ssts_4() {
-        let subtree_node_idx = _get_subtree_node_idx(2, 4, 3);
+        let subtree_node_idx = get_subtree_node_idx(2, 4, 3);
         assert_eq!(9, subtree_node_idx);
     }
 
     #[test]
     fn test_get_subtree_node_in_ssts_5() {
-        let subtree_node_idx = _get_subtree_node_idx(1, 4, 4);
+        let subtree_node_idx = get_subtree_node_idx(1, 4, 4);
         assert_eq!(16, subtree_node_idx);
     }
 
     #[test]
     fn test_get_subtree_node_in_ssts_6() {
-        let subtree_node_idx = _get_subtree_node_idx(9, 4, 4);
+        let subtree_node_idx = get_subtree_node_idx(9, 4, 4);
         assert_eq!(24, subtree_node_idx);
     }
 
     // one outermost "leaf"
     #[test]
     fn test_get_subtree_node_in_ssts_7() {
-        let subtree_node_idx = _get_subtree_node_idx(16, 4, 4);
+        let subtree_node_idx = get_subtree_node_idx(16, 4, 4);
         assert_eq!(31, subtree_node_idx);
     }
 
@@ -102,7 +102,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_get_subtree_node_in_ssts_8() {
-        let _subtree_node_idx = _get_subtree_node_idx(17, 4, 4);
+        let _subtree_node_idx = get_subtree_node_idx(17, 4, 4);
     }
 
     #[test]

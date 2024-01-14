@@ -1,3 +1,4 @@
+use crate::constants::LmsTreeIdentifier;
 use crate::signature::Error;
 use crate::{
     sst::{
@@ -11,11 +12,10 @@ use crate::{
         reference_impl_private_key::{Seed, ReferenceImplPrivateKey},
         definitions::HssPublicKey,
         SigningKey,
-        //VerifyingKey,
     },
     lms::helper::get_tree_element,
     lms::definitions::LmsPrivateKey,
-    constants::MAX_HASH_SIZE,
+    constants::{MAX_HASH_SIZE, MAX_DSM_SIGNING_ENTITIES, D_INTR},
 };
 
 use tinyvec::ArrayVec;
@@ -100,7 +100,75 @@ pub fn gen_sst_pubkey() -> Result<(), Error> {
 }
 */
 
-// -> shall be replaced by "sst_keygen()"
+pub fn get_config<H: HashChain>(private_key: &[u8])
+    -> Result<(SstsParameter<H>, LmsTreeIdentifier), Error>
+{
+    let rfc_private_key = ReferenceImplPrivateKey::<H>::from_binary_representation(private_key)
+        .map_err(|_| Error::new())?;
+
+    let hss_pubkey = HssPublicKey::from(&rfc_private_key, None).map_err(|_| Error::new())?;
+    let lms_tree_ident = hss_pubkey.public_key.lms_tree_identifier;
+
+    let hss_param_vec = rfc_private_key.compressed_parameter
+        .to()
+        .map_err(|_| Error::new())?;
+
+    let ssts_param = SstsParameter::new(
+        hss_param_vec,
+        rfc_private_key.sst_ext.top_tree_height,
+        rfc_private_key.sst_ext.signing_instance
+    );
+
+    Ok((ssts_param, lms_tree_ident))
+}
+
+pub fn gen_pub_key<H: HashChain>(
+    av_of_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]>,
+    top_tree_height: u8,
+    lms_tree_ident: LmsTreeIdentifier
+) -> Result<ArrayVec<[u8; MAX_HASH_SIZE]>, Error> {
+
+    let pubkey = get_node_hash_val::<H>(1, av_of_nodes, top_tree_height, lms_tree_ident);
+
+    Ok(pubkey)
+}
+
+fn get_node_hash_val<H: HashChain>(
+    index: u32,
+    av_of_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]>,
+    top_tree_height: u8,
+    lms_tree_ident: LmsTreeIdentifier
+) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+
+    let index_level = (core::mem::size_of_val(&index) * 8 - index.leading_zeros() as usize - 1) as u8;
+
+    let hasher = H::default()
+        .chain(lms_tree_ident)
+        .chain((index as u32).to_be_bytes());
+
+    // if index is at lowest level (where we have the signing entity node hash values)
+    let result =
+    if index_level == top_tree_height {
+        // return the node value from array of intermedediate node hash values
+        /* access vector elements via "leaf numbers" = 0..signing_entites-1 */
+        let leaf_number = (index as usize ) - 2usize.pow(top_tree_height as u32);
+        av_of_nodes[leaf_number]
+    } else {
+        // we are "above" the intermediate node hash values -> go down
+        let left = get_node_hash_val::<H>(index * 2, av_of_nodes, top_tree_height, lms_tree_ident);
+        let right = get_node_hash_val::<H>(index * 2 + 1, av_of_nodes, top_tree_height, lms_tree_ident);
+
+        hasher
+            .chain(D_INTR)
+            .chain(left.as_slice())
+            .chain(right.as_slice())
+            .finalize()
+    };
+
+    return result
+}
+
+
 pub fn gen_sst_pubkey<H: HashChain>(_private_key: &[u8], _aux_data: Option<&mut &mut [u8]>)
 //    -> Result<(VerifyingKey<H>), Error>
 {

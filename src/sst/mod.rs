@@ -10,7 +10,10 @@ mod verify;
 pub use verify::*;
 
 // @TODO how to allow "helper" for "lms", but not in API?
-pub mod helper;
-pub use helper::*;
+pub(crate) mod helper;
+//pub use helper::*;
 
+// inside crate make public
+//pub(super) mod parameters;
+// outside crate only limmited
 pub mod parameters;

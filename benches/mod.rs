@@ -7,12 +7,12 @@ mod tests {
     use test::Bencher;
     use tinyvec::ArrayVec;
 
+    use hbs_lms::sst::parameters::SstsParameter;
     use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256_256};
     use hbs_lms::{
         signature::{SignerMut, Verifier},
         Signature, SigningKey, VerifierSignature, VerifyingKey,
     };
-    use hbs_lms::sst::parameters::SstsParameter;
 
     const MESSAGE: [u8; 17] = [
         32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
@@ -25,7 +25,8 @@ mod tests {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
 
-        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
         for i in 0..hss_parameter.len() {
             vec_hss_params.push(hss_parameter[i]);
         }
@@ -41,16 +42,16 @@ mod tests {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
 
-        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
-        vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5));
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
         let sst_param = SstsParameter::<Sha256_256>::new(vec_hss_params, 0, 0);
 
-        let (mut signing_key, verifying_key) = keygen::<Sha256_256>(
-            &sst_param,
-            &seed,
-            None,
-        )
-        .unwrap();
+        let (mut signing_key, verifying_key) =
+            keygen::<Sha256_256>(&sst_param, &seed, None).unwrap();
 
         let signature = signing_key.try_sign(&MESSAGE).unwrap();
 
@@ -61,8 +62,12 @@ mod tests {
     fn keygen_h5w2(b: &mut Bencher) {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
-        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
-        vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5));
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
         let sst_param = SstsParameter::<Sha256_256>::new(vec_hss_params, 0, 0);
 
         b.iter(|| {
@@ -75,8 +80,12 @@ mod tests {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
 
-        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
-        vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5));
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
         let sst_param = SstsParameter::<Sha256_256>::new(vec_hss_params, 0, 0);
 
         b.iter(|| {
@@ -92,9 +101,16 @@ mod tests {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
 
-        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
-        vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5));
-        vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5));
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
         let sst_param = SstsParameter::<Sha256_256>::new(vec_hss_params, 0, 0);
 
         b.iter(|| {
@@ -107,9 +123,16 @@ mod tests {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
 
-        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
-        vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5));
-        vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5));
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
         let sst_param = SstsParameter::<Sha256_256>::new(vec_hss_params, 0, 0);
 
         b.iter(|| {

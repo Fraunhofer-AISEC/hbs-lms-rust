@@ -59,9 +59,7 @@ impl GenKeyParameter {
     }
 }
 
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     /*
     let message = [32; 0]; // 32 elements init. with 0
 
@@ -115,7 +113,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Some(args) = matches.subcommand_matches(GENSUBTREE_COMMAND) {
         gen_key_subtree(args)?;
-        println!("Single-subtree-structure: intermediate node and private key successfully generated!");
+        println!(
+            "Single-subtree-structure: intermediate node and private key successfully generated!"
+        );
         return Ok(());
     }
 
@@ -152,18 +152,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-
 fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let keyname = get_parameter(ARG_KEYNAME, args);
     let message_name = get_parameter(ARG_MESSAGE, args);
 
-    let private_key_name = get_private_key_filename(&keyname);
+    // TODO signing entity idx
+    let private_key_name = get_private_key_filename(&keyname, 1);
     let signature_name = get_signature_filename(&message_name);
 
     let private_key_data = read_file(&private_key_name);
     let message_data = read_file(&message_name);
 
-    let aux_data_name = get_aux_filename(&keyname);
+    // TODO signing entity idx
+    let aux_data_name = get_aux_filename(&keyname, 1);
     let mut aux_data = read(aux_data_name).ok();
 
     let mut private_key_update_function = |new_key: &[u8]| {
@@ -264,7 +265,8 @@ fn verify(args: &ArgMatches) -> bool {
     let keyname: String = get_parameter(ARG_KEYNAME, args);
     let message_name: String = get_parameter(ARG_MESSAGE, args);
 
-    let public_key_name = get_public_key_filename(&keyname);
+    // TODO: signing entity idx
+    let public_key_name = get_public_key_filename(&keyname, 1);
     let signature_name = get_signature_filename(&message_name);
 
     let signature_data = read_file(&signature_name);
@@ -274,8 +276,8 @@ fn verify(args: &ArgMatches) -> bool {
     hbs_lms::verify::<Hasher>(&message_data, &signature_data, &public_key_data).is_ok()
 }
 
-fn get_public_key_filename(keyname: &str) -> String {
-    keyname.to_string() + ".pub"
+fn get_public_key_filename(keyname: &str, idx: u8) -> String {
+    keyname.to_string() + &idx.to_string() + ".pub"
 }
 
 fn get_signature_filename(message_name: &str) -> String {
@@ -292,12 +294,12 @@ fn get_message_mut_filename(message_name: &str) -> String {
     message_name.to_string() + "_mut"
 }
 
-fn get_private_key_filename(private_key: &str) -> String {
-    private_key.to_string() + ".prv"
+fn get_private_key_filename(private_key: &str, idx: u8) -> String {
+    private_key.to_string() + &idx.to_string() + "." + ".prv"
 }
 
-fn get_aux_filename(keyname: &str) -> String {
-    keyname.to_string() + ".aux"
+fn get_aux_filename(keyname: &str, idx: u8) -> String {
+    keyname.to_string() + &idx.to_string() + ".aux"
 }
 
 fn get_parameter(name: &str, args: &ArgMatches) -> String {
@@ -319,7 +321,6 @@ fn read_file(file_name: &str) -> Vec<u8> {
 
 fn gen_key_subtree(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let keyname: String = get_parameter(ARG_KEYNAME, args);
-
 
     let genkey_parameter = parse_genkey1_parameter(&get_parameter(ARG_SSTS_PARAMETER, args));
     let ssts_param = genkey_parameter.ssts_param;
@@ -344,20 +345,24 @@ fn gen_key_subtree(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
     // TODO should we generate aux data here or in next step -- or in both?
 
     // create our private key
-    let (signing_key, node_pubkey) = gen_sst_subtree(&ssts_param, &seed)
-        .unwrap_or_else(|_| panic!("Could not generate keys"));
+    let (signing_key, node_pubkey) =
+        gen_sst_subtree(&ssts_param, &seed).unwrap_or_else(|_| panic!("Could not generate keys"));
 
     //println!("sst_demo::gen_key_subtree(): node value: {:?}", node_pubkey);
-    let private_key_filename = get_private_key_filename(&(keyname + "." + &ssts_param.get_entity_idx().to_string()));
+    let private_key_filename = get_private_key_filename(&keyname, ssts_param.get_entity_idx());
     write(private_key_filename.as_str(), signing_key.as_slice())?;
 
     // write own node value and signing instance to file
     // TODO     maybe also HSS/LMS/LM-OTS parameters, to ensure that we got the same parameters among all signing instances
-    let interm_node_filename =
-        String::from("node_si") + &(ssts_param.get_entity_idx().to_string()) + &String::from(".bin"); // TODO into function
+    let interm_node_filename = String::from("node_si")
+        + &(ssts_param.get_entity_idx().to_string())
+        + &String::from(".bin"); // TODO into function
 
     // if file exists, overwrite
-    write(interm_node_filename.as_str(), &ssts_param.get_entity_idx().to_be_bytes())?;
+    write(
+        interm_node_filename.as_str(),
+        &ssts_param.get_entity_idx().to_be_bytes(),
+    )?;
     // and append
     let mut interm_node_file = OpenOptions::new()
         .create(true)
@@ -370,9 +375,7 @@ fn gen_key_subtree(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
-
 fn gen_key_ssts(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
-
     // get signing instance number and name of private keyfile from args
     let keyname: String = get_parameter(ARG_KEYNAME, args);
     let signing_instance: String = get_parameter(ARG_SI_PARAMETER, args);
@@ -380,10 +383,9 @@ fn gen_key_ssts(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     println!("keyname: {} -- SI: {}", keyname, signing_instance);
 
     // read private key
-    let private_key_name = get_private_key_filename(&(
-        keyname.clone() + "." + &signing_instance.to_string()));
+    let private_key_name =
+        get_private_key_filename(&keyname, signing_instance.parse::<u8>().unwrap());
     let private_key_data = read_file(&private_key_name);
-
 
     // (here so far we only had the structs "SigningKey" and "VerifyingKey" -> leave it at that if possible)
     // read HSS configuration from key -> how many SI and LMS config (tree height...)
@@ -393,12 +395,12 @@ fn gen_key_ssts(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 
     println!("lms_tree_ident: {:?}", lms_tree_ident);
 
-
     // TODO maybe compare with HSS configuration in the "node files"
     // read intermediate node values from files (ours and others) and pass for calc.
     let num_signing_entities = 2u32.pow(ssts_param.get_top_height() as u32);
     //let mut vec_intermed_nodes = Vec::new();
-    let mut node_array: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]> = Default::default();
+    let mut node_array: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]> =
+        Default::default();
 
     for idx in 1..=num_signing_entities {
         let interm_node_filename =
@@ -407,34 +409,23 @@ fn gen_key_ssts(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         //println!("read intermediate node value for signing entity num {}", idx);
         let file_data: Vec<u8> = read_file(&interm_node_filename);
         if file_data.len() != (1 + MAX_HASH_SIZE) {
-            panic!("genkey step 2: file data len is {}, should be {}", file_data.len(), (1 + MAX_HASH_SIZE));
+            panic!(
+                "genkey step 2: file data len is {}, should be {}",
+                file_data.len(),
+                (1 + MAX_HASH_SIZE)
+            );
         }
-        //println!("node data: {:?}", file_data);
-        //vec_intermed_nodes.push(file_data);
+
         // let mut node: ArrayVec<[u8; MAX_HASH_SIZE]> = Default::default();
-        //node.push(file_data[1..]); // TODO easier?
+        // node.push(file_data[1..]); // TODO easier?
         // TODO that works but is probably a really bad solution
 
         let mut node: [u8; MAX_HASH_SIZE] = [0; MAX_HASH_SIZE];
         node.copy_from_slice(&file_data[1..]); // TODO easier?
         node_array.push(node.into());
-
         //node_array[(idx-1) as usize].extend(&file_data[1..]);
-
     }
 
-    // TODO not nice:
-    // either copy the elements of Vec into ArrayVec for the library code, but then we'd need t reserve lots of possibly unused memory
-
-
-    for node in node_array {
-        println!("node: {:?}", node);
-    }
-
-
-    //    let's try to use it as ref-slices-references? as in lms-demo
-    //    let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
-    //       where aux_data is Vec<u8>
     let _pubkey = gen_pub_key::<Hasher>(&node_array, ssts_param.get_top_height(), lms_tree_ident);
     println!("pub key (node 1) hash value: {:?}", _pubkey);
 
@@ -445,8 +436,7 @@ fn gen_key_ssts(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 
     //let public_key_filename = get_public_key_name(&keyname);
 
-
-    let aux_data_name = get_aux_filename(&keyname);
+    let aux_data_name = get_aux_filename(&keyname, signing_instance.parse::<u8>().unwrap());
     let mut _aux_data = read(aux_data_name).ok();
     //let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
@@ -455,12 +445,12 @@ fn gen_key_ssts(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 
     //write(public_key_filename.as_str(), verifying_key.as_slice())?;
 
-
     Ok(())
 }
 
-fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
-    let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+fn parse_genkey1_parameter(parameter: &str) -> GenKeyParameter {
+    let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+        Default::default();
 
     let mut aux_data_size: Option<usize> = None;
 
@@ -485,19 +475,12 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
     let mut is_first_loop = true;
 
     for parameter in parameters {
-
         let mut splitted = parameter.split('/');
 
-        let height = splitted
-            .next()
-            .expect("Merkle tree height invalid");
-        let winternitz_parameter = splitted
-            .next()
-            .expect("Winternitz parameter invalid");
+        let height = splitted.next().expect("Merkle tree height invalid");
+        let winternitz_parameter = splitted.next().expect("Winternitz parameter invalid");
 
-        let height: u8 = height
-            .parse()
-            .expect("Merkle tree height invalid");
+        let height: u8 = height.parse().expect("Merkle tree height invalid");
         let winternitz_parameter: u8 = winternitz_parameter
             .parse()
             .expect("Winternitz parameter not correct specified");
@@ -510,13 +493,9 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
                     .next()
                     .expect("Top part height provided, but signing entity number missing.");
                 // @TODO check: invalid if "height - top_part_height < 1"
-                top_part_height = s_top_part_height
-                    .parse()
-                    .expect("Top part height invalid");
+                top_part_height = s_top_part_height.parse().expect("Top part height invalid");
                 // @TODO check: invalid if ...dep. on height and top_part_height
-                entity_idx = s_entity_idx
-                    .parse()
-                    .expect("Signing entity index invalid");
+                entity_idx = s_entity_idx.parse().expect("Signing entity index invalid");
             }
         }
 

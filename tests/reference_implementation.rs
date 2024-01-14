@@ -6,7 +6,10 @@ use std::{
 };
 use tinyvec::ArrayVec;
 
-use hbs_lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256_256, REF_IMPL_MAX_ALLOWED_HSS_LEVELS, SstsParameter};
+use hbs_lms::{
+    HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256_256, SstsParameter,
+    REF_IMPL_MAX_ALLOWED_HSS_LEVELS,
+};
 use tempfile::TempDir;
 
 const MESSAGE_FILE_NAME: &str = "message.txt";
@@ -58,12 +61,9 @@ fn create_signature_with_own_implementation() {
     vec_hss_params.push(HssParameter::construct_default_parameters());
     let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
 
-    let (mut signing_key, verifying_key) = hbs_lms::keygen::<Sha256_256>(
-        &sst_param,
-        &seed,
-        Some(aux_slice),
-    )
-    .expect("Should create HSS keys");
+    let (mut signing_key, verifying_key) =
+        hbs_lms::keygen::<Sha256_256>(&sst_param, &seed, Some(aux_slice))
+            .expect("Should create HSS keys");
 
     save_file(
         path.join(PUBLIC_KEY_NAME).to_str().unwrap(),

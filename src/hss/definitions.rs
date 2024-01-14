@@ -14,7 +14,8 @@ use crate::{
         generate_key_pair,
         parameters::LmsParameter,
     },
-    util::helper::read_and_advance, parameters::SstExtension,
+    parameters::SstExtension,
+    util::helper::read_and_advance,
 };
 use crate::{hss::aux::hss_get_aux_data_len, lms::signing::LmsSignature};
 
@@ -77,8 +78,13 @@ impl<H: HashChain> HssPrivateKey<H> {
             let signature_randomizer =
                 generate_signature_randomizer::<H>(&current_seed, &parent_used_leafs_index);
 
-            let lms_keypair =
-                generate_key_pair(&current_seed, parameter, &used_leafs_indexes[i], &mut None, None);
+            let lms_keypair = generate_key_pair(
+                &current_seed,
+                parameter,
+                &used_leafs_indexes[i],
+                &mut None,
+                None,
+            );
 
             let signature = lms::signing::LmsSignature::sign(
                 &mut hss_private_key.private_key[i - 1],
@@ -200,7 +206,7 @@ impl<H: HashChain> HssPublicKey<H> {
             &parameters[0],
             &used_leafs_indexes[0],
             &mut expanded_aux_data,
-            sst_ext_option
+            sst_ext_option,
         );
 
         if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
@@ -246,21 +252,21 @@ impl<'a, H: HashChain> InMemoryHssPublicKey<'a, H> {
 mod tests {
     use rand::{rngs::OsRng, RngCore};
 
-    use crate::SstsParameter;
     use crate::util::helper::test_helper::gen_random_seed;
+    use crate::SstsParameter;
     use crate::{
         hasher::sha256::Sha256_256,
         hss::{
             definitions::InMemoryHssPublicKey,
             reference_impl_private_key::{ReferenceImplPrivateKey, SeedAndLmsTreeIdentifier},
-            HashChain
+            HashChain,
         },
-        lms, LmotsAlgorithm, LmsAlgorithm, HssParameter,
+        lms, HssParameter, LmotsAlgorithm, LmsAlgorithm,
     };
 
-    use tinyvec::ArrayVec;
-    use crate::constants;
     use super::{HssPrivateKey, HssPublicKey};
+    use crate::constants;
+    use tinyvec::ArrayVec;
 
     #[test]
     fn child_tree_lms_leaf_update() {
@@ -329,7 +335,8 @@ mod tests {
     ) -> (HssPrivateKey<H>, HssPrivateKey<H>) {
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
-        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
         vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
         vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
         vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
@@ -356,7 +363,8 @@ mod tests {
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
 
-        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
         vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
         vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
         vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
@@ -392,7 +400,8 @@ mod tests {
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
-        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
         vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
         vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
         let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
@@ -414,7 +423,7 @@ mod tests {
             &HssParameter::construct_default_parameters(),
             &0,
             &mut None,
-            None
+            None,
         );
         let public_key: HssPublicKey<Sha256_256> = HssPublicKey {
             level: 18,

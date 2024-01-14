@@ -6,7 +6,6 @@ mod seed_derive;
 pub mod signing;
 pub mod verify;
 
-
 use core::{convert::TryFrom, marker::PhantomData};
 use tinyvec::ArrayVec;
 
@@ -292,6 +291,7 @@ pub fn hss_keygen<H: HashChain>(
 
 #[cfg(test)]
 mod tests {
+    use super::parameter::HssParameter;
     use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
         constants::{LMS_LEAF_IDENTIFIERS_SIZE, MAX_HASH_SIZE, REF_IMPL_MAX_ALLOWED_HSS_LEVELS},
@@ -302,7 +302,6 @@ mod tests {
         },
         LmotsAlgorithm, LmsAlgorithm,
     };
-    use super::parameter::HssParameter;
 
     use super::*;
 
@@ -524,12 +523,8 @@ mod tests {
         vec_hss_params.push(HssParameter::construct_default_parameters());
         let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
 
-        let (mut signing_key, verifying_key) = hss_keygen::<H>(
-            &sst_param,
-            &seed,
-            None,
-        )
-        .expect("Should generate HSS keys");
+        let (mut signing_key, verifying_key) =
+            hss_keygen::<H>(&sst_param, &seed, None).expect("Should generate HSS keys");
 
         let message_values = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,

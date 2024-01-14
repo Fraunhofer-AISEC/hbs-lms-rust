@@ -1,18 +1,18 @@
 use crate::{
     constants::{
         LmsTreeIdentifier, D_TOPSEED, ILEN, LMS_LEAF_IDENTIFIERS_SIZE, MAX_ALLOWED_HSS_LEVELS,
-        MAX_HASH_SIZE, MAX_SEED_LEN, REF_IMPL_MAX_PRIVATE_KEY_SIZE, SEED_CHILD_SEED,
-        SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
-        REF_IMPL_SSTS_EXT_SIZE,
+        MAX_HASH_SIZE, MAX_SEED_LEN, REF_IMPL_MAX_PRIVATE_KEY_SIZE, REF_IMPL_SSTS_EXT_SIZE,
+        SEED_CHILD_SEED, SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED,
+        TOPSEED_WHICH,
     },
     hasher::HashChain,
     hss::{definitions::HssPrivateKey, seed_derive::SeedDerive},
-    util::{helper::read_and_advance, ArrayVecZeroize},
-    HssParameter, LmotsAlgorithm, LmsAlgorithm,
     sst::{
         helper,
         parameters::{SstExtension, SstsParameter},
-    }
+    },
+    util::{helper::read_and_advance, ArrayVecZeroize},
+    HssParameter, LmotsAlgorithm, LmsAlgorithm,
 };
 
 use core::{convert::TryFrom, convert::TryInto, marker::PhantomData};
@@ -117,7 +117,8 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
             used_leafs_index = helper::get_sst_first_leaf_idx(
                 sst_ext.signing_instance,
                 top_lms_parameter.get_tree_height(),
-                sst_ext.top_tree_height);
+                sst_ext.top_tree_height,
+            );
         }
 
         let private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
@@ -361,14 +362,12 @@ impl CompressedUsedLeafsIndexes {
 #[cfg(test)]
 mod tests {
     use super::{CompressedParameterSet, ReferenceImplPrivateKey};
-    use crate::{
-        constants::MAX_ALLOWED_HSS_LEVELS,
-        constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS,
-        hss::definitions::HssPrivateKey, HssParameter,
-        LmotsAlgorithm, LmsAlgorithm, Sha256_256,
-    };
-    use crate::SstsParameter;
     use crate::util::helper::test_helper::gen_random_seed;
+    use crate::SstsParameter;
+    use crate::{
+        constants::MAX_ALLOWED_HSS_LEVELS, constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS,
+        hss::definitions::HssPrivateKey, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256_256,
+    };
     use tinyvec::ArrayVec;
 
     type Hasher = Sha256_256;

@@ -5,19 +5,16 @@ use crate::lm_ots::parameters::{LmotsAlgorithm, LmotsParameter};
 use crate::lms::helper::get_tree_element;
 use crate::lms::parameters::LmsAlgorithm;
 use crate::lms::MutableExpandedAuxData;
-use crate::util::helper::read_and_advance;
-use crate::{lm_ots, Seed};
 use crate::sst::helper::get_sst_last_leaf_idx;
 use crate::sst::parameters::SstExtension;
+use crate::util::helper::read_and_advance;
+use crate::{lm_ots, Seed};
 
 use core::convert::TryInto;
 use tinyvec::ArrayVec;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use super::parameters::LmsParameter;
-
-
-
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct LmsPrivateKey<H: HashChain> {
@@ -46,7 +43,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
             used_leafs_index,
             lmots_parameter,
             lms_parameter,
-            sst_ext
+            sst_ext,
         }
     }
 
@@ -54,9 +51,12 @@ impl<H: HashChain> LmsPrivateKey<H> {
         let number_of_lm_ots_keys = {
             if let Some(my_sst_ext) = &self.sst_ext {
                 // our last leafs function returns 0..total_num-1, but here we need 1..total_num
-                1 + get_sst_last_leaf_idx(my_sst_ext.signing_instance, self.lms_parameter.get_tree_height(), my_sst_ext.top_tree_height)
-            }
-            else {
+                1 + get_sst_last_leaf_idx(
+                    my_sst_ext.signing_instance,
+                    self.lms_parameter.get_tree_height(),
+                    my_sst_ext.top_tree_height,
+                )
+            } else {
                 self.lms_parameter.number_of_lm_ots_keys() as u32
             }
         };
@@ -188,7 +188,7 @@ mod tests {
             0,
             LmotsAlgorithm::construct_default_parameter(),
             LmsAlgorithm::construct_default_parameter(),
-            None
+            None,
         );
 
         let public_key = LmsPublicKey::new(&private_key, &mut None);

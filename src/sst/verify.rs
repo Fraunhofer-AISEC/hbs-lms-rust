@@ -1,11 +1,7 @@
 use crate::HashChain;
 //use crate::hss;
 
-pub fn verify<H: HashChain>(
-    _message: &[u8],
-    _signature: &[u8],
-    _public_key: &[u8],
-) -> bool {
+pub fn verify<H: HashChain>(_message: &[u8], _signature: &[u8], _public_key: &[u8]) -> bool {
     // @TODO nyi
     // - verify SST (= HSS/LMS) signature (same as for HSS/LMS)
 

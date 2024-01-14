@@ -1,7 +1,7 @@
-use crate::signature::Error;
 use crate::constants::Node;
 use crate::constants::MAX_HASH_SIZE;
 use crate::hss::signing::HssSignature;
+use crate::signature::Error;
 use crate::HashChain;
 use tinyvec::ArrayVec;
 
@@ -11,9 +11,7 @@ pub struct SstsSignature<H: HashChain> {
     pub auth_path: ArrayVec<[Node; MAX_HASH_SIZE]>, // order: sort on-the-fly dep. on Node's values?
 }
 
-pub fn sign<H: HashChain>(
-    _message: &[u8],
-) -> Result<(), Error> {
+pub fn sign<H: HashChain>(_message: &[u8]) -> Result<(), Error> {
     // nyi
     /* hbs_lms::sign::<Hasher>(
         &message_data,

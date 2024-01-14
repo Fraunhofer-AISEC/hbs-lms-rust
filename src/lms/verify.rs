@@ -108,7 +108,7 @@ mod tests {
             0,
             LmotsAlgorithm::construct_default_parameter(),
             LmsAlgorithm::construct_default_parameter(),
-            None
+            None,
         );
 
         let public_key = LmsPublicKey::new(&private_key, &mut None).to_binary_representation();

@@ -30,6 +30,8 @@ pub fn verify<'a, H: HashChain>(
 
 #[cfg(test)]
 mod tests {
+    use crate::constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
+    use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
         hasher::{sha256::Sha256_256, HashChain},
         hss::{
@@ -41,8 +43,6 @@ mod tests {
         sst::parameters::SstsParameter,
         HssParameter,
     };
-    use crate::constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
-    use crate::util::helper::test_helper::gen_random_seed;
 
     use tinyvec::ArrayVec;
 
@@ -56,12 +56,7 @@ mod tests {
         vec_hss_params.push(HssParameter::construct_default_parameters());
         let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
 
-
-        let rfc_key = ReferenceImplPrivateKey::<H>::generate(
-            &sst_param,
-            &seed,
-        )
-        .unwrap();
+        let rfc_key = ReferenceImplPrivateKey::<H>::generate(&sst_param, &seed).unwrap();
 
         let mut private_key = HssPrivateKey::from(&rfc_key, &mut None).unwrap();
         let public_key = HssPublicKey::from(&rfc_key, None).unwrap();

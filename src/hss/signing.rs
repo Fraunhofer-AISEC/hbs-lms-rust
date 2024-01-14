@@ -280,11 +280,7 @@ mod tests {
         vec_hss_params.push(HssParameter::construct_default_parameters());
         let sst_param = SstsParameter::<Hasher>::new(vec_hss_params, 0, 0);
 
-        let private_key = ReferenceImplPrivateKey::<Hasher>::generate(
-            &sst_param,
-            &seed,
-        )
-        .unwrap();
+        let private_key = ReferenceImplPrivateKey::<Hasher>::generate(&sst_param, &seed).unwrap();
 
         let mut private_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
 
@@ -308,7 +304,7 @@ mod tests {
             &HssParameter::construct_default_parameters(),
             &0,
             &mut None,
-            None
+            None,
         );
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
@@ -344,11 +340,7 @@ mod tests {
         vec_hss_params.push(HssParameter::construct_default_parameters());
         let sst_param = SstsParameter::<Hasher>::new(vec_hss_params, 0, 0);
 
-        let private_key = ReferenceImplPrivateKey::<Hasher>::generate(
-            &sst_param,
-            &seed,
-        )
-        .unwrap();
+        let private_key = ReferenceImplPrivateKey::<Hasher>::generate(&sst_param, &seed).unwrap();
 
         let mut private_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
 

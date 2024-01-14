@@ -120,9 +120,9 @@ pub use crate::hss::hss_verify as verify;
 pub use crate::hss::{SigningKey, VerifyingKey};
 
 // @TODO: Re-export: API for distributed state management (SST, SingleSubTree)
-pub use crate::sst::*; // {gen_key, sign, verify};
-pub use crate::sst::parameters::SstsParameter;
 pub use crate::constants::MAX_DSM_SIGNING_ENTITIES;
+pub use crate::sst::parameters::SstsParameter;
+pub use crate::sst::*; // {gen_key, sign, verify};
 
 use core::convert::TryFrom;
 use signature::Error;
@@ -196,14 +196,14 @@ impl<'a> signature::Signature for VerifierSignature<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
+    use crate::util::helper::test_helper::gen_random_seed;
     use crate::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256_256};
     use crate::{
         signature::{SignerMut, Verifier},
-        SigningKey, VerifierSignature, VerifyingKey,
         sst::parameters::SstsParameter,
+        SigningKey, VerifierSignature, VerifyingKey,
     };
-    use crate::constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
-    use crate::util::helper::test_helper::gen_random_seed;
     use tinyvec::ArrayVec;
 
     #[test]
@@ -212,15 +212,13 @@ mod tests {
         let seed = gen_random_seed::<H>();
 
         let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
-        vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5));
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
         let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
 
-        let (signing_key, verifying_key) = keygen::<H>(
-            &sst_param,
-            &seed,
-            None,
-        )
-        .unwrap();
+        let (signing_key, verifying_key) = keygen::<H>(&sst_param, &seed, None).unwrap();
 
         let _: SigningKey<H> = signing_key;
         let _: VerifyingKey<H> = verifying_key;
@@ -235,16 +233,17 @@ mod tests {
         let seed = gen_random_seed::<H>();
 
         let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
-        vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5));
-        vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5));
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
         let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
 
-        let (mut signing_key, verifying_key) = keygen::<H>(
-            &sst_param,
-            &seed,
-            None,
-        )
-        .unwrap();
+        let (mut signing_key, verifying_key) = keygen::<H>(&sst_param, &seed, None).unwrap();
 
         let signature = signing_key.try_sign(&message).unwrap();
 

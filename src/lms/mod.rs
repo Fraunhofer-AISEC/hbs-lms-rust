@@ -1,10 +1,10 @@
 use crate::hasher::HashChain;
 use crate::hss::aux::MutableExpandedAuxData;
 use crate::hss::parameter::HssParameter;
-use crate::parameters::SstExtension;
 use crate::hss::reference_impl_private_key::SeedAndLmsTreeIdentifier;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
+use crate::parameters::SstExtension;
 
 pub mod definitions;
 pub mod helper; // TODO review -> pub!

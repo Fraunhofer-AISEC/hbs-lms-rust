@@ -114,12 +114,19 @@ impl<H: HashChain> HssPrivateKey<H> {
             return hss_expand_aux_data::<H>(Some(aux_data), Some(private_key.seed.as_slice()));
         }
 
+        let top_tree_height = private_key.sst_ext.top_tree_height;
+        let opt_top_tree_height = if 0 == top_tree_height {
+            None
+        } else {
+            Some(top_tree_height)
+        };
+
         // Shrink input slice
-        let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter);
+        let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter, opt_top_tree_height);
         let moved = core::mem::take(aux_data);
         *aux_data = &mut moved[..aux_len];
 
-        let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None);
+        let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None, opt_top_tree_height);
         hss_store_aux_marker(aux_data, aux_level);
 
         hss_expand_aux_data::<H>(Some(aux_data), None)
@@ -175,7 +182,7 @@ impl<H: HashChain> HssPublicKey<H> {
         let levels = parameters.len();
         let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
 
-        let top_lms_parameter = parameters[0].get_lms_parameter();
+        let top_lms_parameter = parameters[0].get_lms_parameter(); // TODO: "[0]": discuss/review for SST
 
         let is_aux_data_used = if let Some(ref aux_data) = aux_data {
             hss_is_aux_data_used(aux_data)
@@ -186,7 +193,7 @@ impl<H: HashChain> HssPublicKey<H> {
         let mut expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
             aux_data,
             private_key,
-            top_lms_parameter,
+            top_lms_parameter, // TODO only top is forwarded to LmsPrivateKey for SST params
             is_aux_data_used,
         );
 
@@ -220,6 +227,7 @@ impl<H: HashChain> HssPublicKey<H> {
             level: levels,
         })
     }
+
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]> {
         let mut result = ArrayVec::new();
 

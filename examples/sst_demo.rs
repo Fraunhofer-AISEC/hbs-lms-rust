@@ -9,8 +9,8 @@ use std::{
 };
 use tinyvec::ArrayVec;
 
-const GENSUBTREE_COMMAND: &str = "gensubtree";
-const GENPUBKEY_COMMAND: &str = "genpubkey";
+const GENKEY1_COMMAND: &str = "genkey1";
+const GENKEY2_COMMAND: &str = "genkey2";
 const VERIFY_COMMAND: &str = "verify";
 const SIGN_COMMAND: &str = "sign";
 
@@ -19,9 +19,10 @@ const SIGN_MUT_COMMAND: &str = "sign_mut";
 
 const ARG_KEYNAME: &str = "keyname";
 const ARG_MESSAGE: &str = "file";
-const ARG_SSTS_PARAMETER: &str = "parameter";
+const ARG_GENKEY1_PARAMETER: &str = "parameter";
 const ARG_SI_PARAMETER: &str = "si_param";
 const ARG_SEED: &str = "seed";
+const ARG_AUXSIZE: &str = "auxsize";
 
 const AUX_DATA_DEFAULT_SIZE: usize = 100_000_000;
 
@@ -46,15 +47,15 @@ type Hasher = Sha256_256;
 
 struct GenKeyParameter {
     ssts_param: SstsParameter<Hasher>,
-    _aux_data: usize,
+    aux_data: usize,
 }
 
 impl GenKeyParameter {
     pub fn new(ssts_param: SstsParameter<Hasher>, aux_data: Option<usize>) -> Self {
-        let _aux_data = aux_data.unwrap_or(AUX_DATA_DEFAULT_SIZE);
+        let aux_data = aux_data.unwrap_or(AUX_DATA_DEFAULT_SIZE);
         Self {
             ssts_param,
-            _aux_data,
+            aux_data,
         }
     }
 }
@@ -80,17 +81,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let command = Command::new("SSTS Demo")
     .about("Generates SSTS keys and uses them for signing and verifying.")
     .subcommand(
-        Command::new(GENSUBTREE_COMMAND)
+        Command::new(GENKEY1_COMMAND)
             .arg(Arg::new(ARG_KEYNAME).required(true))
-            .arg(Arg::new(ARG_SSTS_PARAMETER).required(true).help(
+            .arg(Arg::new(ARG_GENKEY1_PARAMETER).required(true).help(
                 "Specify LMS parameters (e.g. 5/4/2/1 (tree height = 5, Winternitz parameter = 4, top height = 2, signing entity = 1))"))
             .arg(Arg::new(ARG_SEED).long(ARG_SEED).required(true).takes_value(true).value_name("seed")),
     )
     .subcommand(
-        Command::new(GENPUBKEY_COMMAND)
+        Command::new(GENKEY2_COMMAND)
         .arg(Arg::new(ARG_KEYNAME).required(true))
         .arg(Arg::new(ARG_SI_PARAMETER).required(true).help(
             "Specify signing instance number (1..n))"))
+        .arg(Arg::new(ARG_AUXSIZE).long(ARG_AUXSIZE).required(false).takes_value(true).value_name("auxsize").help(
+            "Specify AUX data size in bytes"))
     )
     .subcommand(
         Command::new(VERIFY_COMMAND)
@@ -111,16 +114,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let matches = command.get_matches();
 
-    if let Some(args) = matches.subcommand_matches(GENSUBTREE_COMMAND) {
-        gen_key_subtree(args)?;
+    if let Some(args) = matches.subcommand_matches(GENKEY1_COMMAND) {
+        genkey1(args)?;
         println!(
             "Single-subtree-structure: intermediate node and private key successfully generated!"
         );
         return Ok(());
     }
 
-    if let Some(args) = matches.subcommand_matches(GENPUBKEY_COMMAND) {
-        gen_key_ssts(args)?;
+    if let Some(args) = matches.subcommand_matches(GENKEY2_COMMAND) {
+        genkey2(args)?;
         println!("Single-subtree-structure: public key successfully generated!");
         return Ok(());
     }
@@ -277,7 +280,7 @@ fn verify(args: &ArgMatches) -> bool {
 }
 
 fn get_public_key_filename(keyname: &str, idx: u8) -> String {
-    keyname.to_string() + &idx.to_string() + ".pub"
+    keyname.to_string() + "." + &idx.to_string() + ".pub"
 }
 
 fn get_signature_filename(message_name: &str) -> String {
@@ -295,11 +298,11 @@ fn get_message_mut_filename(message_name: &str) -> String {
 }
 
 fn get_private_key_filename(private_key: &str, idx: u8) -> String {
-    private_key.to_string() + &idx.to_string() + "." + ".prv"
+    private_key.to_string() + "." + &idx.to_string() + ".prv"
 }
 
 fn get_aux_filename(keyname: &str, idx: u8) -> String {
-    keyname.to_string() + &idx.to_string() + ".aux"
+    keyname.to_string() + "." + &idx.to_string() + ".aux"
 }
 
 fn get_parameter(name: &str, args: &ArgMatches) -> String {
@@ -319,10 +322,10 @@ fn read_file(file_name: &str) -> Vec<u8> {
     data
 }
 
-fn gen_key_subtree(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let keyname: String = get_parameter(ARG_KEYNAME, args);
 
-    let genkey_parameter = parse_genkey1_parameter(&get_parameter(ARG_SSTS_PARAMETER, args));
+    let genkey_parameter = parse_genkey1_parameter(&get_parameter(ARG_GENKEY1_PARAMETER, args));
     let ssts_param = genkey_parameter.ssts_param;
 
     let seed: Seed<Hasher> = if let Some(seed) = args.value_of(ARG_SEED) {
@@ -342,19 +345,19 @@ fn gen_key_subtree(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
         return DemoError::raise("Seed was not given".to_string());
     };
 
-    // TODO should we generate aux data here or in next step -- or in both?
+    let mut aux_data = vec![0u8; genkey_parameter.aux_data];
+    let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
     // create our private key
     let (signing_key, node_pubkey) =
-        gen_sst_subtree(&ssts_param, &seed).unwrap_or_else(|_| panic!("Could not generate keys"));
+        genkey1_sst(&ssts_param, &seed, Some(aux_slice)).unwrap_or_else(|_| panic!("Could not generate keys"));
 
-    //println!("sst_demo::gen_key_subtree(): node value: {:?}", node_pubkey);
     let private_key_filename = get_private_key_filename(&keyname, ssts_param.get_entity_idx());
     write(private_key_filename.as_str(), signing_key.as_slice())?;
 
     // write own node value and signing instance to file
     // TODO     maybe also HSS/LMS/LM-OTS parameters, to ensure that we got the same parameters among all signing instances
-    let interm_node_filename = String::from("node_si")
+    let interm_node_filename = String::from("node_si.")
         + &(ssts_param.get_entity_idx().to_string())
         + &String::from(".bin"); // TODO into function
 
@@ -375,75 +378,76 @@ fn gen_key_subtree(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
-fn gen_key_ssts(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     // get signing instance number and name of private keyfile from args
     let keyname: String = get_parameter(ARG_KEYNAME, args);
     let signing_instance: String = get_parameter(ARG_SI_PARAMETER, args);
+    let aux_size: String = get_parameter(ARG_AUXSIZE, args);
 
-    println!("keyname: {} -- SI: {}", keyname, signing_instance);
+    let signing_instance: u8 = signing_instance.parse::<u8>().unwrap();
+
+    // AUX data: currently we create it only in genkey2
+    let mut aux_data = vec![0u8; aux_size.parse::<usize>().unwrap()];
+    let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+    // later on we should create it in genkey1 because it's possibly lots of calculations
+    // and in that case we'll read the previously generated aux data from a file
+    //let mut aux_data = read(aux_data_name).ok();
+    //let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
+
+    // println!("keyname: {} -- SI: {} -- aux_size: {}", keyname, signing_instance, aux_size);
 
     // read private key
-    let private_key_name =
-        get_private_key_filename(&keyname, signing_instance.parse::<u8>().unwrap());
+    let private_key_name = get_private_key_filename(&keyname, signing_instance);
     let private_key_data = read_file(&private_key_name);
 
-    // (here so far we only had the structs "SigningKey" and "VerifyingKey" -> leave it at that if possible)
-    // read HSS configuration from key -> how many SI and LMS config (tree height...)
-
+    // here we need one additional API call so we know which files we have to read dep. on HSS config.
     let (ssts_param, lms_tree_ident) = get_config::<Hasher>(&private_key_data)
         .unwrap_or_else(|_| panic!("genkey step 2: invalid config"));
-
-    println!("lms_tree_ident: {:?}", lms_tree_ident);
 
     // TODO maybe compare with HSS configuration in the "node files"
     // read intermediate node values from files (ours and others) and pass for calc.
     let num_signing_entities = 2u32.pow(ssts_param.get_top_height() as u32);
-    //let mut vec_intermed_nodes = Vec::new();
+
     let mut node_array: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]> =
         Default::default();
 
     for idx in 1..=num_signing_entities {
-        let interm_node_filename =
-            String::from("node_si") + &(idx.to_string()) + &String::from(".bin"); // TODO into function
 
-        //println!("read intermediate node value for signing entity num {}", idx);
+        let interm_node_filename =
+            String::from("node_si.") + &(idx.to_string()) + &String::from(".bin"); // TODO into function
+
         let file_data: Vec<u8> = read_file(&interm_node_filename);
         if file_data.len() != (1 + MAX_HASH_SIZE) {
-            panic!(
-                "genkey step 2: file data len is {}, should be {}",
-                file_data.len(),
-                (1 + MAX_HASH_SIZE)
+            panic!("genkey2(): intermediate node file size is {}, should be {}",
+                file_data.len(), (1 + MAX_HASH_SIZE)
             );
         }
 
         // let mut node: ArrayVec<[u8; MAX_HASH_SIZE]> = Default::default();
         // node.push(file_data[1..]); // TODO easier?
-        // TODO that works but is probably a really bad solution
-
+        // node_array[(idx-1) as usize].extend(&file_data[1..]);
+        // TODO the following works but is a really bad inefficient solution
         let mut node: [u8; MAX_HASH_SIZE] = [0; MAX_HASH_SIZE];
         node.copy_from_slice(&file_data[1..]); // TODO easier?
         node_array.push(node.into());
-        //node_array[(idx-1) as usize].extend(&file_data[1..]);
     }
 
-    let _pubkey = gen_pub_key::<Hasher>(&node_array, ssts_param.get_top_height(), lms_tree_ident);
-    println!("pub key (node 1) hash value: {:?}", _pubkey);
+    let verifying_key = genkey2_sst::<Hasher>(
+        &private_key_data,
+        &node_array,
+        ssts_param.get_top_height(), // TODO remove
+        lms_tree_ident,  // TODO remove
+        Some(aux_slice),
+    ).unwrap_or_else(|_| panic!("Could not generate verifying key"));
 
-    // VerifyingKey ?
-    //let intermediate_nodes = ArrayVec<Nod
+    //println!("pub key (node 1) hash value: {:?}", verifying_key);
 
-    // create public key (VerifyingKey) and write to file
+    // get public key (VerifyingKey) and write to file
+    let aux_filename: String = get_aux_filename(&keyname, signing_instance);
+    write(&aux_filename, aux_slice)?;
 
-    //let public_key_filename = get_public_key_name(&keyname);
-
-    let aux_data_name = get_aux_filename(&keyname, signing_instance.parse::<u8>().unwrap());
-    let mut _aux_data = read(aux_data_name).ok();
-    //let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
-
-    // retrieve PrivateKey private_key: &ReferenceImplPrivateKey<H>
-    //gen_sst_pubkey(&private_key_data, Some(aux_slice));
-
-    //write(public_key_filename.as_str(), verifying_key.as_slice())?;
+    let public_key_filename = get_public_key_filename(&keyname, signing_instance);
+    write(public_key_filename.as_str(), verifying_key.as_slice())?;
 
     Ok(())
 }

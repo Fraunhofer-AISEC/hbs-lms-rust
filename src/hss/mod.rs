@@ -294,7 +294,7 @@ mod tests {
     use super::parameter::HssParameter;
     use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
-        constants::{LMS_LEAF_IDENTIFIERS_SIZE, MAX_HASH_SIZE, REF_IMPL_MAX_ALLOWED_HSS_LEVELS},
+        constants::{LMS_LEAF_IDENTIFIERS_SIZE, MAX_HASH_SIZE, REF_IMPL_MAX_ALLOWED_HSS_LEVELS, REF_IMPL_SSTS_EXT_SIZE},
         hasher::{
             sha256::{Sha256_128, Sha256_192, Sha256_256},
             shake256::{Shake256_128, Shake256_192, Shake256_256},
@@ -340,9 +340,14 @@ mod tests {
         assert!(hss_verify::<H>(&message, signature.as_ref(), verifying_key.as_slice()).is_ok());
 
         assert_ne!(signing_key.as_slice(), signing_key_const.as_slice());
+
         assert_eq!(
-            signing_key.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..],
-            signing_key_const.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..]
+            signing_key.as_slice()[..REF_IMPL_SSTS_EXT_SIZE],
+            signing_key_const.as_slice()[..REF_IMPL_SSTS_EXT_SIZE]
+        );
+        assert_eq!(
+            signing_key.as_slice()[REF_IMPL_SSTS_EXT_SIZE+LMS_LEAF_IDENTIFIERS_SIZE..],
+            signing_key_const.as_slice()[REF_IMPL_SSTS_EXT_SIZE+LMS_LEAF_IDENTIFIERS_SIZE..]
         );
     }
 
@@ -373,7 +378,7 @@ mod tests {
 
         for index in 0..keypair_lifetime {
             assert_eq!(
-                signing_key.as_slice()[..LMS_LEAF_IDENTIFIERS_SIZE],
+                signing_key.as_slice()[REF_IMPL_SSTS_EXT_SIZE..LMS_LEAF_IDENTIFIERS_SIZE+REF_IMPL_SSTS_EXT_SIZE],
                 index.to_be_bytes(),
             );
             assert_eq!(
@@ -560,12 +565,14 @@ mod tests {
         type H = Sha256_256;
         let seed = gen_random_seed::<H>();
 
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
+
         let (mut signing_key, verifying_key) = hss_keygen::<H>(
-            &[
-                HssParameter::construct_default_parameters(),
-                HssParameter::construct_default_parameters(),
-                HssParameter::construct_default_parameters(),
-            ],
+            &sst_param,
             &seed,
             None,
         )

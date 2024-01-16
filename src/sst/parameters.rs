@@ -41,25 +41,6 @@ impl<H: HashChain> SstsParameter<H> {
     }
 }
 
-/*
-impl<H: HashChain> SstsParameter<H> {
-    pub fn construct_default_parameters() -> Self {
-        let lmots_parameter = LmotsAlgorithm::LmotsW1;
-        let lms_parameter = LmsAlgorithm::LmsH5;
-
-        SstsParameter::new(lmots_parameter, lms_parameter, 3)
-    }
-}
-
-impl<H: HashChain> Default for SstsParameter<H> {
-    fn default() -> Self {
-        let lmots_parameter = LmotsAlgorithm::LmotsW1;
-        let lms_parameter = LmsAlgorithm::LmsH5;
-
-        SstsParameter::new(lmots_parameter, lms_parameter, 3)
-    }
-}
- */
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct SstExtension {
@@ -68,17 +49,19 @@ pub struct SstExtension {
 }
 
 impl SstExtension {
-    pub fn from_slice(data: &[u8]) -> Result<Self, ()> {
-        if data.len() != constants::REF_IMPL_SSTS_EXT_SIZE {
-            return Err(());
-        }
 
+    // TODO unlike in all other locations clippy reports
+    // "this returns a `Result<_, ()>`" and "use a custom `Error` type instead"
+    pub fn from_slice(data: &[u8]) -> Self {
+
+        if data.len() != constants::REF_IMPL_SSTS_EXT_SIZE {
+            panic!("SstExtension::from_slice(): wrong data len");
+            //return Err(Error::new());
+        }
         let tmp: u16 = u16::from_be_bytes(data.try_into().unwrap());
-        let sst_ext = SstExtension {
+        SstExtension {
             signing_instance: (tmp >> 8) as u8,
             top_tree_height: tmp as u8,
-        };
-
-        Ok(sst_ext)
+        }
     }
 }

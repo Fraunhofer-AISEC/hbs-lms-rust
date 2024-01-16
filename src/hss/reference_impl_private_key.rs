@@ -152,7 +152,7 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         let mut index = 0;
 
         let ssts_ext = read_and_advance(data, REF_IMPL_SSTS_EXT_SIZE, &mut index);
-        result.sst_ext = SstExtension::from_slice(ssts_ext)?;
+        result.sst_ext = SstExtension::from_slice(ssts_ext);
 
         let compressed_used_leafs_indexes =
             read_and_advance(data, LMS_LEAF_IDENTIFIERS_SIZE, &mut index);
@@ -455,7 +455,6 @@ mod tests {
 
     #[test]
     fn test_binary_representation_rfc_private_key() {
-
         let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
         vec_hss_params.push(HssParameter::construct_default_parameters());
         vec_hss_params.push(HssParameter::construct_default_parameters());

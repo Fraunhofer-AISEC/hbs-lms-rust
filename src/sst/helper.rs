@@ -15,7 +15,7 @@ fn get_num_leaves_in_sst(total_height: u8, top_div: u8) -> u32 {
 pub fn get_sst_first_leaf_idx(signing_entity_idx: u8, total_height: u8, top_div: u8) -> u32 {
     assert!(signing_entity_idx > 0);
     assert!(signing_entity_idx as u32 <= _get_num_leaves(top_div)); // number of nodes at that level
-    (((signing_entity_idx as u32) - 1) * get_num_leaves_in_sst(total_height, top_div)) as u32
+    ((signing_entity_idx as u32) - 1) * get_num_leaves_in_sst(total_height, top_div)
 }
 
 // For a subtree, depending on whole SSTS and division, get last leaf idx where leafs start with 0
@@ -31,7 +31,7 @@ pub fn _get_sst_first_leaf_node_idx(signing_entity_idx: u8, total_height: u8, to
     assert!(signing_entity_idx > 0);
     assert!(signing_entity_idx as u32 <= _get_num_leaves(top_div)); // number of nodes at that level
     2u32.pow(total_height as u32)
-        + (((signing_entity_idx as u32) - 1) * get_num_leaves_in_sst(total_height, top_div)) as u32
+        + (((signing_entity_idx as u32) - 1) * get_num_leaves_in_sst(total_height, top_div))
 }
 
 // For a subtree, depending on whole SSTS and division, get last leaf idx on whole SSTS

@@ -4,9 +4,10 @@ use crate::{
     constants::{D_INTR, MAX_DSM_SIGNING_ENTITIES, MAX_HASH_SIZE},
     hasher::HashChain,
     hss::{
-        definitions::HssPublicKey,
+        definitions::{HssPublicKey, HssPrivateKey},
         reference_impl_private_key::{ReferenceImplPrivateKey, Seed},
         SigningKey, VerifyingKey,
+        aux::hss_is_aux_data_used,
     },
     lms::definitions::LmsPrivateKey,
     lms::helper::get_tree_element,
@@ -24,9 +25,9 @@ pub fn genkey1_sst<H: HashChain>(
 ) -> Result<(SigningKey<H>, ArrayVec<[u8; MAX_HASH_SIZE]>), Error> {
 
     // create two representations of private keys: ReferenceImplPrivateKey and SigningKey
-    let private_key =
+    let rfc_private_key =
         ReferenceImplPrivateKey::generate(sst_param, seed).map_err(|_| Error::new())?;
-    let signing_key = SigningKey::from_bytes(&private_key.to_binary_representation())?;
+    let signing_key = SigningKey::from_bytes(&rfc_private_key.to_binary_representation())?;
 
     // calculate our intermediate node hash value; for this we have to generate a LmsPrivateKey
 
@@ -44,17 +45,17 @@ pub fn genkey1_sst<H: HashChain>(
     }
 
     // TODO: review! not exactly elegant to create an LmsPrivateKey and SeedAndLmsTreeIdentifier
-    let seed_and_lms_tree_ident = private_key.generate_root_seed_and_lms_tree_identifier();
+    let seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
 
     let sst_ext = SstExtension {
-        signing_instance: private_key.sst_ext.signing_instance,
-        top_tree_height: private_key.sst_ext.top_tree_height,
+        signing_instance: rfc_private_key.sst_ext.signing_instance,
+        top_tree_height: rfc_private_key.sst_ext.top_tree_height,
     };
 
     let mut sst_ext_option = None;
     let mut our_node_index = 1; // TODO don't do that...we're calc. the TOTAL public key
 
-    if private_key.sst_ext.signing_instance != 0 {
+    if rfc_private_key.sst_ext.signing_instance != 0 {
         sst_ext_option = Some(sst_ext);
 
         our_node_index = get_subtree_node_idx(
@@ -82,44 +83,37 @@ pub fn genkey1_sst<H: HashChain>(
 
 pub fn get_config<H: HashChain>(
     private_key: &[u8],
-) -> Result<(SstsParameter<H>, LmsTreeIdentifier), Error> {
+) -> Result<u32, Error> {
     let rfc_private_key = ReferenceImplPrivateKey::<H>::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
 
-    let hss_pubkey = HssPublicKey::from(&rfc_private_key, None).map_err(|_| Error::new())?;
-    let lms_tree_ident = hss_pubkey.public_key.lms_tree_identifier;
+    let num_signing_entities = 2u32.pow(rfc_private_key.sst_ext.top_tree_height as u32);
 
-    let hss_param_vec = rfc_private_key
-        .compressed_parameter
-        .to()
-        .map_err(|_| Error::new())?;
-
-    let ssts_param = SstsParameter::new(
-        hss_param_vec,
-        rfc_private_key.sst_ext.top_tree_height,
-        rfc_private_key.sst_ext.signing_instance,
-    );
-
-    Ok((ssts_param, lms_tree_ident))
+    Ok(num_signing_entities)
 }
 
 pub fn genkey2_sst<H: HashChain>(
     private_key: &[u8],
     av_of_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]>,
-    top_tree_height: u8, // TODO replace/remove (we have private_key)
-    lms_tree_ident: LmsTreeIdentifier, // TODO replace/remove (we have private_key)
     aux_data: Option<&mut &mut [u8]>
 ) -> Result<VerifyingKey<H>, Error> {
-
-    let pubkey_hash_val = get_node_hash_val::<H>(1, av_of_nodes, top_tree_height, lms_tree_ident);
 
     let rfc_private_key = ReferenceImplPrivateKey::<H>::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
 
-    // this public key has the wrong node hash vlaue, because it did not yet consider the other signing entities with their different private keys
+    let seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
+    let lms_tree_ident = seed_and_lms_tree_ident.lms_tree_identifier;
+
+
+    let pubkey_hash_val = get_node_hash_val::<H>(
+        1, av_of_nodes, rfc_private_key.sst_ext.top_tree_height, lms_tree_ident);
+
+    // this public key has the wrong node hash value, because it did not yet consider the other signing entities with their different private keys
     let mut hss_public_key = HssPublicKey::from(&rfc_private_key, aux_data).map_err(|_| Error::new())?;
     // so replace the hash value with the one calc. via signing entity nodes
     hss_public_key.public_key.key = pubkey_hash_val;
+    // we also need to fix AUX data with the values from the other signing entities
+    //fix_aux_data(&rfc_private_key, av_of_nodes, aux_data);
 
     let verifying_key = VerifyingKey::<H>::from_bytes(&hss_public_key.to_binary_representation())?;
 

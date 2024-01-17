@@ -349,7 +349,7 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
     // create our private key
-    let (signing_key, node_pubkey) =
+    let (signing_key, intermed_node_hashval) =
         genkey1_sst(&ssts_param, &seed, Some(aux_slice)).unwrap_or_else(|_| panic!("Could not generate keys"));
 
     let private_key_filename = get_private_key_filename(&keyname, ssts_param.get_entity_idx());
@@ -367,13 +367,13 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         &ssts_param.get_entity_idx().to_be_bytes(),
     )?;
     // and append
-    let mut interm_node_file = OpenOptions::new()
+    let mut intermed_node_file = OpenOptions::new()
         .create(true)
         .write(true)
         .append(true)
         .open(interm_node_filename.as_str())
         .unwrap();
-    interm_node_file.write_all(node_pubkey.as_slice())?;
+    intermed_node_file.write_all(intermed_node_hashval.as_slice())?;
 
     Ok(())
 }
@@ -400,19 +400,20 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let private_key_name = get_private_key_filename(&keyname, signing_instance);
     let private_key_data = read_file(&private_key_name);
 
+
     // here we need one additional API call so we know which files we have to read dep. on HSS config.
-    let (ssts_param, lms_tree_ident) = get_config::<Hasher>(&private_key_data)
+    let num_signing_entities = get_config::<Hasher>(&private_key_data)
         .unwrap_or_else(|_| panic!("genkey step 2: invalid config"));
 
     // TODO maybe compare with HSS configuration in the "node files"
     // read intermediate node values from files (ours and others) and pass for calc.
-    let num_signing_entities = 2u32.pow(ssts_param.get_top_height() as u32);
 
     let mut node_array: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]> =
         Default::default();
 
-    for idx in 1..=num_signing_entities {
+    // let mut node_array: ArrayVec<[[u8; MAX_HASH_SIZE]; MAX_DSM_SIGNING_ENTITIES]> = ArrayVec::new();
 
+    for idx in 1..=num_signing_entities {
         let interm_node_filename =
             String::from("node_si.") + &(idx.to_string()) + &String::from(".bin"); // TODO into function
 
@@ -423,26 +424,26 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
             );
         }
 
-        // let mut node: ArrayVec<[u8; MAX_HASH_SIZE]> = Default::default();
-        // node.push(file_data[1..]); // TODO easier?
-        // node_array[(idx-1) as usize].extend(&file_data[1..]);
         // TODO the following works but is a really bad inefficient solution
+
         let mut node: [u8; MAX_HASH_SIZE] = [0; MAX_HASH_SIZE];
-        node.copy_from_slice(&file_data[1..]); // TODO easier?
+        node.copy_from_slice(&file_data[1..]);
         node_array.push(node.into());
+
+        // TODO replace with this and adapt calls to functions
+        // let node: &[u8; MAX_HASH_SIZE] = file_data[1..].try_into().unwrap();
+        // node_array.push(*node);
     }
+
 
     let verifying_key = genkey2_sst::<Hasher>(
         &private_key_data,
         &node_array,
-        ssts_param.get_top_height(), // TODO remove
-        lms_tree_ident,  // TODO remove
         Some(aux_slice),
     ).unwrap_or_else(|_| panic!("Could not generate verifying key"));
 
     //println!("pub key (node 1) hash value: {:?}", verifying_key);
 
-    // get public key (VerifyingKey) and write to file
     let aux_filename: String = get_aux_filename(&keyname, signing_instance);
     write(&aux_filename, aux_slice)?;
 

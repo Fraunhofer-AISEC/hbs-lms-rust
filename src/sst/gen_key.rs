@@ -4,10 +4,9 @@ use crate::{
     constants::{D_INTR, MAX_DSM_SIGNING_ENTITIES, MAX_HASH_SIZE},
     hasher::HashChain,
     hss::{
-        definitions::{HssPublicKey, HssPrivateKey},
+        definitions::HssPublicKey,
         reference_impl_private_key::{ReferenceImplPrivateKey, Seed},
         SigningKey, VerifyingKey,
-        aux::hss_is_aux_data_used,
     },
     lms::definitions::LmsPrivateKey,
     lms::helper::get_tree_element,
@@ -81,7 +80,7 @@ pub fn genkey1_sst<H: HashChain>(
     Ok((signing_key, our_node_value))
 }
 
-pub fn get_config<H: HashChain>(
+pub fn get_num_signing_entities<H: HashChain>(
     private_key: &[u8],
 ) -> Result<u32, Error> {
     let rfc_private_key = ReferenceImplPrivateKey::<H>::from_binary_representation(private_key)
@@ -94,7 +93,7 @@ pub fn get_config<H: HashChain>(
 
 pub fn genkey2_sst<H: HashChain>(
     private_key: &[u8],
-    av_of_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]>,
+    interm_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]>,
     aux_data: Option<&mut &mut [u8]>
 ) -> Result<VerifyingKey<H>, Error> {
 
@@ -104,16 +103,11 @@ pub fn genkey2_sst<H: HashChain>(
     let seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
     let lms_tree_ident = seed_and_lms_tree_ident.lms_tree_identifier;
 
-
     let pubkey_hash_val = get_node_hash_val::<H>(
-        1, av_of_nodes, rfc_private_key.sst_ext.top_tree_height, lms_tree_ident);
+        1, interm_nodes, rfc_private_key.sst_ext.top_tree_height, lms_tree_ident);
 
-    // this public key has the wrong node hash value, because it did not yet consider the other signing entities with their different private keys
-    let mut hss_public_key = HssPublicKey::from(&rfc_private_key, aux_data).map_err(|_| Error::new())?;
-    // so replace the hash value with the one calc. via signing entity nodes
-    hss_public_key.public_key.key = pubkey_hash_val;
-    // we also need to fix AUX data with the values from the other signing entities
-    //fix_aux_data(&rfc_private_key, av_of_nodes, aux_data);
+    let hss_public_key = HssPublicKey::from_with_sst(
+        &rfc_private_key, aux_data, interm_nodes, pubkey_hash_val).map_err(|_| Error::new())?;
 
     let verifying_key = VerifyingKey::<H>::from_bytes(&hss_public_key.to_binary_representation())?;
 

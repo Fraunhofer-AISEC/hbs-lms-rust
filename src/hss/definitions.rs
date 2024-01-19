@@ -3,10 +3,10 @@ use core::convert::TryInto;
 use tinyvec::ArrayVec;
 
 use crate::{
-    constants::{MAX_ALLOWED_HSS_LEVELS, MAX_HSS_PUBLIC_KEY_LENGTH},
+    constants::{MAX_ALLOWED_HSS_LEVELS, MAX_HSS_PUBLIC_KEY_LENGTH, MAX_DSM_SIGNING_ENTITIES, MAX_HASH_SIZE},
     hasher::HashChain,
     hss::aux::{
-        hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
+        hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker, hss_save_aux_data
     },
     lms::{
         self,
@@ -14,6 +14,7 @@ use crate::{
         generate_key_pair,
         parameters::LmsParameter,
     },
+    sst::helper::get_subtree_node_idx,
     parameters::SstExtension,
     util::helper::read_and_advance,
 };
@@ -217,6 +218,74 @@ impl<H: HashChain> HssPublicKey<H> {
         );
 
         if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
+            if !is_aux_data_used {
+                hss_finalize_aux_data::<H>(expanded_aux_data, private_key.seed.as_slice());
+            }
+        }
+
+        Ok(Self {
+            public_key: lms_keypair.public_key,
+            level: levels,
+        })
+    }
+
+    // same as above, but to keep the function's signature, we add a variant for SSTS
+    pub fn from_with_sst(
+        private_key: &ReferenceImplPrivateKey<H>,
+        aux_data: Option<&mut &mut [u8]>,
+        intermed_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]>,
+        pubkey_hashval: ArrayVec<[u8; MAX_HASH_SIZE]>,
+    ) -> Result<Self, ()> {
+        let parameters = private_key.compressed_parameter.to::<H>()?;
+        let levels = parameters.len();
+        let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
+
+        let top_lms_parameter = parameters[0].get_lms_parameter(); // TODO: "[0]": discuss/review for SST
+
+        let is_aux_data_used = if let Some(ref aux_data) = aux_data {
+            hss_is_aux_data_used(aux_data)
+        } else {
+            false
+        };
+
+        let mut expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
+            aux_data,
+            private_key,
+            top_lms_parameter, // TODO only top is forwarded to LmsPrivateKey for SST params
+            is_aux_data_used,
+        );
+
+        let current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
+
+        let mut sst_ext_option = None;
+        let sst_ext = SstExtension {
+            signing_instance: private_key.sst_ext.signing_instance,
+            top_tree_height: private_key.sst_ext.top_tree_height,
+        };
+        if private_key.sst_ext.signing_instance != 0 {
+            sst_ext_option = Some(sst_ext);
+        }
+
+        let mut lms_keypair = generate_key_pair(
+            &current_seed,
+            &parameters[0],
+            &used_leafs_indexes[0],
+            &mut expanded_aux_data,
+            sst_ext_option,
+        );
+
+        // Addition for SSTS: replace public key node value
+        lms_keypair.public_key.key = pubkey_hashval;
+
+        if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
+            // Additions for SSTS: fix aux data with intermediate node values from other signing entities
+            let num_signing_instances = 2usize.pow(private_key.sst_ext.top_tree_height as u32);
+            for si in 1..=num_signing_instances as u8 {
+                // node index of SI intermed node in whole tree:
+                let idx: usize = get_subtree_node_idx(si, top_lms_parameter.get_tree_height(), private_key.sst_ext.top_tree_height) as usize;
+                hss_save_aux_data::<H>(expanded_aux_data, idx, intermed_nodes[(si-1) as usize].as_slice());
+            }
+
             if !is_aux_data_used {
                 hss_finalize_aux_data::<H>(expanded_aux_data, private_key.seed.as_slice());
             }

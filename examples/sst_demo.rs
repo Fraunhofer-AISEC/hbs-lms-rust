@@ -400,9 +400,8 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let private_key_name = get_private_key_filename(&keyname, signing_instance);
     let private_key_data = read_file(&private_key_name);
 
-
     // here we need one additional API call so we know which files we have to read dep. on HSS config.
-    let num_signing_entities = get_config::<Hasher>(&private_key_data)
+    let num_signing_entities = get_num_signing_entities::<Hasher>(&private_key_data)
         .unwrap_or_else(|_| panic!("genkey step 2: invalid config"));
 
     // TODO maybe compare with HSS configuration in the "node files"
@@ -434,7 +433,6 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         // let node: &[u8; MAX_HASH_SIZE] = file_data[1..].try_into().unwrap();
         // node_array.push(*node);
     }
-
 
     let verifying_key = genkey2_sst::<Hasher>(
         &private_key_data,

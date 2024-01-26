@@ -32,14 +32,14 @@ pub fn genkey1_sst<H: HashChain>(
 
     // TODO review: better option? it's somehow redundant (used leafs calculation)
     let mut used_leafs_index = 0;
-    if sst_param.get_top_height() != 0 {
+    if sst_param.get_top_div_height() != 0 {
         // TODO: is there a better (Rust-idiomatic) approach?
         used_leafs_index = helper::get_sst_first_leaf_idx(
-            sst_param.get_entity_idx(),
+            sst_param.get_signing_entity_idx(),
             sst_param.get_hss_parameters()[0]
                 .get_lms_parameter()
                 .get_tree_height(),
-            sst_param.get_top_height(),
+            sst_param.get_top_div_height(),
         );
     }
 
@@ -47,22 +47,22 @@ pub fn genkey1_sst<H: HashChain>(
     let seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
 
     let sst_ext = SstExtension {
-        signing_instance: rfc_private_key.sst_ext.signing_instance,
-        top_tree_height: rfc_private_key.sst_ext.top_tree_height,
+        signing_entity_idx: rfc_private_key.sst_ext.signing_entity_idx,
+        top_div_height: rfc_private_key.sst_ext.top_div_height,
     };
 
     let mut sst_ext_option = None;
     let mut our_node_index = 1; // TODO don't do that...we're calc. the TOTAL public key
 
-    if rfc_private_key.sst_ext.signing_instance != 0 {
+    if rfc_private_key.sst_ext.signing_entity_idx != 0 {
         sst_ext_option = Some(sst_ext);
 
         our_node_index = get_subtree_node_idx(
-            sst_param.get_entity_idx(),
+            sst_param.get_signing_entity_idx(),
             sst_param.get_hss_parameters()[0]
                 .get_lms_parameter()
                 .get_tree_height(),
-            sst_param.get_top_height(),
+            sst_param.get_top_div_height(),
         );
     }
 
@@ -86,7 +86,7 @@ pub fn get_num_signing_entities<H: HashChain>(
     let rfc_private_key = ReferenceImplPrivateKey::<H>::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
 
-    let num_signing_entities = 2u32.pow(rfc_private_key.sst_ext.top_tree_height as u32);
+    let num_signing_entities = 2u32.pow(rfc_private_key.sst_ext.top_div_height as u32);
 
     Ok(num_signing_entities)
 }
@@ -104,7 +104,7 @@ pub fn genkey2_sst<H: HashChain>(
     let lms_tree_ident = seed_and_lms_tree_ident.lms_tree_identifier;
 
     let pubkey_hash_val = get_node_hash_val::<H>(
-        1, interm_nodes, rfc_private_key.sst_ext.top_tree_height, lms_tree_ident);
+        1, interm_nodes, rfc_private_key.sst_ext.top_div_height, lms_tree_ident);
 
     let hss_public_key = HssPublicKey::from_with_sst(
         &rfc_private_key, aux_data, interm_nodes, pubkey_hash_val).map_err(|_| Error::new())?;
@@ -117,7 +117,7 @@ pub fn genkey2_sst<H: HashChain>(
 fn get_node_hash_val<H: HashChain>(
     index: u32,
     av_of_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]>,
-    top_tree_height: u8,
+    top_div_height: u8,
     lms_tree_ident: LmsTreeIdentifier,
 ) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
     let index_level =
@@ -128,16 +128,16 @@ fn get_node_hash_val<H: HashChain>(
         .chain((index).to_be_bytes());
 
     // if index is at lowest level (where we have the signing entity node hash values)
-    let result = if index_level == top_tree_height {
+    let result = if index_level == top_div_height {
         // return the node value from array of intermedediate node hash values
         /* access vector elements via "leaf numbers" = 0..signing_entites-1 */
-        let leaf_number = (index as usize) - 2usize.pow(top_tree_height as u32);
+        let leaf_number = (index as usize) - 2usize.pow(top_div_height as u32);
         av_of_nodes[leaf_number]
     } else {
         // we are "above" the intermediate node hash values -> go down
-        let left = get_node_hash_val::<H>(index * 2, av_of_nodes, top_tree_height, lms_tree_ident);
+        let left = get_node_hash_val::<H>(index * 2, av_of_nodes, top_div_height, lms_tree_ident);
         let right =
-            get_node_hash_val::<H>(index * 2 + 1, av_of_nodes, top_tree_height, lms_tree_ident);
+            get_node_hash_val::<H>(index * 2 + 1, av_of_nodes, top_div_height, lms_tree_ident);
 
         hasher
             .chain(D_INTR)

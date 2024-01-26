@@ -20,7 +20,7 @@ const SIGN_MUT_COMMAND: &str = "sign_mut";
 const ARG_KEYNAME: &str = "keyname";
 const ARG_MESSAGE: &str = "file";
 const ARG_GENKEY1_PARAMETER: &str = "parameter";
-const ARG_SI_PARAMETER: &str = "si_param";
+const ARG_SIGN_ENTITY_IDX_PARAMETER: &str = "se_param";
 const ARG_SEED: &str = "seed";
 const ARG_AUXSIZE: &str = "auxsize";
 
@@ -90,8 +90,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .subcommand(
         Command::new(GENKEY2_COMMAND)
         .arg(Arg::new(ARG_KEYNAME).required(true))
-        .arg(Arg::new(ARG_SI_PARAMETER).required(true).help(
-            "Specify signing instance number (1..n))"))
+        .arg(Arg::new(ARG_SIGN_ENTITY_IDX_PARAMETER).required(true).help(
+            "Specify signing entity index (1..n))"))
         .arg(Arg::new(ARG_AUXSIZE).long(ARG_AUXSIZE).required(false).takes_value(true).value_name("auxsize").help(
             "Specify AUX data size in bytes"))
     )
@@ -159,19 +159,17 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let keyname = get_parameter(ARG_KEYNAME, args);
     let message_name = get_parameter(ARG_MESSAGE, args);
 
-    // TODO signing entity idx
-    let private_key_name = get_private_key_filename(&keyname, 1);
-    let signature_name = get_signature_filename(&message_name);
+    let private_key_filename = get_private_key_filename(&keyname, None);
+    let signature_filename = get_signature_filename(&message_name);
 
-    let private_key_data = read_file(&private_key_name);
+    let private_key_data = read_file(&private_key_filename);
     let message_data = read_file(&message_name);
 
-    // TODO signing entity idx
-    let aux_data_name = get_aux_filename(&keyname, 1);
-    let mut aux_data = read(aux_data_name).ok();
+    let aux_data_filename = get_aux_filename(&keyname, None);
+    let mut aux_data = read(aux_data_filename).ok();
 
     let mut private_key_update_function = |new_key: &[u8]| {
-        if write(&private_key_name, new_key).is_ok() {
+        if write(&private_key_filename, new_key).is_ok() {
             return Ok(());
         }
         Err(())
@@ -199,7 +197,7 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
         exit(-1)
     }
 
-    write(&signature_name, result.unwrap().as_ref())?;
+    write(&signature_filename, result.unwrap().as_ref())?;
 
     Ok(())
 }
@@ -269,7 +267,7 @@ fn verify(args: &ArgMatches) -> bool {
     let message_name: String = get_parameter(ARG_MESSAGE, args);
 
     // TODO: signing entity idx
-    let public_key_name = get_public_key_filename(&keyname, 1);
+    let public_key_name = get_public_key_filename(&keyname, None);
     let signature_name = get_signature_filename(&message_name);
 
     let signature_data = read_file(&signature_name);
@@ -279,8 +277,12 @@ fn verify(args: &ArgMatches) -> bool {
     hbs_lms::verify::<Hasher>(&message_data, &signature_data, &public_key_data).is_ok()
 }
 
-fn get_public_key_filename(keyname: &str, idx: u8) -> String {
-    keyname.to_string() + "." + &idx.to_string() + ".pub"
+fn get_public_key_filename(keyname: &str, idx: Option<u8>) -> String {
+    if let Some(idx) = idx {
+        keyname.to_string() + "." + &idx.to_string() + ".pub"
+    } else {
+        keyname.to_string() + ".pub"
+    }
 }
 
 fn get_signature_filename(message_name: &str) -> String {
@@ -297,12 +299,20 @@ fn get_message_mut_filename(message_name: &str) -> String {
     message_name.to_string() + "_mut"
 }
 
-fn get_private_key_filename(private_key: &str, idx: u8) -> String {
-    private_key.to_string() + "." + &idx.to_string() + ".prv"
+fn get_private_key_filename(private_key: &str, idx: Option<u8>) -> String {
+    if let Some(idx) = idx {
+        private_key.to_string() + "." + &idx.to_string() + ".prv"
+    } else {
+        private_key.to_string() + ".prv"
+    }
 }
 
-fn get_aux_filename(keyname: &str, idx: u8) -> String {
-    keyname.to_string() + "." + &idx.to_string() + ".aux"
+fn get_aux_filename(keyname: &str, idx: Option<u8>) -> String {
+    if let Some(idx) = idx {
+        keyname.to_string() + "." + &idx.to_string() + ".aux"
+    } else {
+        keyname.to_string() + ".aux"
+    }
 }
 
 fn get_parameter(name: &str, args: &ArgMatches) -> String {
@@ -352,19 +362,19 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let (signing_key, intermed_node_hashval) =
         genkey1_sst(&ssts_param, &seed, Some(aux_slice)).unwrap_or_else(|_| panic!("Could not generate keys"));
 
-    let private_key_filename = get_private_key_filename(&keyname, ssts_param.get_entity_idx());
+    let private_key_filename = get_private_key_filename(&keyname, Some(ssts_param.get_signing_entity_idx()));
     write(private_key_filename.as_str(), signing_key.as_slice())?;
 
-    // write own node value and signing instance to file
-    // TODO     maybe also HSS/LMS/LM-OTS parameters, to ensure that we got the same parameters among all signing instances
+    // write own node value and signing entity to file
+    // TODO     maybe also HSS/LMS/LM-OTS parameters, to ensure that we got the same parameters among all signing entities
     let interm_node_filename = String::from("node_si.")
-        + &(ssts_param.get_entity_idx().to_string())
+        + &(ssts_param.get_signing_entity_idx().to_string())
         + &String::from(".bin"); // TODO into function
 
     // if file exists, overwrite
     write(
         interm_node_filename.as_str(),
-        &ssts_param.get_entity_idx().to_be_bytes(),
+        &ssts_param.get_signing_entity_idx().to_be_bytes(),
     )?;
     // and append
     let mut intermed_node_file = OpenOptions::new()
@@ -379,12 +389,12 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
-    // get signing instance number and name of private keyfile from args
+    // get signing entity number and name of private keyfile from args
     let keyname: String = get_parameter(ARG_KEYNAME, args);
-    let signing_instance: String = get_parameter(ARG_SI_PARAMETER, args);
+    let signing_entity: String = get_parameter(ARG_SIGN_ENTITY_IDX_PARAMETER, args);
     let aux_size: String = get_parameter(ARG_AUXSIZE, args);
 
-    let signing_instance: u8 = signing_instance.parse::<u8>().unwrap();
+    let signing_entity: u8 = signing_entity.parse::<u8>().unwrap();
 
     // AUX data: currently we create it only in genkey2
     let mut aux_data = vec![0u8; aux_size.parse::<usize>().unwrap()];
@@ -394,10 +404,10 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     //let mut aux_data = read(aux_data_name).ok();
     //let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-    // println!("keyname: {} -- SI: {} -- aux_size: {}", keyname, signing_instance, aux_size);
+    // println!("keyname: {} -- SI: {} -- aux_size: {}", keyname, signing_entity, aux_size);
 
     // read private key
-    let private_key_name = get_private_key_filename(&keyname, signing_instance);
+    let private_key_name = get_private_key_filename(&keyname, Some(signing_entity));
     let private_key_data = read_file(&private_key_name);
 
     // here we need one additional API call so we know which files we have to read dep. on HSS config.
@@ -442,10 +452,10 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 
     //println!("pub key (node 1) hash value: {:?}", verifying_key);
 
-    let aux_filename: String = get_aux_filename(&keyname, signing_instance);
+    let aux_filename: String = get_aux_filename(&keyname, Some(signing_entity));
     write(&aux_filename, aux_slice)?;
 
-    let public_key_filename = get_public_key_filename(&keyname, signing_instance);
+    let public_key_filename = get_public_key_filename(&keyname, Some(signing_entity));
     write(public_key_filename.as_str(), verifying_key.as_slice())?;
 
     Ok(())

@@ -52,9 +52,9 @@ impl<H: HashChain> LmsPrivateKey<H> {
             if let Some(my_sst_ext) = &self.sst_ext {
                 // our last leafs function returns 0..total_num-1, but here we need 1..total_num
                 1 + get_sst_last_leaf_idx(
-                    my_sst_ext.signing_instance,
+                    my_sst_ext.signing_entity_idx,
                     self.lms_parameter.get_tree_height(),
-                    my_sst_ext.top_tree_height,
+                    my_sst_ext.top_div_height,
                 )
             } else {
                 self.lms_parameter.number_of_lm_ots_keys() as u32

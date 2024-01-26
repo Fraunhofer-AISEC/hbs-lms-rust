@@ -52,10 +52,10 @@ impl<H: HashChain> HssPrivateKey<H> {
 
         let mut sst_ext_option = None;
         let sst_ext = SstExtension {
-            signing_instance: private_key.sst_ext.signing_instance,
-            top_tree_height: private_key.sst_ext.top_tree_height,
+            signing_entity_idx: private_key.sst_ext.signing_entity_idx,
+            top_div_height: private_key.sst_ext.top_div_height,
         };
-        if private_key.sst_ext.signing_instance != 0 {
+        if private_key.sst_ext.signing_entity_idx != 0 {
             sst_ext_option = Some(sst_ext);
         }
 
@@ -115,19 +115,19 @@ impl<H: HashChain> HssPrivateKey<H> {
             return hss_expand_aux_data::<H>(Some(aux_data), Some(private_key.seed.as_slice()));
         }
 
-        let top_tree_height = private_key.sst_ext.top_tree_height;
-        let opt_top_tree_height = if 0 == top_tree_height {
+        let top_div_height = private_key.sst_ext.top_div_height;
+        let opt_top_div_height = if 0 == top_div_height {
             None
         } else {
-            Some(top_tree_height)
+            Some(top_div_height)
         };
 
         // Shrink input slice
-        let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter, opt_top_tree_height);
+        let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter, opt_top_div_height);
         let moved = core::mem::take(aux_data);
         *aux_data = &mut moved[..aux_len];
 
-        let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None, opt_top_tree_height);
+        let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None, opt_top_div_height);
         hss_store_aux_marker(aux_data, aux_level);
 
         hss_expand_aux_data::<H>(Some(aux_data), None)
@@ -202,10 +202,10 @@ impl<H: HashChain> HssPublicKey<H> {
 
         let mut sst_ext_option = None;
         let sst_ext = SstExtension {
-            signing_instance: private_key.sst_ext.signing_instance,
-            top_tree_height: private_key.sst_ext.top_tree_height,
+            signing_entity_idx: private_key.sst_ext.signing_entity_idx,
+            top_div_height: private_key.sst_ext.top_div_height,
         };
-        if private_key.sst_ext.signing_instance != 0 {
+        if private_key.sst_ext.signing_entity_idx != 0 {
             sst_ext_option = Some(sst_ext);
         }
 
@@ -259,10 +259,10 @@ impl<H: HashChain> HssPublicKey<H> {
 
         let mut sst_ext_option = None;
         let sst_ext = SstExtension {
-            signing_instance: private_key.sst_ext.signing_instance,
-            top_tree_height: private_key.sst_ext.top_tree_height,
+            signing_entity_idx: private_key.sst_ext.signing_entity_idx,
+            top_div_height: private_key.sst_ext.top_div_height,
         };
-        if private_key.sst_ext.signing_instance != 0 {
+        if private_key.sst_ext.signing_entity_idx != 0 {
             sst_ext_option = Some(sst_ext);
         }
 
@@ -279,10 +279,10 @@ impl<H: HashChain> HssPublicKey<H> {
 
         if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
             // Additions for SSTS: fix aux data with intermediate node values from other signing entities
-            let num_signing_instances = 2usize.pow(private_key.sst_ext.top_tree_height as u32);
-            for si in 1..=num_signing_instances as u8 {
+            let num_signing_entities = 2usize.pow(private_key.sst_ext.top_div_height as u32);
+            for si in 1..=num_signing_entities as u8 {
                 // node index of SI intermed node in whole tree:
-                let idx: usize = get_subtree_node_idx(si, top_lms_parameter.get_tree_height(), private_key.sst_ext.top_tree_height) as usize;
+                let idx: usize = get_subtree_node_idx(si, top_lms_parameter.get_tree_height(), private_key.sst_ext.top_div_height) as usize;
                 hss_save_aux_data::<H>(expanded_aux_data, idx, intermed_nodes[(si-1) as usize].as_slice());
             }
 

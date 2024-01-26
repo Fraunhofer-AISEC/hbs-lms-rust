@@ -105,19 +105,19 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
     pub fn generate(parameters: &SstsParameter<H>, seed: &Seed<H>) -> Result<Self, ()> {
 
         let sst_ext = SstExtension {
-            signing_instance: parameters.get_entity_idx(),
-            top_tree_height: parameters.get_top_height(),
+            signing_entity_idx: parameters.get_signing_entity_idx(),
+            top_div_height: parameters.get_top_div_height(),
         };
 
         let hss_params = parameters.get_hss_parameters();
         let top_lms_parameter = hss_params[0].get_lms_parameter();
 
         let mut used_leafs_index = 0;
-        if parameters.get_top_height() != 0 {
+        if parameters.get_top_div_height() != 0 {
             used_leafs_index = helper::get_sst_first_leaf_idx(
-                sst_ext.signing_instance,
+                sst_ext.signing_entity_idx,
                 top_lms_parameter.get_tree_height(),
-                sst_ext.top_tree_height,
+                sst_ext.top_div_height,
             );
         }
 
@@ -134,8 +134,8 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; REF_IMPL_MAX_PRIVATE_KEY_SIZE]> {
         let mut result = ArrayVec::new();
 
-        result.extend_from_slice(&self.sst_ext.signing_instance.to_be_bytes());
-        result.extend_from_slice(&self.sst_ext.top_tree_height.to_be_bytes());
+        result.extend_from_slice(&self.sst_ext.signing_entity_idx.to_be_bytes());
+        result.extend_from_slice(&self.sst_ext.top_div_height.to_be_bytes());
         result.extend_from_slice(&self.compressed_used_leafs_indexes.count.to_be_bytes());
         result.extend_from_slice(&self.compressed_parameter.0);
         result.extend_from_slice(self.seed.as_slice());

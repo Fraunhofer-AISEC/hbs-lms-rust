@@ -7,7 +7,8 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 #[derive(Clone, PartialEq, Eq)]
 pub struct SstsParameter<H: HashChain> {
     hss_parameters: ArrayVec<[HssParameter<H>; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]>,
-    top_height: u8,
+    // TODO use SstExtension here?
+    top_div_height: u8,
     signing_entity_idx: u8, // starting with 1
 }
 
@@ -16,13 +17,13 @@ impl<H: HashChain> Copy for SstsParameter<H> {}
 impl<H: HashChain> SstsParameter<H> {
     pub fn new(
         hss_params: ArrayVec<[HssParameter<H>; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]>,
-        top_height: u8,
-        entity_idx: u8,
+        top_div_height: u8,
+        signing_entity_idx: u8,
     ) -> Self {
         SstsParameter {
             hss_parameters: hss_params,
-            top_height, // e.g. LMS height of 5 and top_height 3: division top/bottom is 3/2 which would result in 2^3 = 8 signing entities
-            signing_entity_idx: entity_idx,
+            top_div_height, // e.g. LMS height of 5 and top_div_height 3: division top/bottom is 3/2 which would result in 2^3 = 8 signing entities
+            signing_entity_idx,
         }
     }
 
@@ -32,11 +33,11 @@ impl<H: HashChain> SstsParameter<H> {
         &self.hss_parameters
     }
 
-    pub fn get_top_height(&self) -> u8 {
-        self.top_height
+    pub fn get_top_div_height(&self) -> u8 {
+        self.top_div_height
     }
 
-    pub fn get_entity_idx(&self) -> u8 {
+    pub fn get_signing_entity_idx(&self) -> u8 {
         self.signing_entity_idx
     }
 }
@@ -44,8 +45,8 @@ impl<H: HashChain> SstsParameter<H> {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct SstExtension {
-    pub signing_instance: u8,
-    pub top_tree_height: u8,
+    pub signing_entity_idx: u8,
+    pub top_div_height: u8,
 }
 
 impl SstExtension {
@@ -60,8 +61,8 @@ impl SstExtension {
         }
         let tmp: u16 = u16::from_be_bytes(data.try_into().unwrap());
         SstExtension {
-            signing_instance: (tmp >> 8) as u8,
-            top_tree_height: tmp as u8,
+            signing_entity_idx: (tmp >> 8) as u8,
+            top_div_height: tmp as u8,
         }
     }
 }

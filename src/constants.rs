@@ -69,8 +69,8 @@ pub const MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH: usize =
 pub const MAX_HSS_SIGNATURE_LENGTH: usize = get_hss_signature_length();
 
 // DSM = Distributed State Management
-// pub const _MAX_DSM_TOP_TREE_HEIGHT: usize = 8;
-pub const MAX_DSM_SIGNING_ENTITIES: usize = 256; // TODO calc via 2^MAX_DSM_TOP_TREE_HEIGHT
+// pub const _MAX_DSM_TOP_DIV_HEIGHT: usize = 8;
+pub const MAX_DSM_SIGNING_ENTITIES: usize = 256; // TODO calc via 2^MAX_DSM_TOP_DIV_HEIGHT
 
 /// Calculated using the formula from RFC 8554 Appendix B
 /// https://datatracker.ietf.org/doc/html/rfc8554#appendix-B

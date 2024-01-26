@@ -39,7 +39,7 @@ pub fn hss_optimal_aux_level<H: HashChain>(
     mut max_length: usize,
     lms_parameter: LmsParameter<H>,
     actual_len: Option<&mut usize>,
-    top_tree_height: Option<u8>,
+    top_div_height: Option<u8>,
 ) -> AuxLevel {
 
     let mut aux_level = AuxLevel::default();
@@ -52,20 +52,20 @@ pub fn hss_optimal_aux_level<H: HashChain>(
 
     // if SST is used, leave space for signing entity node values depending on their level!
     let mut size_for_signing_entity_nodes: usize = 0;
-    if let Some(top_tree_height) = top_tree_height {
-        size_for_signing_entity_nodes = 2usize.pow(top_tree_height as u32) * size_hash;
+    if let Some(top_div_height) = top_div_height {
+        size_for_signing_entity_nodes = 2usize.pow(top_div_height as u32) * size_hash;
 
-        min_top_level = top_tree_height + 1; // so we don't fill above our intermediate node values
+        min_top_level = top_div_height + 1; // so we don't fill above our intermediate node values
         // add level to level bit, later abort if max_length too small
-        aux_level |= 0x80000000 | (1 << top_tree_height);
+        aux_level |= 0x80000000 | (1 << top_div_height);
     }
 
     let min_length = AUX_DATA_HASHES + size_hash + size_for_signing_entity_nodes;
 
     if max_length < min_length {
-        if let Some(top_tree_height) = top_tree_height {
-            panic!("AUX data size = {} too small to store intermediate node values for dist. state mgmt with top_tree_height {}.",
-                orig_max_length, top_tree_height);
+        if let Some(top_div_height) = top_div_height {
+            panic!("AUX data size = {} too small to store intermediate node values for dist. state mgmt with top_div_height {}.",
+                orig_max_length, top_div_height);
         } else {
             if let Some(actual_len) = actual_len {
                 *actual_len = 1; // ??
@@ -158,11 +158,11 @@ pub fn hss_expand_aux_data<'a, H: HashChain>(
 pub fn hss_get_aux_data_len<H: HashChain>(
     max_length: usize,
     lms_parameter: LmsParameter<H>,
-    top_tree_height: Option<u8>,
+    top_div_height: Option<u8>,
 ) -> usize {
     let mut len = 0;
 
-    if hss_optimal_aux_level(max_length, lms_parameter, Some(&mut len), top_tree_height) == 0 {
+    if hss_optimal_aux_level(max_length, lms_parameter, Some(&mut len), top_div_height) == 0 {
         return 1;
     }
 

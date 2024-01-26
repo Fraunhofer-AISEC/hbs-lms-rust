@@ -7,19 +7,6 @@
 import sys, subprocess, shlex, math, argparse
 
 
-def parse():
-  parser = argparse.ArgumentParser(
-                    prog='dist_state_mgmt',
-                    description='Calls demo application to generate keys for several signing entities.')
-
-  parser.add_argument('--se', dest='se', type=int, help="number of signing entities (power of 2)")
-  parser.add_argument('--hss', dest='hss', help="HSS parameters; e.g. 10/2,15/4 [LMS-height/Winternitz-param.]")
-  parser.add_argument('--auxsize', dest='auxsize', nargs='?', default='0', help="AUX data size in bytes")
-
-  args = parser.parse_args()
-
-  return args
-
 
 def main():
 
@@ -38,7 +25,33 @@ def main():
   auxsize = args['auxsize']
   print("AUX data size: ", auxsize)
 
+  genkey1(number_of_signing_entities, hss_params, auxsize)
 
+  genkey2(number_of_signing_entities, auxsize)
+
+  # remove files with intermediate node hash values
+  for signing_entity in range(1, number_of_signing_entities+1):
+    cmd = "rm node_si." + str(signing_entity) + ".bin"
+    result = subprocess.run(shlex.split(cmd), shell=False, capture_output=True, text=True)
+    #print(result.stdout)
+    #print(result.stderr)
+
+
+def parse():
+  parser = argparse.ArgumentParser(
+                    prog='dist_state_mgmt',
+                    description='Calls demo application to generate keys for several signing entities.')
+
+  parser.add_argument('--se', dest='se', type=int, help="number of signing entities (power of 2)")
+  parser.add_argument('--hss', dest='hss', help="HSS parameters; e.g. 10/2,15/4 [LMS-height/Winternitz-param.]")
+  parser.add_argument('--auxsize', dest='auxsize', nargs='?', default='0', help="AUX data size in bytes")
+
+  args = parser.parse_args()
+
+  return args
+
+
+def genkey1(number_of_signing_entities, hss_params, auxsize):
   # 1. Create private key and intermediate node value
   cmd_1 = "cargo run --release --example sst_demo -- genkey1 mykey"
   # hss params e.g. "10/2,15/4"
@@ -54,21 +67,16 @@ def main():
     print(result.stdout)
     print(result.stderr)
 
+
+def genkey2(number_of_signing_entities, auxsize):
   # 2. read other intermediate node values and create public key
   cmd_1 = "cargo run --release --example sst_demo -- genkey2 mykey "
-  cmd_3 = " --auxsize=5000"
+  cmd_3 = " --auxsize=" + auxsize
 
   for signing_entity in range(1, number_of_signing_entities+1):
     cmd_total = cmd_1 + str(signing_entity) + cmd_3
     #print("command: ", cmd_total)
     result = subprocess.run(shlex.split(cmd_total), shell=False, capture_output=True, text=True)
-    print(result.stdout)
-    print(result.stderr)
-
-  # remove files with intermediate node hash values
-  for signing_entity in range(1, number_of_signing_entities+1):
-    cmd = "rm node_si." + str(signing_entity) + ".bin"
-    result = subprocess.run(shlex.split(cmd), shell=False, capture_output=True, text=True)
     print(result.stdout)
     print(result.stderr)
 

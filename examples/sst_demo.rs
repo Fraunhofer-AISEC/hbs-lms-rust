@@ -19,10 +19,11 @@ const SIGN_MUT_COMMAND: &str = "sign_mut";
 
 const ARG_KEYNAME: &str = "keyname";
 const ARG_MESSAGE: &str = "file";
-const ARG_GENKEY1_PARAMETER: &str = "parameter";
+const ARG_HSS_PARAMETER: &str = "parameter";
 const ARG_SIGN_ENTITY_IDX_PARAMETER: &str = "se_param";
 const ARG_SEED: &str = "seed";
 const ARG_AUXSIZE: &str = "auxsize";
+const ARG_SSTS_PARAM: &str = "ssts";
 
 const AUX_DATA_DEFAULT_SIZE: usize = 100_000_000;
 
@@ -61,30 +62,17 @@ impl GenKeyParameter {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /*
-    let message = [32; 0]; // 32 elements init. with 0
 
-    let _signature = match hbs_lms::sst::sign::<Hasher>(&message) {
-        Ok(_) => println!("sst::sign OK"),
-        Err(error) => panic!("sst::sign {:?}", error),
-    };
-    let signature = [32; 0]; // 32 elements init. with 0
-    let public_key = [32; 0]; // 32 elements init. with 0
-
-    if hbs_lms::sst::verify::<Hasher>(&message, &signature, &public_key) == false {
-        println!("sst::verify failed");
-        exit(1);
-    }
-     */
-
-    // ********** code from "lms-demo.rs" to steal/import parameter parsing etc. **********
     let command = Command::new("SSTS Demo")
     .about("Generates SSTS keys and uses them for signing and verifying.")
     .subcommand(
         Command::new(GENKEY1_COMMAND)
             .arg(Arg::new(ARG_KEYNAME).required(true))
-            .arg(Arg::new(ARG_GENKEY1_PARAMETER).required(true).help(
-                "Specify LMS parameters (e.g. 5/4/2/1 (tree height = 5, Winternitz parameter = 4, top height = 2, signing entity = 1))"))
+            .arg(Arg::new(ARG_HSS_PARAMETER).required(true).help(
+                "Specify LMS parameters (e.g. 10/2 => tree height = 10, Winternitz parameter = 2)"))
+            .arg(Arg::new(ARG_SSTS_PARAM).long(ARG_SSTS_PARAM).required(true).takes_value(true).value_name("ssts")
+                .help( // TODO allow required = "false"?
+                "Specify SSTS parameters (e.g. --ssts=3/8 => signing entity 3 of total 8"))
             .arg(Arg::new(ARG_SEED).long(ARG_SEED).required(true).takes_value(true).value_name("seed")),
     )
     .subcommand(
@@ -335,7 +323,10 @@ fn read_file(file_name: &str) -> Vec<u8> {
 fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let keyname: String = get_parameter(ARG_KEYNAME, args);
 
-    let genkey_parameter = parse_genkey1_parameter(&get_parameter(ARG_GENKEY1_PARAMETER, args));
+    let genkey_parameter = parse_genkey1_parameter(
+        &get_parameter(ARG_HSS_PARAMETER, args),
+        &get_parameter(ARG_SSTS_PARAM, args));
+
     let ssts_param = genkey_parameter.ssts_param;
 
     let seed: Seed<Hasher> = if let Some(seed) = args.value_of(ARG_SEED) {
@@ -397,12 +388,10 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let signing_entity: u8 = signing_entity.parse::<u8>().unwrap();
 
     // AUX data: currently we create it only in genkey2
-    let mut aux_data = vec![0u8; aux_size.parse::<usize>().unwrap()];
+    let mut aux_data = vec![0u8; aux_size.parse::<usize>().unwrap()]; // TODO check conversion
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
     // later on we should create it in genkey1 because it's possibly lots of calculations
     // and in that case we'll read the previously generated aux data from a file
-    //let mut aux_data = read(aux_data_name).ok();
-    //let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
     // println!("keyname: {} -- SI: {} -- aux_size: {}", keyname, signing_entity, aux_size);
 
@@ -461,14 +450,15 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn parse_genkey1_parameter(parameter: &str) -> GenKeyParameter {
+fn parse_genkey1_parameter(hss_params: &str, ssts_params: &str) -> GenKeyParameter {
     let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
         Default::default();
 
     let mut aux_data_size: Option<usize> = None;
 
-    let parameter = if parameter.contains(':') {
-        let mut splitted = parameter.split(':');
+    // TODO change : use "--auxsize" as cur. in genkey2, then read size in genkey2 from actual filesize
+    let hss_params = if hss_params.contains(':') {
+        let mut splitted = hss_params.split(':');
         let parameter = splitted.next().expect("Should contain parameter");
 
         let aux_data = splitted.next().expect("Should contain aux data size");
@@ -479,16 +469,13 @@ fn parse_genkey1_parameter(parameter: &str) -> GenKeyParameter {
 
         parameter
     } else {
-        parameter
+        hss_params
     };
 
-    let parameters = parameter.split(',');
-    let mut entity_idx: u8 = 0;
-    let mut top_part_height: u8 = 0;
-    let mut is_first_loop = true;
+    let hss_params = hss_params.split(',');
 
-    for parameter in parameters {
-        let mut splitted = parameter.split('/');
+    for hss_param in hss_params {
+        let mut splitted = hss_param.split('/');
 
         let height = splitted.next().expect("Merkle tree height invalid");
         let winternitz_parameter = splitted.next().expect("Winternitz parameter invalid");
@@ -497,20 +484,6 @@ fn parse_genkey1_parameter(parameter: &str) -> GenKeyParameter {
         let winternitz_parameter: u8 = winternitz_parameter
             .parse()
             .expect("Winternitz parameter not correct specified");
-
-        if true == is_first_loop {
-            is_first_loop = false;
-            if let Some(s_top_part_height) = splitted.next() {
-                // if we have a top_part_height, we also need an entity idx
-                let s_entity_idx = splitted
-                    .next()
-                    .expect("Top part height provided, but signing entity number missing.");
-                // @TODO check: invalid if "height - top_part_height < 1"
-                top_part_height = s_top_part_height.parse().expect("Top part height invalid");
-                // @TODO check: invalid if ...dep. on height and top_part_height
-                entity_idx = s_entity_idx.parse().expect("Signing entity index invalid");
-            }
-        }
 
         let lm_ots = match winternitz_parameter {
             1 => LmotsAlgorithm::LmotsW1,
@@ -533,15 +506,27 @@ fn parse_genkey1_parameter(parameter: &str) -> GenKeyParameter {
         vec_hss_params.push(hss_parameters);
     }
 
+    let mut splitted = ssts_params.split('/');
+    let si_idx = splitted.next().expect("Signing instance index invalid");
+    let si_idx: u8 = si_idx.parse().expect("Signing instance index invalid");
+    let total_num_si = splitted.next().expect("Total number of signing instances invalid");
+    let total_num_si: u8 = total_num_si.parse().expect("Total number of signing instances invalid");
+
+    let top_div_height = (total_num_si as f32).log2();
+    if top_div_height.fract() != 0.0 {
+        panic!("Provided number of signing instances is not a power of 2");
+    }
+    let top_div_height = top_div_height as u8;
+
     // @TODO how do I know whether this "vec_hss_params" is a move, and if not, how to achieve (avoid implicit "Copy")?
     // ArrayVec implements trait "Clone", but I'm not sure about "Copy" (implicit)
-    let ssts_param = SstsParameter::new(vec_hss_params, top_part_height, entity_idx);
+    let param = SstsParameter::new(vec_hss_params, top_div_height, si_idx);
     // this here shouldn't be possible in case of "move", because then we don't have ownership anymore:
     //let vec_hss_param_test: HssParameter<Sha256_256> = HssParameter::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
     //vec_hss_params.push(vec_hss_param_test);
 
     // same here: move or copy?
-    GenKeyParameter::new(ssts_param, aux_data_size)
+    GenKeyParameter::new(param, aux_data_size)
 }
 
 fn write(filename: &str, content: &[u8]) -> Result<(), std::io::Error> {

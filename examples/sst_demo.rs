@@ -73,6 +73,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .arg(Arg::new(ARG_SSTS_PARAM).long(ARG_SSTS_PARAM).required(true).takes_value(true).value_name("ssts")
                 .help( // TODO allow required = "false"?
                 "Specify SSTS parameters (e.g. --ssts=3/8 => signing entity 3 of total 8"))
+            .arg(Arg::new(ARG_AUXSIZE).long(ARG_AUXSIZE).required(false).takes_value(true).value_name("auxsize").help(
+                "Specify AUX data size in bytes"))
             .arg(Arg::new(ARG_SEED).long(ARG_SEED).required(true).takes_value(true).value_name("seed")),
     )
     .subcommand(
@@ -254,7 +256,6 @@ fn verify(args: &ArgMatches) -> bool {
     let keyname: String = get_parameter(ARG_KEYNAME, args);
     let message_name: String = get_parameter(ARG_MESSAGE, args);
 
-    // TODO: signing entity idx
     let public_key_name = get_public_key_filename(&keyname, None);
     let signature_name = get_signature_filename(&message_name);
 
@@ -325,7 +326,9 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 
     let genkey_parameter = parse_genkey1_parameter(
         &get_parameter(ARG_HSS_PARAMETER, args),
-        &get_parameter(ARG_SSTS_PARAM, args));
+        &get_parameter(ARG_SSTS_PARAM, args),
+        &get_parameter(ARG_AUXSIZE, args),
+    );
 
     let ssts_param = genkey_parameter.ssts_param;
 
@@ -376,6 +379,9 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
     intermed_node_file.write_all(intermed_node_hashval.as_slice())?;
 
+    let aux_filename: String = get_aux_filename(&keyname, Some(ssts_param.get_signing_entity_idx()));
+    write(&aux_filename, aux_slice)?;
+
     Ok(())
 }
 
@@ -383,15 +389,12 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     // get signing entity number and name of private keyfile from args
     let keyname: String = get_parameter(ARG_KEYNAME, args);
     let signing_entity: String = get_parameter(ARG_SIGN_ENTITY_IDX_PARAMETER, args);
-    let aux_size: String = get_parameter(ARG_AUXSIZE, args);
-
     let signing_entity: u8 = signing_entity.parse::<u8>().unwrap();
 
-    // AUX data: currently we create it only in genkey2
-    let mut aux_data = vec![0u8; aux_size.parse::<usize>().unwrap()]; // TODO check conversion
-    let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
-    // later on we should create it in genkey1 because it's possibly lots of calculations
-    // and in that case we'll read the previously generated aux data from a file
+    // AUX data: created in genkey1, here we read the file
+    let aux_filename: String = get_aux_filename(&keyname, Some(signing_entity));
+    let mut aux_data_v: Vec<u8> = read_file(&aux_filename);
+    let aux_slice: &mut &mut [u8] = &mut &mut aux_data_v[..];
 
     // println!("keyname: {} -- SI: {} -- aux_size: {}", keyname, signing_entity, aux_size);
 
@@ -409,8 +412,6 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let mut node_array: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]> =
         Default::default();
 
-    // let mut node_array: ArrayVec<[[u8; MAX_HASH_SIZE]; MAX_DSM_SIGNING_ENTITIES]> = ArrayVec::new();
-
     for idx in 1..=num_signing_entities {
         let interm_node_filename =
             String::from("node_si.") + &(idx.to_string()) + &String::from(".bin"); // TODO into function
@@ -423,11 +424,9 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // TODO the following works but is a really bad inefficient solution
-
         let mut node: [u8; MAX_HASH_SIZE] = [0; MAX_HASH_SIZE];
         node.copy_from_slice(&file_data[1..]);
         node_array.push(node.into());
-
         // TODO replace with this and adapt calls to functions
         // let node: &[u8; MAX_HASH_SIZE] = file_data[1..].try_into().unwrap();
         // node_array.push(*node);
@@ -441,7 +440,6 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 
     //println!("pub key (node 1) hash value: {:?}", verifying_key);
 
-    let aux_filename: String = get_aux_filename(&keyname, Some(signing_entity));
     write(&aux_filename, aux_slice)?;
 
     let public_key_filename = get_public_key_filename(&keyname, Some(signing_entity));
@@ -450,26 +448,18 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn parse_genkey1_parameter(hss_params: &str, ssts_params: &str) -> GenKeyParameter {
+fn parse_genkey1_parameter(hss_params: &str, ssts_params: &str, auxsize: &str) -> GenKeyParameter {
     let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
         Default::default();
 
-    let mut aux_data_size: Option<usize> = None;
-
-    // TODO change : use "--auxsize" as cur. in genkey2, then read size in genkey2 from actual filesize
-    let hss_params = if hss_params.contains(':') {
-        let mut splitted = hss_params.split(':');
-        let parameter = splitted.next().expect("Should contain parameter");
-
-        let aux_data = splitted.next().expect("Should contain aux data size");
-        let aux_data = aux_data
-            .parse::<usize>()
-            .expect("Could not parse aux data size");
-        aux_data_size = Some(aux_data);
-
-        parameter
+    let auxsize = auxsize
+        .parse::<usize>()
+        .expect("Could not parse aux data size");
+    // TODO if not provided the argument defaults to 0...
+    let aux_data_size = if 0 != auxsize {
+        Some(auxsize)
     } else {
-        hss_params
+        None
     };
 
     let hss_params = hss_params.split(',');

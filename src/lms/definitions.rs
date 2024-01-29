@@ -6,6 +6,7 @@ use crate::lms::helper::get_tree_element;
 use crate::lms::parameters::LmsAlgorithm;
 use crate::lms::MutableExpandedAuxData;
 use crate::sst::helper::get_sst_last_leaf_idx;
+use crate::sst::helper::get_subtree_node_idx;
 use crate::sst::parameters::SstExtension;
 use crate::util::helper::read_and_advance;
 use crate::{lm_ots, Seed};
@@ -90,7 +91,17 @@ impl<H: HashChain> LmsPublicKey<H> {
         private_key: &LmsPrivateKey<H>,
         aux_data: &mut Option<MutableExpandedAuxData>,
     ) -> Self {
-        let public_key = get_tree_element(1, private_key, aux_data);
+        let index = if let Some(sst_ext) = &private_key.sst_ext {
+            get_subtree_node_idx(
+                sst_ext.signing_entity_idx,
+                private_key.lms_parameter.get_tree_height(),
+                sst_ext.top_div_height)
+        } else {
+            1
+        };
+
+        // use our signing entity's node index and also use that straight as "intermediate node hash value" instead of extra operation
+        let public_key = get_tree_element(index as usize, private_key, aux_data);
 
         Self {
             key: public_key,
@@ -135,7 +146,7 @@ impl<'a, H: HashChain> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H
 
 impl<'a, H: HashChain> InMemoryLmsPublicKey<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
-        // Parsing like desribed in 5.4.2
+        // Parsing like described in 5.4.2
         let mut data_index = 0;
 
         let lms_parameter = LmsAlgorithm::get_from_type(u32::from_be_bytes(

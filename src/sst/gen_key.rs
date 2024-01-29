@@ -5,8 +5,10 @@ use crate::{
     hasher::HashChain,
     hss::{
         definitions::HssPublicKey,
+        definitions::HssPrivateKey,
         reference_impl_private_key::{ReferenceImplPrivateKey, Seed},
         SigningKey, VerifyingKey,
+        aux::{hss_finalize_aux_data, hss_is_aux_data_used},
     },
     lms::definitions::LmsPrivateKey,
     lms::helper::get_tree_element,
@@ -20,17 +22,32 @@ use tinyvec::ArrayVec;
 pub fn genkey1_sst<H: HashChain>(
     sst_param: &SstsParameter<H>,
     seed: &Seed<H>,
-    _aux_data: Option<&mut &mut [u8]>, // TODO: improve efficiency and fill aux_data already here?
+    aux_data: Option<&mut &mut [u8]>,
 ) -> Result<(SigningKey<H>, ArrayVec<[u8; MAX_HASH_SIZE]>), Error> {
 
-    // create two representations of private keys: ReferenceImplPrivateKey and SigningKey
+    // create two representations of private keys because we need their data elements
+    // -> ReferenceImplPrivateKey and SigningKey
     let rfc_private_key =
         ReferenceImplPrivateKey::generate(sst_param, seed).map_err(|_| Error::new())?;
     let signing_key = SigningKey::from_bytes(&rfc_private_key.to_binary_representation())?;
 
+    // get expanded AUX data
+    let is_aux_data_used = if let Some(ref aux_data) = aux_data {
+        hss_is_aux_data_used(aux_data)
+    } else {
+        false
+    };
+
+    let mut expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
+        aux_data,
+        &rfc_private_key,
+        sst_param.get_hss_parameters()[0].get_lms_parameter(), // TODO only top is forwarded to LmsPrivateKey for SST params
+        is_aux_data_used,
+    );
+
     // calculate our intermediate node hash value; for this we have to generate a LmsPrivateKey
 
-    // TODO review: better option? it's somehow redundant (used leafs calculation)
+    // TODO review: better option? redundant (used leafs calculation)
     let mut used_leafs_index = 0;
     if sst_param.get_top_div_height() != 0 {
         // TODO: is there a better (Rust-idiomatic) approach?
@@ -75,7 +92,11 @@ pub fn genkey1_sst<H: HashChain>(
         sst_ext_option,
     );
 
-    let our_node_value = get_tree_element(our_node_index as usize, &lms_private_key, &mut None);
+    // TODO do this via LmsPublicKey() and have aux data taken care of? where is aux data finalized in original code?
+    let our_node_value = get_tree_element(our_node_index as usize, &lms_private_key, &mut expanded_aux_data);
+    if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
+        hss_finalize_aux_data::<H>(expanded_aux_data, rfc_private_key.seed.as_slice());
+    }
 
     Ok((signing_key, our_node_value))
 }
@@ -103,6 +124,7 @@ pub fn genkey2_sst<H: HashChain>(
     let seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
     let lms_tree_ident = seed_and_lms_tree_ident.lms_tree_identifier;
 
+    // TODO we don't need AUX here to read from, but we could populate the upper levels; AUX level marker needs then to be updated
     let pubkey_hash_val = get_node_hash_val::<H>(
         1, interm_nodes, rfc_private_key.sst_ext.top_div_height, lms_tree_ident);
 

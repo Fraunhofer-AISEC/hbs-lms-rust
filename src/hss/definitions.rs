@@ -200,21 +200,12 @@ impl<H: HashChain> HssPublicKey<H> {
 
         let current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
 
-        let mut sst_ext_option = None;
-        let sst_ext = SstExtension {
-            signing_entity_idx: private_key.sst_ext.signing_entity_idx,
-            top_div_height: private_key.sst_ext.top_div_height,
-        };
-        if private_key.sst_ext.signing_entity_idx != 0 {
-            sst_ext_option = Some(sst_ext);
-        }
-
         let lms_keypair = generate_key_pair(
             &current_seed,
             &parameters[0],
             &used_leafs_indexes[0],
             &mut expanded_aux_data,
-            sst_ext_option,
+            None,
         );
 
         if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
@@ -266,6 +257,17 @@ impl<H: HashChain> HssPublicKey<H> {
             sst_ext_option = Some(sst_ext);
         }
 
+        // Additions for SSTS: add "intermediate node values" from other signing entities to AUX data
+        if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
+            let num_signing_entities = 2usize.pow(private_key.sst_ext.top_div_height as u32);
+            for si in 1..=num_signing_entities as u8 {
+                // node index of SI intermed node in whole tree:
+                let idx: usize = get_subtree_node_idx(si, top_lms_parameter.get_tree_height(), private_key.sst_ext.top_div_height) as usize;
+                hss_save_aux_data::<H>(expanded_aux_data, idx, intermed_nodes[(si-1) as usize].as_slice());
+            }
+        }
+
+        // here we will add more data to aux
         let mut lms_keypair = generate_key_pair(
             &current_seed,
             &parameters[0],
@@ -274,22 +276,13 @@ impl<H: HashChain> HssPublicKey<H> {
             sst_ext_option,
         );
 
+        // calc. new AUX HMAC
+        if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
+            hss_finalize_aux_data::<H>(expanded_aux_data, private_key.seed.as_slice());
+        }
+
         // Addition for SSTS: replace public key node value
         lms_keypair.public_key.key = pubkey_hashval;
-
-        if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
-            // Additions for SSTS: fix aux data with intermediate node values from other signing entities
-            let num_signing_entities = 2usize.pow(private_key.sst_ext.top_div_height as u32);
-            for si in 1..=num_signing_entities as u8 {
-                // node index of SI intermed node in whole tree:
-                let idx: usize = get_subtree_node_idx(si, top_lms_parameter.get_tree_height(), private_key.sst_ext.top_div_height) as usize;
-                hss_save_aux_data::<H>(expanded_aux_data, idx, intermed_nodes[(si-1) as usize].as_slice());
-            }
-
-            if !is_aux_data_used {
-                hss_finalize_aux_data::<H>(expanded_aux_data, private_key.seed.as_slice());
-            }
-        }
 
         Ok(Self {
             public_key: lms_keypair.public_key,

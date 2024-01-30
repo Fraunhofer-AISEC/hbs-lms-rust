@@ -112,7 +112,7 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         let hss_params = parameters.get_hss_parameters();
         let top_lms_parameter = hss_params[0].get_lms_parameter();
 
-        let mut used_leafs_index = 0;
+        let mut used_leafs_index: u32 = 0;
         if parameters.get_top_div_height() != 0 {
             used_leafs_index = helper::get_sst_first_leaf_idx(
                 sst_ext.signing_entity_idx,
@@ -121,8 +121,11 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
             );
         }
 
+        let mut arr: [u32; MAX_ALLOWED_HSS_LEVELS] = [0; MAX_ALLOWED_HSS_LEVELS];
+        arr[0] = used_leafs_index;
+
         let private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
-            compressed_used_leafs_indexes: CompressedUsedLeafsIndexes::new(used_leafs_index as u64),
+            compressed_used_leafs_indexes: CompressedUsedLeafsIndexes::from(&arr, &hss_params),
             compressed_parameter: CompressedParameterSet::from(parameters.get_hss_parameters())?,
             sst_ext,
             seed: seed.clone(),
@@ -198,8 +201,12 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         hash_preimage[TOPSEED_WHICH] = 0x02;
         hasher.update(&hash_preimage);
 
-        let mut lms_tree_identifier = LmsTreeIdentifier::default();
-        lms_tree_identifier.copy_from_slice(&hasher.finalize_reset()[..ILEN]);
+        // TODO_FIX! Tree identifier needs to be the same for all signing entities
+        // workaround for now: srt to fixed value
+        let lms_tree_identifier = [0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06,
+            0x05, 0x04, 0x03, 0x02, 0x01, 0x00]; // = LmsTreeIdentifier::default();
+        // let mut lms_tree_identifier = LmsTreeIdentifier::default();
+        // lms_tree_identifier.copy_from_slice(&hasher.finalize_reset()[..ILEN]);
 
         SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier)
     }
@@ -328,6 +335,24 @@ impl CompressedUsedLeafsIndexes {
         }
     }
 
+    pub fn from<H: HashChain>(
+        used_leafs_array: &[u32; MAX_ALLOWED_HSS_LEVELS],
+        hss_params: &ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>,
+    ) -> Self {
+        let mut compressed_used_leafs_indexes: u64 = 0;
+
+        for (i, parameter) in hss_params.iter().enumerate() {
+            let shift: u32 = parameter.get_lms_parameter().get_tree_height().into();
+            compressed_used_leafs_indexes <<= shift;
+            compressed_used_leafs_indexes |= used_leafs_array[i] as u64;
+        }
+
+        CompressedUsedLeafsIndexes {
+            count: compressed_used_leafs_indexes
+        }
+    }
+
+    // this works because we limit the total num of signatures / leafs to 2^64 (see RFC)
     pub fn to<H: HashChain>(
         &self,
         parameters: &ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>,
@@ -341,6 +366,7 @@ impl CompressedUsedLeafsIndexes {
                 (compressed_used_leafs_indexes & (2u32.pow(tree_height) - 1) as u64) as u32;
             compressed_used_leafs_indexes >>= tree_height;
         }
+
         lms_leaf_identifier_set
     }
 

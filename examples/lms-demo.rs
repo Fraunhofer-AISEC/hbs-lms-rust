@@ -96,7 +96,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(args) = matches.subcommand_matches(VERIFY_COMMAND) {
         let result = verify(args);
         if result {
-            println!("Successful!");
+            println!("Verification successful!");
             exit(0);
         } else {
             println!("Wrong signature");

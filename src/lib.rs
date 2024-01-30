@@ -18,21 +18,23 @@
 //!     Signature, signature::{SignerMut, Verifier},
 //!     Sha256_256, HashChain, Seed,
 //! };
+//! use hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
+//! use hbs_lms::SstsParameter;
 //!
 //! let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32];
 //!
 //! // Generate keys for a 2-level HSS system (RootTree W1/H5, ChildTree W2/H5)
-//! let hss_parameter = [
-//!         HssParameter::<Sha256_256>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5),
-//!         HssParameter::<Sha256_256>::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
-//! ];
+//! let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+//! vec_hss_params.push(HssParameter::<Sha256_256>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5));
+//! vec_hss_params.push(HssParameter::<Sha256_256>::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5));
+//! let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
 //!
 //! let mut seed = Seed::default();
 //! OsRng.fill_bytes(seed.as_mut_slice());
 //! let aux_data = None;
 //!
 //! let (mut signing_key, verifying_key) =
-//!     hbs_lms::keygen::<Sha256_256>(&hss_parameter, &seed, aux_data).unwrap();
+//!     hbs_lms::keygen::<Sha256_256>(&sst_param, &seed, aux_data).unwrap();
 //!
 //! let signature = signing_key.try_sign(&message).unwrap();
 //!
@@ -90,6 +92,7 @@ mod hss;
 mod lm_ots;
 mod lms;
 mod util;
+pub mod sst;
 
 // Re-export the `signature` crate
 pub use signature::{self};
@@ -116,11 +119,18 @@ pub use crate::hss::hss_sign_mut as sign_mut;
 pub use crate::hss::hss_verify as verify;
 pub use crate::hss::{SigningKey, VerifyingKey};
 
+// @TODO: Re-export: API for distributed state management (SST, SingleSubTree)
+pub use crate::constants::MAX_DSM_SIGNING_ENTITIES;
+pub use crate::sst::parameters::SstsParameter;
+pub use crate::sst::*; // {gen_key, sign, verify};
+
 use core::convert::TryFrom;
 use signature::Error;
 use tinyvec::ArrayVec;
 
 use constants::MAX_HSS_SIGNATURE_LENGTH;
+// @TODO review: okay in API?
+pub use crate::constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
 
 /**
  * Implementation of [`signature::Signature`].
@@ -186,28 +196,29 @@ impl<'a> signature::Signature for VerifierSignature<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
+    use crate::util::helper::test_helper::gen_random_seed;
     use crate::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256_256};
     use crate::{
         signature::{SignerMut, Verifier},
+        sst::parameters::SstsParameter,
         SigningKey, VerifierSignature, VerifyingKey,
     };
-
-    use crate::util::helper::test_helper::gen_random_seed;
+    use tinyvec::ArrayVec;
 
     #[test]
     fn get_signing_and_verifying_key() {
         type H = Sha256_256;
         let seed = gen_random_seed::<H>();
 
-        let (signing_key, verifying_key) = keygen::<H>(
-            &[HssParameter::new(
-                LmotsAlgorithm::LmotsW2,
-                LmsAlgorithm::LmsH5,
-            )],
-            &seed,
-            None,
-        )
-        .unwrap();
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
+        let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
+
+        let (signing_key, verifying_key) = keygen::<H>(&sst_param, &seed, None).unwrap();
 
         let _: SigningKey<H> = signing_key;
         let _: VerifyingKey<H> = verifying_key;
@@ -221,15 +232,18 @@ mod tests {
         type H = Sha256_256;
         let seed = gen_random_seed::<H>();
 
-        let (mut signing_key, verifying_key) = keygen::<H>(
-            &[
-                HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
-                HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
-            ],
-            &seed,
-            None,
-        )
-        .unwrap();
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
+        let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
+
+        let (mut signing_key, verifying_key) = keygen::<H>(&sst_param, &seed, None).unwrap();
 
         let signature = signing_key.try_sign(&message).unwrap();
 

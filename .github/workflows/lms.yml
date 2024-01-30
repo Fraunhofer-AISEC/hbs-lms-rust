@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ master ]
   push:
-    branches: [ master ]
+    branches: [ master, dist_state_mgmt ]
 
 env:
   MSRV: 1.57.0
@@ -15,14 +15,12 @@ jobs:
   rustfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: RustCrypto/actions/cargo-cache@master
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
           components: rustfmt
-          profile: minimal
-          override: true
       - run: |
           cargo fmt --version
           cargo fmt --all -- --check
@@ -30,14 +28,12 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: RustCrypto/actions/cargo-cache@master
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
           components: clippy
-          profile: minimal
-          override: true
       - run: |
           cargo clippy --version
           cargo clippy --lib --bins --tests --examples --all-features -- -D warnings
@@ -45,7 +41,7 @@ jobs:
   check-for-todos:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - run: make check-for-todos
         continue-on-error: true
 
@@ -54,7 +50,7 @@ jobs:
     outputs:
       msrv: ${{ steps.msrv.outputs.msrv }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: RustCrypto/actions/cargo-cache@master
       - name: Install msrv
         run: cargo install cargo-msrv
@@ -68,9 +64,9 @@ jobs:
     outputs:
       msrv: ${{ steps.msrv.outputs.msrv }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: msrv
-        run: echo "::set-output name=msrv::$(grep rust-version Cargo.toml | cut -d'"' -f2-2)"
+        run: echo "msrv=$(grep rust-version Cargo.toml | cut -d'"' -f2-2)" >> $GITHUB_OUTPUT
 
   build:
     needs: set-msrv
@@ -84,14 +80,12 @@ jobs:
           - thumbv7em-none-eabi
           - wasm32-unknown-unknown
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: RustCrypto/actions/cargo-cache@master
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-          override: true
+          targets: ${{ matrix.target }}
       - run: cargo build --no-default-features --target ${{ matrix.target }}
 
   test:
@@ -103,13 +97,11 @@ jobs:
           - ${{needs.set-msrv.outputs.msrv}}
           - stable
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: RustCrypto/actions/cargo-cache@master
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: ${{ matrix.rust }}
-          override: true
       - run: cargo test
       - run: cargo test -- --include-ignored
       - run: cargo test --features fast_verify
@@ -119,11 +111,10 @@ jobs:
     needs: set-msrv
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: RustCrypto/actions/cargo-cache@master
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: nightly
       - run: rustup run nightly cargo bench
 
@@ -137,7 +128,6 @@ jobs:
           - stable
         target:
           - aarch64-unknown-linux-gnu
-          - mips-unknown-linux-gnu
         features:
           - default
 
@@ -147,7 +137,7 @@ jobs:
       # Cross mounts only current package, i.e. by default it ignores workspace's Cargo.toml
         working-directory: .
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/cross-tests
         with:
           rust: ${{ matrix.rust }}

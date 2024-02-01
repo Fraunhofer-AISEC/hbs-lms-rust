@@ -6,7 +6,6 @@ use crate::lms::helper::get_tree_element;
 use crate::lms::parameters::LmsAlgorithm;
 use crate::lms::MutableExpandedAuxData;
 use crate::sst::helper::get_sst_last_leaf_idx;
-use crate::sst::helper::get_subtree_node_idx;
 use crate::sst::parameters::SstExtension;
 use crate::util::helper::read_and_advance;
 use crate::{lm_ots, Seed};
@@ -91,18 +90,9 @@ impl<H: HashChain> LmsPublicKey<H> {
         private_key: &LmsPrivateKey<H>,
         aux_data: &mut Option<MutableExpandedAuxData>,
     ) -> Self {
-        let index = if let Some(sst_ext) = &private_key.sst_ext {
-            get_subtree_node_idx(
-                sst_ext.signing_entity_idx,
-                private_key.lms_parameter.get_tree_height(),
-                sst_ext.top_div_height,
-            )
-        } else {
-            1
-        };
-
+        println!("LmsPublicKey::new() -> get_tree_element({})", 1);
         // use our signing entity's node index and also use that straight as "intermediate node hash value" instead of extra operation
-        let public_key = get_tree_element(index as usize, private_key, aux_data);
+        let public_key = get_tree_element(1 as usize, private_key, aux_data);
 
         Self {
             key: public_key,

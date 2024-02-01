@@ -9,26 +9,24 @@ use crate::{
     hasher::HashChain,
     hss::aux::{
         hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_save_aux_data,
-        hss_store_aux_marker,
+        hss_store_aux_marker, hss_get_aux_data_len, hss_is_aux_data_used,
+        MutableExpandedAuxData,
     },
     lms::{
         self,
         definitions::{InMemoryLmsPublicKey, LmsPrivateKey, LmsPublicKey},
         generate_key_pair,
         parameters::LmsParameter,
+        signing::LmsSignature,
     },
     parameters::SstExtension,
     sst::helper::get_subtree_node_idx,
     util::helper::read_and_advance,
 };
-use crate::{hss::aux::hss_get_aux_data_len, lms::signing::LmsSignature};
 
-use super::{
-    aux::{hss_is_aux_data_used, MutableExpandedAuxData},
-    reference_impl_private_key::{
+use super::reference_impl_private_key::{
         generate_child_seed_and_lms_tree_identifier, generate_signature_randomizer,
         ReferenceImplPrivateKey,
-    },
 };
 
 #[derive(Debug, Default, PartialEq)]
@@ -229,8 +227,12 @@ impl<H: HashChain> HssPublicKey<H> {
         private_key: &ReferenceImplPrivateKey<H>,
         aux_data: Option<&mut &mut [u8]>,
         intermed_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_SSTS_SIGNING_ENTITIES]>,
-        pubkey_hashval: ArrayVec<[u8; MAX_HASH_SIZE]>, // TODO weg?
     ) -> Result<Self, ()> {
+
+        if private_key.sst_ext.signing_entity_idx == 0 || private_key.sst_ext.top_div_height == 0 {
+            return Err(());
+        };
+
         let parameters = private_key.compressed_parameter.to::<H>()?;
         let levels = parameters.len();
         let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
@@ -243,26 +245,22 @@ impl<H: HashChain> HssPublicKey<H> {
             false
         };
 
-        let mut expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
+        let mut opt_expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
             aux_data,
             private_key,
             top_lms_parameter,
             is_aux_data_used,
         );
 
+        if let None = opt_expanded_aux_data.as_mut() {
+            return Err(());
+        };
+
         let current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
 
-        let mut sst_ext_option = None;
-        let sst_ext = SstExtension {
-            signing_entity_idx: private_key.sst_ext.signing_entity_idx,
-            top_div_height: private_key.sst_ext.top_div_height,
-        };
-        if private_key.sst_ext.signing_entity_idx != 0 {
-            sst_ext_option = Some(sst_ext);
-        }
-
+        // TODO/Rework: how do we get rid of those repeated "if let Some"?
         // Additions for SSTS: add "intermediate node values" from other signing entities to AUX data
-        if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
+        if let Some(expanded_aux_data) = opt_expanded_aux_data.as_mut() {
             let num_signing_entities = 2usize.pow(private_key.sst_ext.top_div_height as u32);
             for si in 1..=num_signing_entities as u8 {
                 // node index of SI intermed node in whole tree:
@@ -279,22 +277,20 @@ impl<H: HashChain> HssPublicKey<H> {
             }
         }
 
-        // here we will add more data to aux
-        let mut lms_keypair = generate_key_pair(
+        // here we will calc. the final public key (due to intermediate nodes being present in AUX data) and add more data to aux
+        let lms_keypair = generate_key_pair(
             &current_seed,
             &parameters[0],
             &used_leafs_indexes[0],
-            &mut expanded_aux_data,
-            sst_ext_option,
+            &mut opt_expanded_aux_data,
+            None, //sst_ext_option,
         );
 
         // calc. new AUX HMAC
-        if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
+        // TODO/Rework: how do we get rid of those repeated "if let Some"?
+        if let Some(expanded_aux_data) = opt_expanded_aux_data.as_mut() {
             hss_finalize_aux_data::<H>(expanded_aux_data, private_key.seed.as_slice());
         }
-
-        // Addition for SSTS: replace public key node value
-        lms_keypair.public_key.key = pubkey_hashval;
 
         Ok(Self {
             public_key: lms_keypair.public_key,

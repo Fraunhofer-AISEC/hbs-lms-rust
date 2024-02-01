@@ -1,7 +1,6 @@
-use crate::constants::LmsTreeIdentifier;
 use crate::signature::Error;
 use crate::{
-    constants::{D_INTR, MAX_HASH_SIZE, MAX_SSTS_SIGNING_ENTITIES},
+    constants::{MAX_HASH_SIZE, MAX_SSTS_SIGNING_ENTITIES},
     hasher::HashChain,
     hss::{
         aux::{hss_finalize_aux_data, hss_is_aux_data_used},
@@ -24,6 +23,10 @@ pub fn genkey1_sst<H: HashChain>(
     seed: &Seed<H>,
     aux_data: Option<&mut &mut [u8]>,
 ) -> Result<(SigningKey<H>, ArrayVec<[u8; MAX_HASH_SIZE]>), Error> {
+    if sst_param.get_signing_entity_idx() == 0 || sst_param.get_top_div_height() == 0 {
+        return Err(Error::new());
+    }
+
     // create two representations of private keys because we need their data elements
     // -> ReferenceImplPrivateKey and SigningKey
     let rfc_private_key =
@@ -46,20 +49,15 @@ pub fn genkey1_sst<H: HashChain>(
 
     // calculate our intermediate node hash value; for this we have to generate a LmsPrivateKey
 
-    // TODO review: better option? redundant (used leafs calculation)
-    let mut used_leafs_index = 0;
-    if sst_param.get_top_div_height() != 0 {
-        // TODO: is there a better (Rust-idiomatic) approach?
-        used_leafs_index = helper::get_sst_first_leaf_idx(
-            sst_param.get_signing_entity_idx(),
-            sst_param.get_hss_parameters()[0]
-                .get_lms_parameter()
-                .get_tree_height(),
-            sst_param.get_top_div_height(),
-        );
-    }
+    // TODO/Review: better option? redundant (used leafs calculation)
+    let used_leafs_index = helper::get_sst_first_leaf_idx(
+        sst_param.get_signing_entity_idx(),
+        sst_param.get_hss_parameters()[0]
+            .get_lms_parameter()
+            .get_tree_height(),
+        sst_param.get_top_div_height());
 
-    // TODO: review! not exactly elegant to create an LmsPrivateKey and SeedAndLmsTreeIdentifier
+    // TODO/Review: not exactly elegant to create an LmsPrivateKey and SeedAndLmsTreeIdentifier
     let seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
 
     let sst_ext = SstExtension {
@@ -67,20 +65,16 @@ pub fn genkey1_sst<H: HashChain>(
         top_div_height: rfc_private_key.sst_ext.top_div_height,
     };
 
-    let mut sst_ext_option = None;
-    let mut our_node_index = 1; // TODO don't do that...we're calc. the TOTAL public key
+    // TODO/Rework: try to get it from adapted LmsPublicKey::new()
+    let sst_ext_option = Some(sst_ext);
 
-    if rfc_private_key.sst_ext.signing_entity_idx != 0 {
-        sst_ext_option = Some(sst_ext);
-
-        our_node_index = get_subtree_node_idx(
-            sst_param.get_signing_entity_idx(),
-            sst_param.get_hss_parameters()[0]
-                .get_lms_parameter()
-                .get_tree_height(),
-            sst_param.get_top_div_height(),
-        );
-    }
+    let our_node_index = get_subtree_node_idx(
+        sst_param.get_signing_entity_idx(),
+        sst_param.get_hss_parameters()[0]
+            .get_lms_parameter()
+            .get_tree_height(),
+        sst_param.get_top_div_height(),
+    );
 
     let lms_private_key = LmsPrivateKey::<H>::new(
         seed_and_lms_tree_ident.seed.clone(),
@@ -91,8 +85,8 @@ pub fn genkey1_sst<H: HashChain>(
         sst_ext_option,
     );
 
-    // TODO do this via LmsPublicKey() and have aux data taken care of? where is aux data finalized in original code?
-    let our_node_value = get_tree_element(
+    // TODO/Rework: do this via LmsPublicKey() and have aux data taken care of? where is aux data finalized in original code?
+    let our_intermed_node_value = get_tree_element(
         our_node_index as usize,
         &lms_private_key,
         &mut expanded_aux_data,
@@ -101,9 +95,7 @@ pub fn genkey1_sst<H: HashChain>(
         hss_finalize_aux_data::<H>(expanded_aux_data, rfc_private_key.seed.as_slice());
     }
 
-    //println!("genkey1_sst(): our_node_value: {}", our_node_value);
-
-    Ok((signing_key, our_node_value))
+    Ok((signing_key, our_intermed_node_value))
 }
 
 pub fn get_num_signing_entities<H: HashChain>(private_key: &[u8]) -> Result<u32, Error> {
@@ -123,57 +115,24 @@ pub fn genkey2_sst<H: HashChain>(
     let rfc_private_key = ReferenceImplPrivateKey::<H>::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
 
+        /*
     let seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
     let lms_tree_ident = seed_and_lms_tree_ident.lms_tree_identifier;
 
-    // TODO we don't need AUX here to read from, but we could populate the upper levels; AUX level marker needs then to be updated
+    // TODO/Rework: we don't need AUX here to read from, but we could populate the upper levels; AUX level marker needs then to be updated
     let pubkey_hash_val = get_node_hash_val::<H>(
         1,
         interm_nodes,
         rfc_private_key.sst_ext.top_div_height,
         lms_tree_ident,
     );
+ */
 
     let hss_public_key =
-        HssPublicKey::from_with_sst(&rfc_private_key, aux_data, interm_nodes, pubkey_hash_val)
+        HssPublicKey::from_with_sst(&rfc_private_key, aux_data, interm_nodes)
             .map_err(|_| Error::new())?;
 
     let verifying_key = VerifyingKey::<H>::from_bytes(&hss_public_key.to_binary_representation())?;
 
     Ok(verifying_key)
-}
-
-fn get_node_hash_val<H: HashChain>(
-    index: u32,
-    av_of_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_SSTS_SIGNING_ENTITIES]>,
-    top_div_height: u8,
-    lms_tree_ident: LmsTreeIdentifier,
-) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
-    let index_level =
-        (core::mem::size_of_val(&index) * 8 - index.leading_zeros() as usize - 1) as u8;
-
-    let hasher = H::default()
-        .chain(lms_tree_ident)
-        .chain((index).to_be_bytes());
-
-    // if index is at lowest level (where we have the signing entity node hash values)
-    let result = if index_level == top_div_height {
-        // return the node value from array of intermedediate node hash values
-        /* access vector elements via "leaf numbers" = 0..signing_entites-1 */
-        let leaf_number = (index as usize) - 2usize.pow(top_div_height as u32);
-        av_of_nodes[leaf_number]
-    } else {
-        // we are "above" the intermediate node hash values -> go down
-        let left = get_node_hash_val::<H>(index * 2, av_of_nodes, top_div_height, lms_tree_ident);
-        let right =
-            get_node_hash_val::<H>(index * 2 + 1, av_of_nodes, top_div_height, lms_tree_ident);
-
-        hasher
-            .chain(D_INTR)
-            .chain(left.as_slice())
-            .chain(right.as_slice())
-            .finalize()
-    };
-
-    result
 }

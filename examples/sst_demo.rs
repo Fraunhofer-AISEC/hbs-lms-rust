@@ -62,7 +62,6 @@ impl GenKeyParameter {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     let command = Command::new("SSTS Demo")
     .about("Generates SSTS keys and uses them for signing and verifying.")
     .subcommand(
@@ -353,10 +352,11 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
     // create our private key
-    let (signing_key, intermed_node_hashval) =
-        genkey1_sst(&ssts_param, &seed, Some(aux_slice)).unwrap_or_else(|_| panic!("Could not generate keys"));
+    let (signing_key, intermed_node_hashval) = genkey1_sst(&ssts_param, &seed, Some(aux_slice))
+        .unwrap_or_else(|_| panic!("Could not generate keys"));
 
-    let private_key_filename = get_private_key_filename(&keyname, Some(ssts_param.get_signing_entity_idx()));
+    let private_key_filename =
+        get_private_key_filename(&keyname, Some(ssts_param.get_signing_entity_idx()));
     write(private_key_filename.as_str(), signing_key.as_slice())?;
 
     // write own node value and signing entity to file
@@ -379,7 +379,8 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
     intermed_node_file.write_all(intermed_node_hashval.as_slice())?;
 
-    let aux_filename: String = get_aux_filename(&keyname, Some(ssts_param.get_signing_entity_idx()));
+    let aux_filename: String =
+        get_aux_filename(&keyname, Some(ssts_param.get_signing_entity_idx()));
     write(&aux_filename, aux_slice)?;
 
     Ok(())
@@ -409,7 +410,7 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     // TODO maybe compare with HSS configuration in the "node files"
     // read intermediate node values from files (ours and others) and pass for calc.
 
-    let mut node_array: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]> =
+    let mut node_array: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_SSTS_SIGNING_ENTITIES]> =
         Default::default();
 
     for idx in 1..=num_signing_entities {
@@ -418,8 +419,10 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 
         let file_data: Vec<u8> = read_file(&interm_node_filename);
         if file_data.len() != (1 + MAX_HASH_SIZE) {
-            panic!("genkey2(): intermediate node file size is {}, should be {}",
-                file_data.len(), (1 + MAX_HASH_SIZE)
+            panic!(
+                "genkey2(): intermediate node file size is {}, should be {}",
+                file_data.len(),
+                (1 + MAX_HASH_SIZE)
             );
         }
 
@@ -432,11 +435,8 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         // node_array.push(*node);
     }
 
-    let verifying_key = genkey2_sst::<Hasher>(
-        &private_key_data,
-        &node_array,
-        Some(aux_slice),
-    ).unwrap_or_else(|_| panic!("Could not generate verifying key"));
+    let verifying_key = genkey2_sst::<Hasher>(&private_key_data, &node_array, Some(aux_slice))
+        .unwrap_or_else(|_| panic!("Could not generate verifying key"));
 
     //println!("pub key (node 1) hash value: {:?}", verifying_key);
 
@@ -456,11 +456,7 @@ fn parse_genkey1_parameter(hss_params: &str, ssts_params: &str, auxsize: &str) -
         .parse::<usize>()
         .expect("Could not parse aux data size");
     // TODO if not provided the argument defaults to 0...
-    let aux_data_size = if 0 != auxsize {
-        Some(auxsize)
-    } else {
-        None
-    };
+    let aux_data_size = if 0 != auxsize { Some(auxsize) } else { None };
 
     let hss_params = hss_params.split(',');
 
@@ -499,8 +495,12 @@ fn parse_genkey1_parameter(hss_params: &str, ssts_params: &str, auxsize: &str) -
     let mut splitted = ssts_params.split('/');
     let si_idx = splitted.next().expect("Signing instance index invalid");
     let si_idx: u8 = si_idx.parse().expect("Signing instance index invalid");
-    let total_num_si = splitted.next().expect("Total number of signing instances invalid");
-    let total_num_si: u8 = total_num_si.parse().expect("Total number of signing instances invalid");
+    let total_num_si = splitted
+        .next()
+        .expect("Total number of signing instances invalid");
+    let total_num_si: u8 = total_num_si
+        .parse()
+        .expect("Total number of signing instances invalid");
 
     let top_div_height = (total_num_si as f32).log2();
     if top_div_height.fract() != 0.0 {

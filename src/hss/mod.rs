@@ -294,7 +294,10 @@ mod tests {
     use super::parameter::HssParameter;
     use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
-        constants::{LMS_LEAF_IDENTIFIERS_SIZE, MAX_HASH_SIZE, REF_IMPL_MAX_ALLOWED_HSS_LEVELS, REF_IMPL_SSTS_EXT_SIZE},
+        constants::{
+            HSS_COMPRESSED_USED_LEAFS_SIZE, MAX_HASH_SIZE, REF_IMPL_MAX_ALLOWED_HSS_LEVELS,
+            REF_IMPL_SSTS_EXT_SIZE,
+        },
         hasher::{
             sha256::{Sha256_128, Sha256_192, Sha256_256},
             shake256::{Shake256_128, Shake256_192, Shake256_256},
@@ -346,8 +349,8 @@ mod tests {
             signing_key_const.as_slice()[..REF_IMPL_SSTS_EXT_SIZE]
         );
         assert_eq!(
-            signing_key.as_slice()[REF_IMPL_SSTS_EXT_SIZE+LMS_LEAF_IDENTIFIERS_SIZE..],
-            signing_key_const.as_slice()[REF_IMPL_SSTS_EXT_SIZE+LMS_LEAF_IDENTIFIERS_SIZE..]
+            signing_key.as_slice()[REF_IMPL_SSTS_EXT_SIZE + HSS_COMPRESSED_USED_LEAFS_SIZE..],
+            signing_key_const.as_slice()[REF_IMPL_SSTS_EXT_SIZE + HSS_COMPRESSED_USED_LEAFS_SIZE..]
         );
     }
 
@@ -378,7 +381,8 @@ mod tests {
 
         for index in 0..keypair_lifetime {
             assert_eq!(
-                signing_key.as_slice()[REF_IMPL_SSTS_EXT_SIZE..LMS_LEAF_IDENTIFIERS_SIZE+REF_IMPL_SSTS_EXT_SIZE],
+                signing_key.as_slice()[REF_IMPL_SSTS_EXT_SIZE
+                    ..HSS_COMPRESSED_USED_LEAFS_SIZE + REF_IMPL_SSTS_EXT_SIZE],
                 index.to_be_bytes(),
             );
             assert_eq!(
@@ -571,12 +575,8 @@ mod tests {
         vec_hss_params.push(HssParameter::construct_default_parameters());
         let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
 
-        let (mut signing_key, verifying_key) = hss_keygen::<H>(
-            &sst_param,
-            &seed,
-            None,
-        )
-        .expect("Should generate HSS keys");
+        let (mut signing_key, verifying_key) =
+            hss_keygen::<H>(&sst_param, &seed, None).expect("Should generate HSS keys");
 
         let message_values = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,

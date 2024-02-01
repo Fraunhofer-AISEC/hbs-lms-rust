@@ -3,10 +3,13 @@ use core::convert::TryInto;
 use tinyvec::ArrayVec;
 
 use crate::{
-    constants::{MAX_ALLOWED_HSS_LEVELS, MAX_HSS_PUBLIC_KEY_LENGTH, MAX_DSM_SIGNING_ENTITIES, MAX_HASH_SIZE},
+    constants::{
+        MAX_ALLOWED_HSS_LEVELS, MAX_HASH_SIZE, MAX_HSS_PUBLIC_KEY_LENGTH, MAX_SSTS_SIGNING_ENTITIES,
+    },
     hasher::HashChain,
     hss::aux::{
-        hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker, hss_save_aux_data
+        hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_save_aux_data,
+        hss_store_aux_marker,
     },
     lms::{
         self,
@@ -14,8 +17,8 @@ use crate::{
         generate_key_pair,
         parameters::LmsParameter,
     },
-    sst::helper::get_subtree_node_idx,
     parameters::SstExtension,
+    sst::helper::get_subtree_node_idx,
     util::helper::read_and_advance,
 };
 use crate::{hss::aux::hss_get_aux_data_len, lms::signing::LmsSignature};
@@ -127,7 +130,8 @@ impl<H: HashChain> HssPrivateKey<H> {
         let moved = core::mem::take(aux_data);
         *aux_data = &mut moved[..aux_len];
 
-        let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None, opt_top_div_height);
+        let aux_level =
+            hss_optimal_aux_level(aux_len, *top_lms_parameter, None, opt_top_div_height);
         hss_store_aux_marker(aux_data, aux_level);
 
         hss_expand_aux_data::<H>(Some(aux_data), None)
@@ -183,7 +187,7 @@ impl<H: HashChain> HssPublicKey<H> {
         let levels = parameters.len();
         let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
 
-        let top_lms_parameter = parameters[0].get_lms_parameter(); // TODO: "[0]": discuss/review for SST
+        let top_lms_parameter = parameters[0].get_lms_parameter();
 
         let is_aux_data_used = if let Some(ref aux_data) = aux_data {
             hss_is_aux_data_used(aux_data)
@@ -194,7 +198,7 @@ impl<H: HashChain> HssPublicKey<H> {
         let mut expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
             aux_data,
             private_key,
-            top_lms_parameter, // TODO only top is forwarded to LmsPrivateKey for SST params
+            top_lms_parameter,
             is_aux_data_used,
         );
 
@@ -224,14 +228,14 @@ impl<H: HashChain> HssPublicKey<H> {
     pub fn from_with_sst(
         private_key: &ReferenceImplPrivateKey<H>,
         aux_data: Option<&mut &mut [u8]>,
-        intermed_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]>,
-        pubkey_hashval: ArrayVec<[u8; MAX_HASH_SIZE]>,
+        intermed_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_SSTS_SIGNING_ENTITIES]>,
+        pubkey_hashval: ArrayVec<[u8; MAX_HASH_SIZE]>, // TODO weg?
     ) -> Result<Self, ()> {
         let parameters = private_key.compressed_parameter.to::<H>()?;
         let levels = parameters.len();
         let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
 
-        let top_lms_parameter = parameters[0].get_lms_parameter(); // TODO: "[0]": discuss/review for SST
+        let top_lms_parameter = parameters[0].get_lms_parameter();
 
         let is_aux_data_used = if let Some(ref aux_data) = aux_data {
             hss_is_aux_data_used(aux_data)
@@ -242,7 +246,7 @@ impl<H: HashChain> HssPublicKey<H> {
         let mut expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
             aux_data,
             private_key,
-            top_lms_parameter, // TODO only top is forwarded to LmsPrivateKey for SST params
+            top_lms_parameter,
             is_aux_data_used,
         );
 
@@ -262,8 +266,16 @@ impl<H: HashChain> HssPublicKey<H> {
             let num_signing_entities = 2usize.pow(private_key.sst_ext.top_div_height as u32);
             for si in 1..=num_signing_entities as u8 {
                 // node index of SI intermed node in whole tree:
-                let idx: usize = get_subtree_node_idx(si, top_lms_parameter.get_tree_height(), private_key.sst_ext.top_div_height) as usize;
-                hss_save_aux_data::<H>(expanded_aux_data, idx, intermed_nodes[(si-1) as usize].as_slice());
+                let idx: usize = get_subtree_node_idx(
+                    si,
+                    top_lms_parameter.get_tree_height(),
+                    private_key.sst_ext.top_div_height,
+                ) as usize;
+                hss_save_aux_data::<H>(
+                    expanded_aux_data,
+                    idx,
+                    intermed_nodes[(si - 1) as usize].as_slice(),
+                );
             }
         }
 

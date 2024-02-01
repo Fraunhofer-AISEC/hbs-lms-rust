@@ -2,7 +2,9 @@ use tinyvec::ArrayVec;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
-    constants::{LmsLeafIdentifier, LmsTreeIdentifier, Node, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
+    constants::{
+        LmsLeafIdentifier, LmsTreeIdentifier, Node, MAX_HASH_SIZE, MAX_NUM_WINTERNITZ_CHAINS,
+    },
     hasher::HashChain,
     util::ArrayVecZeroize,
 };
@@ -13,7 +15,7 @@ use super::parameters::LmotsParameter;
 pub struct LmotsPrivateKey<H: HashChain> {
     pub lms_tree_identifier: LmsTreeIdentifier,
     pub lms_leaf_identifier: LmsLeafIdentifier,
-    pub key: ArrayVecZeroize<Node, MAX_HASH_CHAIN_COUNT>, // [[0u8; n]; p];
+    pub key: ArrayVecZeroize<Node, MAX_NUM_WINTERNITZ_CHAINS>, // [[0u8; n]; p];
     #[zeroize(skip)]
     pub lmots_parameter: LmotsParameter<H>,
 }
@@ -22,7 +24,7 @@ impl<H: HashChain> LmotsPrivateKey<H> {
     pub fn new(
         lms_tree_identifier: LmsTreeIdentifier,
         lms_leaf_identifier: LmsLeafIdentifier,
-        key: ArrayVec<[Node; MAX_HASH_CHAIN_COUNT]>,
+        key: ArrayVec<[Node; MAX_NUM_WINTERNITZ_CHAINS]>,
         lmots_parameter: LmotsParameter<H>,
     ) -> Self {
         LmotsPrivateKey {
@@ -69,7 +71,7 @@ mod tests {
                 let parameter = $parameter.construct_parameter::<$hash_chain>().unwrap();
                 assert_eq!(parameter.get_hash_function_output_size(), $n);
                 assert_eq!(parameter.get_winternitz(), $w);
-                assert_eq!(parameter.get_hash_chain_count(), $p);
+                assert_eq!(parameter.get_num_winternitz_chains(), $p);
                 assert_eq!(parameter.get_checksum_left_shift(), $ls);
                 assert_eq!(parameter.get_type_id(), $type);
             }

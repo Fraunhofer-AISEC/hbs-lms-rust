@@ -95,7 +95,8 @@ impl<H: HashChain> LmsPublicKey<H> {
             get_subtree_node_idx(
                 sst_ext.signing_entity_idx,
                 private_key.lms_parameter.get_tree_height(),
-                sst_ext.top_div_height)
+                sst_ext.top_div_height,
+            )
         } else {
             1
         };

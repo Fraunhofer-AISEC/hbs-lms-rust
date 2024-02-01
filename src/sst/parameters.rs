@@ -1,6 +1,5 @@
 use crate::{constants, hasher::HashChain, hss::parameter::HssParameter};
 
-use core::convert::TryInto;
 use tinyvec::ArrayVec;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -42,7 +41,6 @@ impl<H: HashChain> SstsParameter<H> {
     }
 }
 
-
 #[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct SstExtension {
     pub signing_entity_idx: u8,
@@ -50,19 +48,14 @@ pub struct SstExtension {
 }
 
 impl SstExtension {
-
-    // TODO unlike in all other locations clippy reports
-    // "this returns a `Result<_, ()>`" and "use a custom `Error` type instead"
-    pub fn from_slice(data: &[u8]) -> Self {
-
+    pub fn from_slice(data: &[u8]) -> Result<Self, ()> {
         if data.len() != constants::REF_IMPL_SSTS_EXT_SIZE {
-            panic!("SstExtension::from_slice(): wrong data len");
-            //return Err(Error::new());
+            return Err(());
         }
-        let tmp: u16 = u16::from_be_bytes(data.try_into().unwrap());
-        SstExtension {
-            signing_entity_idx: (tmp >> 8) as u8,
-            top_div_height: tmp as u8,
-        }
+
+        Ok(SstExtension {
+            signing_entity_idx: data[0],
+            top_div_height: data[1],
+        })
     }
 }

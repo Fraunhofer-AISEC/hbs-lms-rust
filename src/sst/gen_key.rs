@@ -1,14 +1,14 @@
 use crate::constants::LmsTreeIdentifier;
 use crate::signature::Error;
 use crate::{
-    constants::{D_INTR, MAX_DSM_SIGNING_ENTITIES, MAX_HASH_SIZE},
+    constants::{D_INTR, MAX_HASH_SIZE, MAX_SSTS_SIGNING_ENTITIES},
     hasher::HashChain,
     hss::{
-        definitions::HssPublicKey,
+        aux::{hss_finalize_aux_data, hss_is_aux_data_used},
         definitions::HssPrivateKey,
+        definitions::HssPublicKey,
         reference_impl_private_key::{ReferenceImplPrivateKey, Seed},
         SigningKey, VerifyingKey,
-        aux::{hss_finalize_aux_data, hss_is_aux_data_used},
     },
     lms::definitions::LmsPrivateKey,
     lms::helper::get_tree_element,
@@ -24,7 +24,6 @@ pub fn genkey1_sst<H: HashChain>(
     seed: &Seed<H>,
     aux_data: Option<&mut &mut [u8]>,
 ) -> Result<(SigningKey<H>, ArrayVec<[u8; MAX_HASH_SIZE]>), Error> {
-
     // create two representations of private keys because we need their data elements
     // -> ReferenceImplPrivateKey and SigningKey
     let rfc_private_key =
@@ -41,7 +40,7 @@ pub fn genkey1_sst<H: HashChain>(
     let mut expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
         aux_data,
         &rfc_private_key,
-        sst_param.get_hss_parameters()[0].get_lms_parameter(), // TODO only top is forwarded to LmsPrivateKey for SST params
+        sst_param.get_hss_parameters()[0].get_lms_parameter(),
         is_aux_data_used,
     );
 
@@ -93,17 +92,21 @@ pub fn genkey1_sst<H: HashChain>(
     );
 
     // TODO do this via LmsPublicKey() and have aux data taken care of? where is aux data finalized in original code?
-    let our_node_value = get_tree_element(our_node_index as usize, &lms_private_key, &mut expanded_aux_data);
+    let our_node_value = get_tree_element(
+        our_node_index as usize,
+        &lms_private_key,
+        &mut expanded_aux_data,
+    );
     if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
         hss_finalize_aux_data::<H>(expanded_aux_data, rfc_private_key.seed.as_slice());
     }
 
+    //println!("genkey1_sst(): our_node_value: {}", our_node_value);
+
     Ok((signing_key, our_node_value))
 }
 
-pub fn get_num_signing_entities<H: HashChain>(
-    private_key: &[u8],
-) -> Result<u32, Error> {
+pub fn get_num_signing_entities<H: HashChain>(private_key: &[u8]) -> Result<u32, Error> {
     let rfc_private_key = ReferenceImplPrivateKey::<H>::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
 
@@ -114,10 +117,9 @@ pub fn get_num_signing_entities<H: HashChain>(
 
 pub fn genkey2_sst<H: HashChain>(
     private_key: &[u8],
-    interm_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]>,
-    aux_data: Option<&mut &mut [u8]>
+    interm_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_SSTS_SIGNING_ENTITIES]>,
+    aux_data: Option<&mut &mut [u8]>,
 ) -> Result<VerifyingKey<H>, Error> {
-
     let rfc_private_key = ReferenceImplPrivateKey::<H>::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
 
@@ -126,10 +128,15 @@ pub fn genkey2_sst<H: HashChain>(
 
     // TODO we don't need AUX here to read from, but we could populate the upper levels; AUX level marker needs then to be updated
     let pubkey_hash_val = get_node_hash_val::<H>(
-        1, interm_nodes, rfc_private_key.sst_ext.top_div_height, lms_tree_ident);
+        1,
+        interm_nodes,
+        rfc_private_key.sst_ext.top_div_height,
+        lms_tree_ident,
+    );
 
-    let hss_public_key = HssPublicKey::from_with_sst(
-        &rfc_private_key, aux_data, interm_nodes, pubkey_hash_val).map_err(|_| Error::new())?;
+    let hss_public_key =
+        HssPublicKey::from_with_sst(&rfc_private_key, aux_data, interm_nodes, pubkey_hash_val)
+            .map_err(|_| Error::new())?;
 
     let verifying_key = VerifyingKey::<H>::from_bytes(&hss_public_key.to_binary_representation())?;
 
@@ -138,7 +145,7 @@ pub fn genkey2_sst<H: HashChain>(
 
 fn get_node_hash_val<H: HashChain>(
     index: u32,
-    av_of_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_DSM_SIGNING_ENTITIES]>,
+    av_of_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_SSTS_SIGNING_ENTITIES]>,
     top_div_height: u8,
     lms_tree_ident: LmsTreeIdentifier,
 ) -> ArrayVec<[u8; MAX_HASH_SIZE]> {

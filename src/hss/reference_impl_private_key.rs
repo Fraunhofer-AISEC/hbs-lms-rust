@@ -1,6 +1,6 @@
 use crate::{
     constants::{
-        LmsTreeIdentifier, D_TOPSEED, ILEN, LMS_LEAF_IDENTIFIERS_SIZE, MAX_ALLOWED_HSS_LEVELS,
+        LmsTreeIdentifier, D_TOPSEED, HSS_COMPRESSED_USED_LEAFS_SIZE, ILEN, MAX_ALLOWED_HSS_LEVELS,
         MAX_HASH_SIZE, MAX_SEED_LEN, REF_IMPL_MAX_PRIVATE_KEY_SIZE, REF_IMPL_SSTS_EXT_SIZE,
         SEED_CHILD_SEED, SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED,
         TOPSEED_WHICH,
@@ -103,7 +103,6 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
     }
 
     pub fn generate(parameters: &SstsParameter<H>, seed: &Seed<H>) -> Result<Self, ()> {
-
         let sst_ext = SstExtension {
             signing_entity_idx: parameters.get_signing_entity_idx(),
             top_div_height: parameters.get_top_div_height(),
@@ -155,10 +154,10 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         let mut index = 0;
 
         let ssts_ext = read_and_advance(data, REF_IMPL_SSTS_EXT_SIZE, &mut index);
-        result.sst_ext = SstExtension::from_slice(ssts_ext);
+        result.sst_ext = SstExtension::from_slice(ssts_ext)?;
 
         let compressed_used_leafs_indexes =
-            read_and_advance(data, LMS_LEAF_IDENTIFIERS_SIZE, &mut index);
+            read_and_advance(data, HSS_COMPRESSED_USED_LEAFS_SIZE, &mut index);
         result.compressed_used_leafs_indexes =
             CompressedUsedLeafsIndexes::from_slice(compressed_used_leafs_indexes);
 
@@ -203,10 +202,12 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
 
         // TODO_FIX! Tree identifier needs to be the same for all signing entities
         // workaround for now: srt to fixed value
-        let lms_tree_identifier = [0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06,
-            0x05, 0x04, 0x03, 0x02, 0x01, 0x00]; // = LmsTreeIdentifier::default();
-        // let mut lms_tree_identifier = LmsTreeIdentifier::default();
-        // lms_tree_identifier.copy_from_slice(&hasher.finalize_reset()[..ILEN]);
+        let lms_tree_identifier = [
+            0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02,
+            0x01, 0x00,
+        ]; // = LmsTreeIdentifier::default();
+           // let mut lms_tree_identifier = LmsTreeIdentifier::default();
+           // lms_tree_identifier.copy_from_slice(&hasher.finalize_reset()[..ILEN]);
 
         SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier)
     }
@@ -348,7 +349,7 @@ impl CompressedUsedLeafsIndexes {
         }
 
         CompressedUsedLeafsIndexes {
-            count: compressed_used_leafs_indexes
+            count: compressed_used_leafs_indexes,
         }
     }
 

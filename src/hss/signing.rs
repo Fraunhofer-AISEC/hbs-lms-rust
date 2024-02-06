@@ -286,7 +286,7 @@ mod tests {
 
         let private_key = ReferenceImplPrivateKey::<Hasher>::generate(&sst_param, &seed).unwrap();
 
-        let mut private_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
+        let mut private_key = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
 
         let message = [2, 56, 123, 22, 42, 49, 22];
 
@@ -346,7 +346,7 @@ mod tests {
 
         let private_key = ReferenceImplPrivateKey::<Hasher>::generate(&sst_param, &seed).unwrap();
 
-        let mut private_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
+        let mut private_key = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
 
         let message_values = [2, 56, 123, 22, 42, 49, 22];
         let mut message = [0u8; 64];

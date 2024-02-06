@@ -68,16 +68,23 @@ def genkey1(number_of_signing_entities, hss_params, auxsize):
     # 1. Create private key and intermediate node value
     # hss params e.g. "10/2,15/4"
     # ssts params  e.g. "ssts=5/8" -> instance 5 of 8
+    init_tree_ident = True
 
     for signing_entity in range(1, number_of_signing_entities + 1):
         cmd = (
             f"cargo run --release --example sst_demo -- genkey1 mykey {hss_params} "
             f"--ssts={signing_entity}/{number_of_signing_entities} --auxsize={auxsize} --seed={seed}"
         )
+        if True == init_tree_ident:
+            cmd = f"{cmd} --init_tree_ident=1"
+        else:
+            cmd = f"{cmd} --init_tree_ident=0"
+
         result = subprocess.run(
             shlex.split(cmd), shell=False, capture_output=True, text=True
         )
         seed = rotate(seed, 3)
+        init_tree_ident = False
         print(result.stdout)
         print(result.stderr)
 

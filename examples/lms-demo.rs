@@ -147,12 +147,14 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
             &private_key_data,
             &mut private_key_update_function,
             Some(aux_slice),
+            None,
         )
     } else {
         hbs_lms::sign::<Hasher>(
             &message_data,
             &private_key_data,
             &mut private_key_update_function,
+            None,
             None,
         )
     };

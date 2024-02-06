@@ -1,6 +1,6 @@
 use crate::signature::Error;
 use crate::{
-    constants::{MAX_HASH_SIZE, MAX_SSTS_SIGNING_ENTITIES},
+    constants::{MAX_HASH_SIZE, MAX_SSTS_SIGNING_ENTITIES, ILEN},
     hasher::HashChain,
     hss::{
         aux::{hss_finalize_aux_data, hss_is_aux_data_used},
@@ -22,6 +22,7 @@ pub fn genkey1_sst<H: HashChain>(
     sst_param: &SstsParameter<H>,
     seed: &Seed<H>,
     aux_data: Option<&mut &mut [u8]>,
+    tree_identifier: &mut [u8; ILEN],
 ) -> Result<(SigningKey<H>, ArrayVec<[u8; MAX_HASH_SIZE]>), Error> {
     if sst_param.get_signing_entity_idx() == 0 || sst_param.get_top_div_height() == 0 {
         return Err(Error::new());
@@ -58,7 +59,13 @@ pub fn genkey1_sst<H: HashChain>(
         sst_param.get_top_div_height());
 
     // TODO/Review: not exactly elegant to create an LmsPrivateKey and SeedAndLmsTreeIdentifier
-    let seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
+    let mut seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
+
+    if tree_identifier.iter().all(|&byte| byte == 0) {
+        tree_identifier.clone_from_slice(&seed_and_lms_tree_ident.lms_tree_identifier);
+    } else {
+        seed_and_lms_tree_ident.lms_tree_identifier.clone_from_slice(tree_identifier);
+    }
 
     let sst_ext = SstExtension {
         signing_entity_idx: rfc_private_key.sst_ext.signing_entity_idx,
@@ -111,25 +118,13 @@ pub fn genkey2_sst<H: HashChain>(
     private_key: &[u8],
     interm_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_SSTS_SIGNING_ENTITIES]>,
     aux_data: Option<&mut &mut [u8]>,
+    tree_identifier: &[u8; ILEN],
 ) -> Result<VerifyingKey<H>, Error> {
     let rfc_private_key = ReferenceImplPrivateKey::<H>::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
 
-        /*
-    let seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
-    let lms_tree_ident = seed_and_lms_tree_ident.lms_tree_identifier;
-
-    // TODO/Rework: we don't need AUX here to read from, but we could populate the upper levels; AUX level marker needs then to be updated
-    let pubkey_hash_val = get_node_hash_val::<H>(
-        1,
-        interm_nodes,
-        rfc_private_key.sst_ext.top_div_height,
-        lms_tree_ident,
-    );
- */
-
     let hss_public_key =
-        HssPublicKey::from_with_sst(&rfc_private_key, aux_data, interm_nodes)
+        HssPublicKey::from_with_sst(&rfc_private_key, aux_data, interm_nodes, tree_identifier)
             .map_err(|_| Error::new())?;
 
     let verifying_key = VerifyingKey::<H>::from_bytes(&hss_public_key.to_binary_representation())?;

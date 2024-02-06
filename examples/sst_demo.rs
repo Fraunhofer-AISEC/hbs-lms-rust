@@ -19,10 +19,11 @@ const SIGN_MUT_COMMAND: &str = "sign_mut";
 
 const ARG_KEYNAME: &str = "keyname";
 const ARG_MESSAGE: &str = "file";
-const ARG_HSS_PARAMETER: &str = "parameter";
+const ARG_HSS_PARAMETER: &str = "hss";
 const ARG_SIGN_ENTITY_IDX_PARAMETER: &str = "se_param";
 const ARG_SEED: &str = "seed";
 const ARG_AUXSIZE: &str = "auxsize";
+const ARG_INIT_TREE_IDENT: &str = "init_tree_ident";
 const ARG_SSTS_PARAM: &str = "ssts";
 
 const AUX_DATA_DEFAULT_SIZE: usize = 100_000_000;
@@ -69,20 +70,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .arg(Arg::new(ARG_KEYNAME).required(true))
             .arg(Arg::new(ARG_HSS_PARAMETER).required(true).help(
                 "Specify LMS parameters (e.g. 10/2 => tree height = 10, Winternitz parameter = 2)"))
-            .arg(Arg::new(ARG_SSTS_PARAM).long(ARG_SSTS_PARAM).required(true).takes_value(true).value_name("ssts")
+            .arg(Arg::new(ARG_SSTS_PARAM).long(ARG_SSTS_PARAM).required(true).takes_value(true).value_name(ARG_SSTS_PARAM)
                 .help( // TODO allow required = "false"?
                 "Specify SSTS parameters (e.g. --ssts=3/8 => signing entity 3 of total 8"))
-            .arg(Arg::new(ARG_AUXSIZE).long(ARG_AUXSIZE).required(false).takes_value(true).value_name("auxsize").help(
+            // TODO/rework: I didn't manage to add an optional flag "--inittreeident" w/o value that's then true or false...
+            .arg(Arg::new(ARG_INIT_TREE_IDENT).long(ARG_INIT_TREE_IDENT).required(true).takes_value(true).value_name(ARG_INIT_TREE_IDENT).help(
+                "Announce initialization of tree identifier"))
+            .arg(Arg::new(ARG_AUXSIZE).long(ARG_AUXSIZE).required(false).takes_value(true).value_name(ARG_AUXSIZE).help(
                 "Specify AUX data size in bytes"))
-            .arg(Arg::new(ARG_SEED).long(ARG_SEED).required(true).takes_value(true).value_name("seed")),
+            .arg(Arg::new(ARG_SEED).long(ARG_SEED).required(true).takes_value(true).value_name(ARG_SEED)),
     )
     .subcommand(
         Command::new(GENKEY2_COMMAND)
         .arg(Arg::new(ARG_KEYNAME).required(true))
         .arg(Arg::new(ARG_SIGN_ENTITY_IDX_PARAMETER).required(true).help(
             "Specify signing entity index (1..n))"))
-        .arg(Arg::new(ARG_AUXSIZE).long(ARG_AUXSIZE).required(false).takes_value(true).value_name("auxsize").help(
-            "Specify AUX data size in bytes"))
     )
     .subcommand(
         Command::new(VERIFY_COMMAND)
@@ -157,6 +159,16 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let aux_data_filename = get_aux_filename(&keyname, None);
     let mut aux_data = read(aux_data_filename).ok();
 
+    let treeident_filename = String::from("mykey_treeident.bin");// TODO/Fix get_treeident_filename(&keyname);
+    let tree_ident_filedata = read_file(&treeident_filename);
+    if tree_ident_filedata.len() != ILEN {
+        println!("Could not sign message. Tree ident file has wrong size.");
+        exit(-1);
+    }
+    let mut tree_ident_data: [u8; ILEN] = [0; ILEN];
+    tree_ident_data.clone_from_slice(&tree_ident_filedata);
+
+
     let mut private_key_update_function = |new_key: &[u8]| {
         if write(&private_key_filename, new_key).is_ok() {
             return Ok(());
@@ -171,13 +183,17 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
             &private_key_data,
             &mut private_key_update_function,
             Some(aux_slice),
+            Some(&tree_ident_data),
         )
     } else {
+        // TODO/Rework: check availabulity of aux data above and remove this
+        // because we don't work w/o aux data (intermediate node hash values) in "SSTS"
         hbs_lms::sign::<Hasher>(
             &message_data,
             &private_key_data,
             &mut private_key_update_function,
             None,
+            Some(&tree_ident_data),
         )
     };
 
@@ -303,6 +319,10 @@ fn get_aux_filename(keyname: &str, idx: Option<u8>) -> String {
     }
 }
 
+fn get_treeident_filename(keyname: &str) -> String {
+    keyname.to_string() + "_treeident.bin"
+}
+
 fn get_parameter(name: &str, args: &ArgMatches) -> String {
     args.value_of(name)
         .expect("Parameter must be present.")
@@ -322,6 +342,18 @@ fn read_file(file_name: &str) -> Vec<u8> {
 
 fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let keyname: String = get_parameter(ARG_KEYNAME, args);
+
+    let mut tree_ident_data: [u8; ILEN] = [0; ILEN];
+    let arg_init_tree_ident = get_parameter(ARG_INIT_TREE_IDENT, args);
+    let treeident_filename = get_treeident_filename(&keyname);
+    if arg_init_tree_ident == "0" {
+        let tree_ident_filedata = read_file(&treeident_filename);
+        if tree_ident_filedata.len() != ILEN {
+            let error = String::from("tree identifier file: wrong len");
+            return DemoError::raise(error);
+        }
+        tree_ident_data.clone_from_slice(&tree_ident_filedata);
+    }
 
     let genkey_parameter = parse_genkey1_parameter(
         &get_parameter(ARG_HSS_PARAMETER, args),
@@ -352,7 +384,8 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
     // create our private key
-    let (signing_key, intermed_node_hashval) = genkey1_sst(&ssts_param, &seed, Some(aux_slice))
+    let (signing_key, intermed_node_hashval) =
+        genkey1_sst(&ssts_param, &seed, Some(aux_slice), &mut tree_ident_data)
         .unwrap_or_else(|_| panic!("Could not generate keys"));
 
     let private_key_filename =
@@ -383,6 +416,9 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         get_aux_filename(&keyname, Some(ssts_param.get_signing_entity_idx()));
     write(&aux_filename, aux_slice)?;
 
+
+    write(&treeident_filename, &tree_ident_data)?;
+
     Ok(())
 }
 
@@ -396,8 +432,6 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let aux_filename: String = get_aux_filename(&keyname, Some(signing_entity));
     let mut aux_data_v: Vec<u8> = read_file(&aux_filename);
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data_v[..];
-
-    // println!("keyname: {} -- SI: {} -- aux_size: {}", keyname, signing_entity, aux_size);
 
     // read private key
     let private_key_name = get_private_key_filename(&keyname, Some(signing_entity));
@@ -435,10 +469,17 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         // node_array.push(*node);
     }
 
-    let verifying_key = genkey2_sst::<Hasher>(&private_key_data, &node_array, Some(aux_slice))
-        .unwrap_or_else(|_| panic!("Could not generate verifying key"));
+    let treeident_filename = get_treeident_filename(&keyname);
+    let tree_ident_filedata = read_file(&treeident_filename);
+    if tree_ident_filedata.len() != ILEN {
+        let error = String::from("tree identifier file: wrong len");
+        return DemoError::raise(error);
+    }
+    let mut tree_ident_data: [u8; ILEN] = [0; ILEN];
+    tree_ident_data.clone_from_slice(&tree_ident_filedata);
 
-    //println!("pub key (node 1) hash value: {:?}", verifying_key);
+    let verifying_key = genkey2_sst::<Hasher>(&private_key_data, &node_array, Some(aux_slice), &tree_ident_data)
+        .unwrap_or_else(|_| panic!("Could not generate verifying key"));
 
     write(&aux_filename, aux_slice)?;
 

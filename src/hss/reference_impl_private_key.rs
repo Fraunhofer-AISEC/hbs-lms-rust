@@ -200,14 +200,10 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         hash_preimage[TOPSEED_WHICH] = 0x02;
         hasher.update(&hash_preimage);
 
-        // TODO_FIX! Tree identifier needs to be the same for all signing entities
-        // workaround for now: srt to fixed value
-        let lms_tree_identifier = [
-            0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02,
-            0x01, 0x00,
-        ]; // = LmsTreeIdentifier::default();
-           // let mut lms_tree_identifier = LmsTreeIdentifier::default();
-           // lms_tree_identifier.copy_from_slice(&hasher.finalize_reset()[..ILEN]);
+        // TODO/Rework: maybe provide the LmsTreeIdentifier as an Option-argument for this function
+        // The root LmsTreeIdentifier needs to be the same for all signing entities for signing and verification
+        let mut lms_tree_identifier = LmsTreeIdentifier::default();
+        lms_tree_identifier.copy_from_slice(&hasher.finalize_reset()[..ILEN]);
 
         SeedAndLmsTreeIdentifier::new(&seed, &lms_tree_identifier)
     }
@@ -411,7 +407,7 @@ mod tests {
         let seed = gen_random_seed::<Hasher>();
         let mut rfc_private_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
 
-        let hss_private_key = HssPrivateKey::from(&rfc_private_key, &mut None).unwrap();
+        let hss_private_key = HssPrivateKey::from(&rfc_private_key, &mut None, None).unwrap();
 
         let seed = rfc_private_key.seed.clone();
 
@@ -441,7 +437,7 @@ mod tests {
         let seed = gen_random_seed::<Hasher>();
         let mut rfc_private_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
 
-        let hss_private_key = HssPrivateKey::from(&rfc_private_key, &mut None).unwrap();
+        let hss_private_key = HssPrivateKey::from(&rfc_private_key, &mut None, None).unwrap();
         let keypair_lifetime = hss_private_key.get_lifetime();
 
         for _ in 0..keypair_lifetime {

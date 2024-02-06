@@ -12,7 +12,7 @@ use tinyvec::ArrayVec;
 use super::parameters::SstsParameter;
 
 use crate::{
-    constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REF_IMPL_MAX_PRIVATE_KEY_SIZE},
+    constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REF_IMPL_MAX_PRIVATE_KEY_SIZE, ILEN},
     hss::{aux::hss_is_aux_data_used, reference_impl_private_key::Seed},
     signature::{Error, SignerMut, Verifier},
     HashChain, Signature, VerifierSignature,
@@ -55,7 +55,7 @@ impl<H: HashChain> SigningKey<H> {
         let rfc_sk = ReferenceImplPrivateKey::from_binary_representation(self.bytes.as_slice())
             .map_err(|_| Error::new())?;
 
-        let parsed_sk = HssPrivateKey::<H>::from(&rfc_sk, &mut None).map_err(|_| Error::new())?;
+        let parsed_sk = HssPrivateKey::<H>::from(&rfc_sk, &mut None, None).map_err(|_| Error::new())?;
 
         Ok(parsed_sk.get_lifetime())
     }
@@ -64,6 +64,7 @@ impl<H: HashChain> SigningKey<H> {
         &mut self,
         msg: &[u8],
         aux_data: Option<&mut &mut [u8]>,
+        tree_ident: Option<&[u8; ILEN]>,
     ) -> Result<Signature, Error> {
         let private_key = self.bytes;
         let mut private_key_update_function = |new_key: &[u8]| {
@@ -76,13 +77,14 @@ impl<H: HashChain> SigningKey<H> {
             private_key.as_slice(),
             &mut private_key_update_function,
             aux_data,
+            tree_ident,
         )
     }
 }
 
 impl<H: HashChain> SignerMut<Signature> for SigningKey<H> {
     fn try_sign(&mut self, msg: &[u8]) -> Result<Signature, Error> {
-        self.try_sign_with_aux(msg, None)
+        self.try_sign_with_aux(msg, None, None)
     }
 }
 
@@ -158,6 +160,7 @@ pub fn hss_sign<H: HashChain>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
+    tree_identifier: Option<& [u8; ILEN]>,
 ) -> Result<Signature, Error> {
     hss_sign_core::<H>(
         Some(message),
@@ -165,6 +168,7 @@ pub fn hss_sign<H: HashChain>(
         private_key,
         private_key_update_function,
         aux_data,
+        tree_identifier,
     )
 }
 
@@ -199,6 +203,7 @@ fn hss_sign_core<H: HashChain>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
+    tree_identifier: Option<& [u8; ILEN]>,
 ) -> Result<Signature, Error> {
     let mut rfc_private_key = ReferenceImplPrivateKey::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
@@ -220,7 +225,7 @@ fn hss_sign_core<H: HashChain>(
         is_aux_data_used,
     );
 
-    let mut private_key = HssPrivateKey::<H>::from(&rfc_private_key, &mut expanded_aux_data)
+    let mut private_key = HssPrivateKey::<H>::from(&rfc_private_key, &mut expanded_aux_data, tree_identifier)
         .map_err(|_| Error::new())?;
 
     let hss_signature = HssSignature::sign(
@@ -337,6 +342,7 @@ mod tests {
             signing_key_const.as_slice(),
             &mut update_private_key,
             None,
+            None
         )
         .expect("Signing should complete without error.");
 
@@ -402,6 +408,7 @@ mod tests {
                 signing_key_const.as_slice(),
                 &mut update_private_key,
                 None,
+                None
             )
             .expect("Signing should complete without error.");
 
@@ -448,6 +455,7 @@ mod tests {
                 &message,
                 signing_key_const.as_slice(),
                 &mut update_private_key,
+                None,
                 None,
             )
             .unwrap_or_else(|_| {
@@ -553,6 +561,7 @@ mod tests {
             signing_key_const.as_slice(),
             &mut update_private_key,
             None,
+            None
         )
         .expect("Signing should complete without error.");
 

@@ -121,6 +121,7 @@ pub use crate::hss::{SigningKey, VerifyingKey};
 
 // @TODO: Re-export: API for distributed state management (SST, SingleSubTree)
 pub use crate::constants::MAX_SSTS_SIGNING_ENTITIES;
+pub use crate::constants::ILEN;
 pub use crate::sst::parameters::SstsParameter;
 pub use crate::sst::*; // {gen_key, sign, verify};
 

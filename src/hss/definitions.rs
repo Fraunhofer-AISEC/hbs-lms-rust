@@ -5,6 +5,7 @@ use tinyvec::ArrayVec;
 use crate::{
     constants::{
         MAX_ALLOWED_HSS_LEVELS, MAX_HASH_SIZE, MAX_HSS_PUBLIC_KEY_LENGTH, MAX_SSTS_SIGNING_ENTITIES,
+        ILEN,
     },
     hasher::HashChain,
     hss::aux::{
@@ -44,10 +45,16 @@ impl<H: HashChain> HssPrivateKey<H> {
     pub fn from(
         private_key: &ReferenceImplPrivateKey<H>,
         aux_data: &mut Option<MutableExpandedAuxData>,
+        tree_identifier: Option<& [u8; ILEN]>,
     ) -> Result<Self, ()> {
         let mut hss_private_key: HssPrivateKey<H> = Default::default();
 
         let mut current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
+
+        if let Some(tree_identifier) = tree_identifier {
+            current_seed.lms_tree_identifier.clone_from_slice(tree_identifier);
+        }
+
         let parameters = private_key.compressed_parameter.to::<H>()?;
         let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
 
@@ -227,6 +234,7 @@ impl<H: HashChain> HssPublicKey<H> {
         private_key: &ReferenceImplPrivateKey<H>,
         aux_data: Option<&mut &mut [u8]>,
         intermed_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_SSTS_SIGNING_ENTITIES]>,
+        tree_identifier: &[u8; ILEN],
     ) -> Result<Self, ()> {
 
         if private_key.sst_ext.signing_entity_idx == 0 || private_key.sst_ext.top_div_height == 0 {
@@ -256,7 +264,8 @@ impl<H: HashChain> HssPublicKey<H> {
             return Err(());
         };
 
-        let current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
+        let mut current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
+        current_seed.lms_tree_identifier.copy_from_slice(tree_identifier);
 
         // TODO/Rework: how do we get rid of those repeated "if let Some"?
         // Additions for SSTS: add "intermediate node values" from other signing entities to AUX data
@@ -423,13 +432,13 @@ mod tests {
         let seed = gen_random_seed::<H>();
         let mut rfc_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
 
-        let hss_key_before = HssPrivateKey::from(&rfc_key, &mut None).unwrap();
+        let hss_key_before = HssPrivateKey::from(&rfc_key, &mut None, None).unwrap();
 
         for _ in 0..increment_by {
             rfc_key.increment(&hss_key_before);
         }
 
-        let hss_key_after = HssPrivateKey::from(&rfc_key, &mut None).unwrap();
+        let hss_key_after = HssPrivateKey::from(&rfc_key, &mut None, None).unwrap();
 
         (hss_key_before, hss_key_after)
     }
@@ -450,7 +459,7 @@ mod tests {
 
         let seed = gen_random_seed::<H>();
         let mut private_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
-        let hss_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
+        let hss_key = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
 
         let tree_heights = hss_key
             .private_key
@@ -462,7 +471,7 @@ mod tests {
 
         const STEP_BY: usize = 27;
         for index in (0..total_ots_count).step_by(STEP_BY) {
-            let hss_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
+            let hss_key = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
 
             assert_eq!(hss_key.get_lifetime(), total_ots_count - index,);
 
@@ -487,8 +496,8 @@ mod tests {
         let seed = gen_random_seed::<H>();
         let private_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
 
-        let hss_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
-        let hss_key_second = HssPrivateKey::from(&private_key, &mut None).unwrap();
+        let hss_key = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
+        let hss_key_second = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
         assert_eq!(hss_key, hss_key_second);
     }
 

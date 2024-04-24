@@ -82,7 +82,6 @@ def genkey1(number_of_signing_entities, hss_params, auxsize, keyname):
         seed = os.urandom(32).hex()
 
         cmd = (
-            #f"{demo_binary} genkey1 {keyname} {hss_params} "
             f"{demo_binary} prepare_keygen {keyname} {hss_params} "
             f"--ssts={signing_entity}/{number_of_signing_entities} --auxsize={auxsize} --seed={seed}"
         )
@@ -105,7 +104,6 @@ def genkey2(number_of_signing_entities, keyname):
 
     for signing_entity in range(1, number_of_signing_entities + 1):
         cmd = (
-            #f"{demo_binary} genkey2 {keyname} {signing_entity}"
             f"{demo_binary} finalize_keygen {keyname} {signing_entity}"
         )
         result = subprocess.run(

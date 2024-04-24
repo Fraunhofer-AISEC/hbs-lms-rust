@@ -7,7 +7,7 @@ mod tests {
     use test::Bencher;
     use tinyvec::ArrayVec;
 
-    use hbs_lms::sst::parameters::SstsParameter;
+    use hbs_lms::SstsParameter;
     use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256_256};
     use hbs_lms::{
         signature::{SignerMut, Verifier},

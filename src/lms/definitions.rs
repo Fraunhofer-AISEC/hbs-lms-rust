@@ -90,8 +90,6 @@ impl<H: HashChain> LmsPublicKey<H> {
         private_key: &LmsPrivateKey<H>,
         aux_data: &mut Option<MutableExpandedAuxData>,
     ) -> Self {
-        println!("LmsPublicKey::new() -> get_tree_element({})", 1);
-        // use our signing entity's node index and also use that straight as "intermediate node hash value" instead of extra operation
         let public_key = get_tree_element(1 as usize, private_key, aux_data);
 
         Self {

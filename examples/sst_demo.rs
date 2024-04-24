@@ -108,7 +108,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = command.get_matches();
 
     if let Some(args) = matches.subcommand_matches(GENKEY1_COMMAND) {
-        genkey1(args)?;
+        prepare_keygen(args)?;
         println!(
             "Single-subtree-structure: intermediate node and private key successfully generated!"
         );
@@ -116,7 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(args) = matches.subcommand_matches(GENKEY2_COMMAND) {
-        genkey2(args)?;
+        finalize_keygen(args)?;
         println!("Single-subtree-structure: public key successfully generated!");
         return Ok(());
     }
@@ -346,7 +346,7 @@ fn read_file(file_name: &str) -> Vec<u8> {
     data
 }
 
-fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+fn prepare_keygen(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let keyname: String = get_parameter(ARG_KEYNAME, args);
 
     let mut tree_ident_data: [u8; ILEN] = [0; ILEN];
@@ -391,7 +391,7 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 
     // create our private key
     let (signing_key, intermed_node_hashval) =
-        genkey1_sst(&ssts_param, &seed, Some(aux_slice), &mut tree_ident_data)
+        prepare_sst_keygen(&ssts_param, &seed, Some(aux_slice), &mut tree_ident_data)
         .unwrap_or_else(|_| panic!("Could not generate keys"));
 
     let private_key_filename =
@@ -428,7 +428,7 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+fn finalize_keygen(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     // get signing entity number and name of private keyfile from args
     let keyname: String = get_parameter(ARG_KEYNAME, args);
     let signing_entity: String = get_parameter(ARG_SIGN_ENTITY_IDX, args);
@@ -484,7 +484,7 @@ fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let mut tree_ident_data: [u8; ILEN] = [0; ILEN];
     tree_ident_data.clone_from_slice(&tree_ident_filedata);
 
-    let verifying_key = genkey2_sst::<Hasher>(&private_key_data, &node_array, Some(aux_slice), &tree_ident_data)
+    let verifying_key = finalize_sst_keygen::<Hasher>(&private_key_data, &node_array, Some(aux_slice), &tree_ident_data)
         .unwrap_or_else(|_| panic!("Could not generate verifying key"));
 
     write(&aux_filename, aux_slice)?;

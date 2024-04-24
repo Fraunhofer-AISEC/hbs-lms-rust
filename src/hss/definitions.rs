@@ -20,7 +20,7 @@ use crate::{
         parameters::LmsParameter,
         signing::LmsSignature,
     },
-    parameters::SstExtension,
+    sst::parameters::SstExtension,
     sst::helper::get_subtree_node_idx,
     util::helper::read_and_advance,
 };

@@ -33,15 +33,16 @@ pub struct MutableExpandedAuxData<'a> {
     pub hmac: &'a mut [u8],
 }
 
-// TODO maybe improve: for SST wich e.g. 8 signing entities, each level would need only 1/8 of space that's needed w/o SST!
-// TODO add unit tests
+// TODO/Rework:
+//   Improve: for SST with e.g. 8 signing entities, each level below intermediate nodes
+//   would need only ~1/8 of space that's needed w/o SST
+//   (obviously it doesn't make sense to save lower-level nodes of other signing entities)
 pub fn hss_optimal_aux_level<H: HashChain>(
     mut max_length: usize,
     lms_parameter: LmsParameter<H>,
     actual_len: Option<&mut usize>,
     top_div_height: Option<u8>,
 ) -> AuxLevel {
-
     let mut aux_level = AuxLevel::default();
 
     // HMAC has size of hash
@@ -55,7 +56,10 @@ pub fn hss_optimal_aux_level<H: HashChain>(
     if let Some(top_div_height) = top_div_height {
         size_for_signing_entity_nodes = 2usize.pow(top_div_height as u32) * size_hash;
 
-        min_top_level = top_div_height + 1; // so we don't fill above our intermediate node values
+        // don't populate levels above the "intermediate node" values in first keygen step (those would be wrong)
+        // TODO/Rework: maybe populate the levels above intermed. node values in the second keygen step
+        //   -> given the max. of 256 signing entities, that should result in a minor performance improvement
+        min_top_level = top_div_height + 1;
         // add level to level bit, later abort if max_length too small
         aux_level |= 0x80000000 | (1 << top_div_height);
     }
@@ -79,7 +83,6 @@ pub fn hss_optimal_aux_level<H: HashChain>(
     let h0 = lms_parameter.get_tree_height().into();
 
     for level in (min_top_level..=h0).rev().step_by(MIN_SUBTREE) {
-        // why other way round (cisco: 2,4,6...?!
         let len_this_level = size_hash << level;
 
         if max_length >= len_this_level {
@@ -182,6 +185,7 @@ pub fn hss_is_aux_data_used(aux_data: &[u8]) -> bool {
     aux_data[AUX_DATA_MARKER] != NO_AUX_DATA
 }
 
+// saves a single node value to AUX data
 pub fn hss_save_aux_data<H: HashChain>(
     data: &mut MutableExpandedAuxData,
     index: usize,
@@ -193,6 +197,9 @@ pub fn hss_save_aux_data<H: HashChain>(
         return;
     }
 
+    // For SSTS keygen preparation, that's the nodes of the signing entity's sub-tree within the L0-tree.
+    // Omit saving values that will be replaced anyway by intermed. values of the other signing entities
+    // during keygen finalization
     let lms_leaf_identifier: usize = index - 2u32.pow(level as u32) as usize;
     let start_index = lms_leaf_identifier * H::OUTPUT_SIZE as usize;
     let end_index = start_index + H::OUTPUT_SIZE as usize;
@@ -312,8 +319,8 @@ mod tests {
 
         let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
             Default::default();
-        vec_hss_params.push(HssParameter::new(lmots, lms));
-        vec_hss_params.push(HssParameter::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
         let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
 
         let mut aux_data = [0u8; 1_000];

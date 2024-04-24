@@ -4,10 +4,10 @@ use crate::hss::parameter::HssParameter;
 use crate::hss::reference_impl_private_key::SeedAndLmsTreeIdentifier;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
-use crate::parameters::SstExtension;
+use crate::sst::parameters::SstExtension;
 
 pub mod definitions;
-pub mod helper; // TODO review -> pub!
+pub(crate) mod helper;
 pub mod parameters;
 pub mod signing;
 pub mod verify;

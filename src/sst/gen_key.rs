@@ -18,7 +18,7 @@ use crate::{
 
 use tinyvec::ArrayVec;
 
-pub fn genkey1_sst<H: HashChain>(
+pub fn prepare_sst_keygen<H: HashChain>(
     sst_param: &SstsParameter<H>,
     seed: &Seed<H>,
     aux_data: Option<&mut &mut [u8]>,
@@ -58,7 +58,6 @@ pub fn genkey1_sst<H: HashChain>(
             .get_tree_height(),
         sst_param.get_top_div_height());
 
-    // TODO/Review: not exactly elegant to create an LmsPrivateKey and SeedAndLmsTreeIdentifier
     let mut seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
 
     if tree_identifier.iter().all(|&byte| byte == 0) {
@@ -72,7 +71,6 @@ pub fn genkey1_sst<H: HashChain>(
         top_div_height: rfc_private_key.sst_ext.top_div_height,
     };
 
-    // TODO/Rework: try to get it from adapted LmsPublicKey::new()
     let sst_ext_option = Some(sst_ext);
 
     let our_node_index = get_subtree_node_idx(
@@ -92,7 +90,6 @@ pub fn genkey1_sst<H: HashChain>(
         sst_ext_option,
     );
 
-    // TODO/Rework: do this via LmsPublicKey() and have aux data taken care of? where is aux data finalized in original code?
     let our_intermed_node_value = get_tree_element(
         our_node_index as usize,
         &lms_private_key,
@@ -114,7 +111,7 @@ pub fn get_num_signing_entities<H: HashChain>(private_key: &[u8]) -> Result<u32,
     Ok(num_signing_entities)
 }
 
-pub fn genkey2_sst<H: HashChain>(
+pub fn finalize_sst_keygen<H: HashChain>(
     private_key: &[u8],
     interm_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_SSTS_SIGNING_ENTITIES]>,
     aux_data: Option<&mut &mut [u8]>,

@@ -16,9 +16,17 @@ A demo application is located in the `examples` folder to demonstrate the use of
 This demo application can be used in the console as follows:
 
 ```
-# Key generation
-# Generates `mykey.prv`, `mykey.pub` with merkle tree height = 10, winternitz parameter = 2, top tree height = 3, signing instance = 2
-cargo run --release --example lms-demo -- genkey mykey 10/2/3/2 --seed 0123456701234567012345670123456701234567012345670123456701234567
+# Key generation: prepare
+# Generates intermediate node, generates or reads the tree identifier (init_tree_ident 1/0), and uses "mykey" as filename base.
+# The following example uses two HSS levels, first with tree height = 10 / Winternitz = 8, second with 5 / 2.
+# The signing instance index is 5 of total 8.
+# This will use "mykey.5.prv" and "mykey.5.aux" for private key and aux data, and "mykey_treeident.bin" to write the tree identifier
+cargo run --release --example sst_demo -- prepare_keygen mykey 10/8,5/2 --ssts=5/8 --auxsize=2048 \
+  --seed=c912a74bc8c5fc1b2a73b96e6ce1eb2317dc9aa49806b30e578436d0f659b1f5 --init_tree_ident=0
+
+# Key generation: finalize
+# This will use mykey.5.pub to write the public key for signing entity index 5.
+cargo run --release --example sst_demo -- finalize_keygen mykey 5
 
 # Signing
 # Generates `message.txt.sig`

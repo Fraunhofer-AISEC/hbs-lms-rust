@@ -8,6 +8,7 @@ pub fn get_subtree_node_idx(signing_entity_idx: u8, total_height: u8, top_div: u
 }
 
 fn get_num_leaves_in_sst(total_height: u8, top_div: u8) -> u32 {
+    assert!(top_div <= total_height);
     2u32.pow((total_height - top_div) as u32)
 }
 

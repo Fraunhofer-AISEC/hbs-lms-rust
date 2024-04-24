@@ -9,11 +9,10 @@ pub mod verify;
 use core::{convert::TryFrom, marker::PhantomData};
 use tinyvec::ArrayVec;
 
-use super::parameters::SstsParameter;
-
 use crate::{
     constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REF_IMPL_MAX_PRIVATE_KEY_SIZE, ILEN},
     hss::{aux::hss_is_aux_data_used, reference_impl_private_key::Seed},
+    sst::parameters::SstsParameter,
     signature::{Error, SignerMut, Verifier},
     HashChain, Signature, VerifierSignature,
 };

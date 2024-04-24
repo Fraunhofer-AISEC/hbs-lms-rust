@@ -1,30 +1,35 @@
 #!/usr/bin/env python3
 
-# TODO arguments: add seed; option for random seed?
-# TODO arguments: add name for files
+import sys, subprocess, shlex, math, argparse, os
 
-import sys, subprocess, shlex, math, argparse
-
+# w/o time measurement
+#demo_binary = "cargo run --release --example sst_demo -- "
+# show timings
+demo_binary = "time -p target/release/examples/sst_demo "
 
 def main():
     args = parse()
     args = vars(args)
-    print("args: ", args)
 
     print('Executing "sst_demo" genkey1 and genkey2 with:')
 
     number_of_signing_entities = args["se"]
-    print("Number of signing entities: ", number_of_signing_entities)
+    print("  - Number of signing entities: ", number_of_signing_entities)
 
     hss_params = args["hss"]
-    print("HSS parameter: ", hss_params)
+    print("  - HSS parameter: ", hss_params)
+
+    keyname = args["keyname"]
+    print("  - Keyname: ", keyname)
 
     auxsize = args["auxsize"]
-    print("AUX data size: ", auxsize)
+    print("  - AUX data size: ", auxsize)
 
-    genkey1(number_of_signing_entities, hss_params, auxsize)
+    print("")
 
-    genkey2(number_of_signing_entities)
+    genkey1(number_of_signing_entities, hss_params, auxsize, keyname)
+
+    genkey2(number_of_signing_entities, keyname)
 
     # remove files with intermediate node hash values
     for signing_entity in range(1, number_of_signing_entities + 1):
@@ -32,8 +37,6 @@ def main():
         result = subprocess.run(
             shlex.split(cmd), shell=False, capture_output=True, text=True
         )
-        # print(result.stdout)
-        # print(result.stderr)
 
 
 def parse():
@@ -44,6 +47,9 @@ def parse():
 
     parser.add_argument(
         "--se", dest="se", type=int, help="number of signing entities (power of 2)"
+    )
+    parser.add_argument(
+        "--keyname", dest="keyname", type=ascii, help="keyname for storing files"
     )
     parser.add_argument(
         "--hss",
@@ -63,16 +69,21 @@ def parse():
     return args
 
 
-def genkey1(number_of_signing_entities, hss_params, auxsize):
-    seed = "0123456701234567012345670123456701234567012345670123456701234567"
+def genkey1(number_of_signing_entities, hss_params, auxsize, keyname):
+    # For "deterministic" results, set the seed here:
+    # seed = "abcd456701234567012345670123456701234567012345670123456701234567"
+
     # 1. Create private key and intermediate node value
     # hss params e.g. "10/2,15/4"
     # ssts params  e.g. "ssts=5/8" -> instance 5 of 8
     init_tree_ident = True
 
     for signing_entity in range(1, number_of_signing_entities + 1):
+        seed = os.urandom(32).hex()
+
         cmd = (
-            f"cargo run --release --example sst_demo -- genkey1 mykey {hss_params} "
+            #f"{demo_binary} genkey1 {keyname} {hss_params} "
+            f"{demo_binary} prepare_keygen {keyname} {hss_params} "
             f"--ssts={signing_entity}/{number_of_signing_entities} --auxsize={auxsize} --seed={seed}"
         )
         if True == init_tree_ident:
@@ -89,12 +100,13 @@ def genkey1(number_of_signing_entities, hss_params, auxsize):
         print(result.stderr)
 
 
-def genkey2(number_of_signing_entities):
+def genkey2(number_of_signing_entities, keyname):
     # 2. read other intermediate node values and create public key
 
     for signing_entity in range(1, number_of_signing_entities + 1):
         cmd = (
-            f"cargo run --release --example sst_demo -- genkey2 mykey {signing_entity}"
+            #f"{demo_binary} genkey2 {keyname} {signing_entity}"
+            f"{demo_binary} finalize_keygen {keyname} {signing_entity}"
         )
         result = subprocess.run(
             shlex.split(cmd), shell=False, capture_output=True, text=True

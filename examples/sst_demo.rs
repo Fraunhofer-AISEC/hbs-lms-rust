@@ -9,8 +9,8 @@ use std::{
 };
 use tinyvec::ArrayVec;
 
-const GENKEY1_COMMAND: &str = "genkey1";
-const GENKEY2_COMMAND: &str = "genkey2";
+const GENKEY1_COMMAND: &str = "prepare_keygen";
+const GENKEY2_COMMAND: &str = "finalize_keygen";
 const VERIFY_COMMAND: &str = "verify";
 const SIGN_COMMAND: &str = "sign";
 
@@ -20,7 +20,7 @@ const SIGN_MUT_COMMAND: &str = "sign_mut";
 const ARG_KEYNAME: &str = "keyname";
 const ARG_MESSAGE: &str = "file";
 const ARG_HSS_PARAMETER: &str = "hss";
-const ARG_SIGN_ENTITY_IDX_PARAMETER: &str = "se_param";
+const ARG_SIGN_ENTITY_IDX: &str = "se_param";
 const ARG_SEED: &str = "seed";
 const ARG_AUXSIZE: &str = "auxsize";
 const ARG_INIT_TREE_IDENT: &str = "init_tree_ident";
@@ -83,7 +83,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .subcommand(
         Command::new(GENKEY2_COMMAND)
         .arg(Arg::new(ARG_KEYNAME).required(true))
-        .arg(Arg::new(ARG_SIGN_ENTITY_IDX_PARAMETER).required(true).help(
+        .arg(Arg::new(ARG_SIGN_ENTITY_IDX).required(true).help(
             "Specify signing entity index (1..n))"))
     )
     .subcommand(
@@ -93,6 +93,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .subcommand(
         Command::new(SIGN_COMMAND)
         .arg(Arg::new(ARG_KEYNAME).required(true))
+        .arg(Arg::new(ARG_SIGN_ENTITY_IDX).required(true).help(
+            "Specify signing entity index (1..n))"))
         .arg(Arg::new(ARG_MESSAGE).required(true))
     );
 
@@ -146,20 +148,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+
 fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let keyname = get_parameter(ARG_KEYNAME, args);
     let message_name = get_parameter(ARG_MESSAGE, args);
 
-    let private_key_filename = get_private_key_filename(&keyname, None);
+    let se_idx = get_parameter(ARG_SIGN_ENTITY_IDX, args);
+    let se_idx: u8 = se_idx.parse::<u8>().unwrap();
+
+    let private_key_filename = get_private_key_filename(&keyname, Some(se_idx));
     let signature_filename = get_signature_filename(&message_name);
 
     let private_key_data = read_file(&private_key_filename);
     let message_data = read_file(&message_name);
 
-    let aux_data_filename = get_aux_filename(&keyname, None);
+    let aux_data_filename = get_aux_filename(&keyname, Some(se_idx));
     let mut aux_data = read(aux_data_filename).ok();
 
-    let treeident_filename = String::from("mykey_treeident.bin");// TODO/Fix get_treeident_filename(&keyname);
+    let treeident_filename = keyname.to_string() + &String::from("_treeident.bin");
     let tree_ident_filedata = read_file(&treeident_filename);
     if tree_ident_filedata.len() != ILEN {
         println!("Could not sign message. Tree ident file has wrong size.");
@@ -425,7 +431,7 @@ fn genkey1(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 fn genkey2(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     // get signing entity number and name of private keyfile from args
     let keyname: String = get_parameter(ARG_KEYNAME, args);
-    let signing_entity: String = get_parameter(ARG_SIGN_ENTITY_IDX_PARAMETER, args);
+    let signing_entity: String = get_parameter(ARG_SIGN_ENTITY_IDX, args);
     let signing_entity: u8 = signing_entity.parse::<u8>().unwrap();
 
     // AUX data: created in genkey1, here we read the file

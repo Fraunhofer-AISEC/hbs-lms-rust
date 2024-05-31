@@ -124,7 +124,7 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         arr[0] = used_leafs_index;
 
         let private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
-            compressed_used_leafs_indexes: CompressedUsedLeafsIndexes::from(&arr, &hss_params),
+            compressed_used_leafs_indexes: CompressedUsedLeafsIndexes::from(&arr, hss_params),
             compressed_parameter: CompressedParameterSet::from(parameters.get_hss_parameters())?,
             sst_ext,
             seed: seed.clone(),

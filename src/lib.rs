@@ -121,20 +121,20 @@ pub use crate::hss::{SigningKey, VerifyingKey};
 
 // TODO/Review: API for distributed state management (SST, SingleSubTree)
 // should not contain anything else, while crate's modules get to use more of "sst"
-pub use crate::constants::MAX_SSTS_SIGNING_ENTITIES;
 pub use crate::constants::ILEN;
+pub use crate::constants::MAX_SSTS_SIGNING_ENTITIES;
 
-pub use crate::sst::parameters::SstsParameter;
-pub use crate::sst::prepare_sst_keygen;
 pub use crate::sst::finalize_sst_keygen;
 pub use crate::sst::get_num_signing_entities;
+pub use crate::sst::parameters::SstsParameter;
+pub use crate::sst::prepare_sst_keygen;
 
 use core::convert::TryFrom;
 use signature::Error;
 use tinyvec::ArrayVec;
 
-use constants::MAX_HSS_SIGNATURE_LENGTH;
 pub use crate::constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
+use constants::MAX_HSS_SIGNATURE_LENGTH;
 
 /**
  * Implementation of [`signature::Signature`].

@@ -191,6 +191,7 @@ fn own_signing(
         &private_key_before,
         &mut update_private_key,
         Some(aux_slice),
+        None,
     )
     .expect("Signing should succed.");
     save_file(

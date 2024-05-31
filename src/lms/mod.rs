@@ -22,7 +22,7 @@ pub fn generate_key_pair<H: HashChain>(
     hss_param: &HssParameter<H>,
     used_leafs_index: &u32,
     aux_data: &mut Option<MutableExpandedAuxData>,
-    sst_ext: Option<SstExtension>,
+    sst_ext: Option<SstExtension>, // TODO/Review: all calls are with "None"...why is that?
 ) -> LmsKeyPair<H> {
     let lmots_parameter = hss_param.get_lmots_parameter();
     let lms_parameter = hss_param.get_lms_parameter();

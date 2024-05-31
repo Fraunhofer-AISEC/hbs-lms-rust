@@ -4,14 +4,13 @@ use tinyvec::ArrayVec;
 
 use crate::{
     constants::{
-        MAX_ALLOWED_HSS_LEVELS, MAX_HASH_SIZE, MAX_HSS_PUBLIC_KEY_LENGTH, MAX_SSTS_SIGNING_ENTITIES,
-        ILEN,
+        ILEN, MAX_ALLOWED_HSS_LEVELS, MAX_HASH_SIZE, MAX_HSS_PUBLIC_KEY_LENGTH,
+        MAX_SSTS_SIGNING_ENTITIES,
     },
     hasher::HashChain,
     hss::aux::{
-        hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_save_aux_data,
-        hss_store_aux_marker, hss_get_aux_data_len, hss_is_aux_data_used,
-        MutableExpandedAuxData,
+        hss_expand_aux_data, hss_finalize_aux_data, hss_get_aux_data_len, hss_is_aux_data_used,
+        hss_optimal_aux_level, hss_save_aux_data, hss_store_aux_marker, MutableExpandedAuxData,
     },
     lms::{
         self,
@@ -20,14 +19,14 @@ use crate::{
         parameters::LmsParameter,
         signing::LmsSignature,
     },
-    sst::parameters::SstExtension,
     sst::helper::get_subtree_node_idx,
+    sst::parameters::SstExtension,
     util::helper::read_and_advance,
 };
 
 use super::reference_impl_private_key::{
-        generate_child_seed_and_lms_tree_identifier, generate_signature_randomizer,
-        ReferenceImplPrivateKey,
+    generate_child_seed_and_lms_tree_identifier, generate_signature_randomizer,
+    ReferenceImplPrivateKey,
 };
 
 #[derive(Debug, Default, PartialEq)]
@@ -45,14 +44,16 @@ impl<H: HashChain> HssPrivateKey<H> {
     pub fn from(
         private_key: &ReferenceImplPrivateKey<H>,
         aux_data: &mut Option<MutableExpandedAuxData>,
-        tree_identifier: Option<& [u8; ILEN]>,
+        tree_identifier: Option<&[u8; ILEN]>,
     ) -> Result<Self, ()> {
         let mut hss_private_key: HssPrivateKey<H> = Default::default();
 
         let mut current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
 
         if let Some(tree_identifier) = tree_identifier {
-            current_seed.lms_tree_identifier.clone_from_slice(tree_identifier);
+            current_seed
+                .lms_tree_identifier
+                .clone_from_slice(tree_identifier);
         }
 
         let parameters = private_key.compressed_parameter.to::<H>()?;
@@ -229,14 +230,13 @@ impl<H: HashChain> HssPublicKey<H> {
         })
     }
 
-    // same as above, but to keep the function's signature, we add a variant for SSTS
+    // same as "from()" above, but to keep the original function's signature, we add a variant for SSTS
     pub fn from_with_sst(
         private_key: &ReferenceImplPrivateKey<H>,
         aux_data: Option<&mut &mut [u8]>,
         intermed_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_SSTS_SIGNING_ENTITIES]>,
         tree_identifier: &[u8; ILEN],
     ) -> Result<Self, ()> {
-
         if private_key.sst_ext.signing_entity_idx == 0 || private_key.sst_ext.top_div_height == 0 {
             return Err(());
         };
@@ -260,12 +260,14 @@ impl<H: HashChain> HssPublicKey<H> {
             is_aux_data_used,
         );
 
-        if let None = opt_expanded_aux_data.as_mut() {
+        if opt_expanded_aux_data.as_mut().is_none() {
             return Err(());
         };
 
         let mut current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
-        current_seed.lms_tree_identifier.copy_from_slice(tree_identifier);
+        current_seed
+            .lms_tree_identifier
+            .copy_from_slice(tree_identifier);
 
         // TODO/Rework: how do we get rid of those repeated "if let Some"?
         // Additions for SSTS: add "intermediate node values" from other signing entities to AUX data
@@ -292,7 +294,7 @@ impl<H: HashChain> HssPublicKey<H> {
             &parameters[0],
             &used_leafs_indexes[0],
             &mut opt_expanded_aux_data,
-            None, //sst_ext_option,
+            None,
         );
 
         // calc. new AUX HMAC

@@ -148,7 +148,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-
 fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     let keyname = get_parameter(ARG_KEYNAME, args);
     let message_name = get_parameter(ARG_MESSAGE, args);
@@ -173,7 +172,6 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
     }
     let mut tree_ident_data: [u8; ILEN] = [0; ILEN];
     tree_ident_data.clone_from_slice(&tree_ident_filedata);
-
 
     let mut private_key_update_function = |new_key: &[u8]| {
         if write(&private_key_filename, new_key).is_ok() {
@@ -218,17 +216,17 @@ fn sign_mut(args: &ArgMatches) -> Result<(), std::io::Error> {
     let keyname = get_parameter(ARG_KEYNAME, args);
     let message_name = get_parameter(ARG_MESSAGE, args);
 
-    let private_key_name = get_private_key_filename(&keyname);
+    let private_key_name = get_private_key_filename(&keyname, None);
 
-    let signature_name_mut = get_signature_mut_name(&message_name);
-    let message_name_mut = get_message_mut_name(&message_name);
+    let signature_name_mut = get_signature_mut_filename(&message_name);
+    let message_name_mut = get_message_mut_filename(&message_name);
 
     let private_key_data = read_file(&private_key_name);
 
     let mut message_data = read_file(&message_name);
     message_data.extend_from_slice(&[0u8; 32]);
 
-    let aux_data_name = get_aux_filename(&keyname);
+    let aux_data_name = get_aux_filename(&keyname, None);
     let mut aux_data = read(aux_data_name).ok();
 
     let mut private_key_update_function = |new_key: &[u8]| {
@@ -392,7 +390,7 @@ fn prepare_keygen(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     // create our private key
     let (signing_key, intermed_node_hashval) =
         prepare_sst_keygen(&ssts_param, &seed, Some(aux_slice), &mut tree_ident_data)
-        .unwrap_or_else(|_| panic!("Could not generate keys"));
+            .unwrap_or_else(|_| panic!("Could not generate keys"));
 
     let private_key_filename =
         get_private_key_filename(&keyname, Some(ssts_param.get_signing_entity_idx()));
@@ -421,7 +419,6 @@ fn prepare_keygen(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let aux_filename: String =
         get_aux_filename(&keyname, Some(ssts_param.get_signing_entity_idx()));
     write(&aux_filename, aux_slice)?;
-
 
     write(&treeident_filename, &tree_ident_data)?;
 
@@ -484,8 +481,13 @@ fn finalize_keygen(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
     let mut tree_ident_data: [u8; ILEN] = [0; ILEN];
     tree_ident_data.clone_from_slice(&tree_ident_filedata);
 
-    let verifying_key = finalize_sst_keygen::<Hasher>(&private_key_data, &node_array, Some(aux_slice), &tree_ident_data)
-        .unwrap_or_else(|_| panic!("Could not generate verifying key"));
+    let verifying_key = finalize_sst_keygen::<Hasher>(
+        &private_key_data,
+        &node_array,
+        Some(aux_slice),
+        &tree_ident_data,
+    )
+    .unwrap_or_else(|_| panic!("Could not generate verifying key"));
 
     write(&aux_filename, aux_slice)?;
 

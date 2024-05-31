@@ -18,28 +18,30 @@ This demo application can be used in the console as follows:
 ```
 # Key generation: prepare
 # Generates intermediate node, generates or reads the tree identifier (init_tree_ident 1/0), and uses "mykey" as filename base.
+# One dedicated signing entity has to create the common L-0 tree identifier (--init_tree_ident=1) before other signing entities
+# can generate their subtrees.
+#
 # The following example uses two HSS levels, first with tree height = 10 / Winternitz = 8, second with 5 / 2.
-# The signing instance index is 5 of total 8.
+# First, a signing entity (here: 1 of 8) creates the tree identifier
+cargo run --release --example sst_demo -- prepare_keygen mykey 10/8,5/2 --ssts=1/8 --auxsize=2048 \
+  --seed=c912a74bc8c5fc1b2a73b96e6ce1eb2317dc9aa49806b30e578436d0f659b1f5 --init_tree_ident=1
+# The signing instance index is 3 of total 8, and this signing entity will use the tree identifier and use another secret seed.
 # This will use "mykey.5.prv" and "mykey.5.aux" for private key and aux data, and "mykey_treeident.bin" to write the tree identifier
-cargo run --release --example sst_demo -- prepare_keygen mykey 10/8,5/2 --ssts=5/8 --auxsize=2048 \
-  --seed=c912a74bc8c5fc1b2a73b96e6ce1eb2317dc9aa49806b30e578436d0f659b1f5 --init_tree_ident=0
+cargo run --release --example sst_demo -- prepare_keygen mykey 10/8,5/2 --ssts=3/8 --auxsize=2048 \
+  --seed=1eb2317dc9aa49806b30e578436d0f659b1f5c912a74bc8c5fc1b2a73b96e6ce --init_tree_ident=0
 
 # Key generation: finalize
-# This will use mykey.5.pub to write the public key for signing entity index 5.
-cargo run --release --example sst_demo -- finalize_keygen mykey 5
+# After all signing entities have created their intermediate node values, the public key can be generated.
+# This will use mykey.5.pub to write the public key for signing entity index 3.
+cargo run --release --example sst_demo -- finalize_keygen mykey 3
 
 # Signing
-# Generates `message.txt.sig`
-cargo run --release --example lms-demo -- sign mykey message.txt
-
-# Signing (fast_verification)
-# Generates `message.txt_mut`, `message.txt_mut.sig`
-HBS_LMS_MAX_HASH_OPTIMIZATIONS=1000 HBS_LMS_THREADS=2 cargo run --release --example lms-demo \
-    --features fast_verify -- sign_mut mykey message.txt
+# Generates `message.txt.sig` using mykey.5.prv
+cargo run --release --example sst_demo -- sign mykey 5 message.txt
 
 # Verification
-# Verifies `message.txt` with `message.txt.sig` against `mykey.pub`
-cargo run --release --example lms-demo -- verify mykey message.txt
+# Verifies `message.txt` with `message.txt.sig` against `mykey.5.pub`
+cargo run --release --example sst_demo -- verify mykey.5 message.txt
 ```
 
 ## Naming conventions wrt to the IETF RFC

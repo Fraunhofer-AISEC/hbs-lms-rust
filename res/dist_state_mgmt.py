@@ -3,9 +3,10 @@
 import sys, subprocess, shlex, math, argparse, os
 
 # w/o time measurement
-#demo_binary = "cargo run --release --example sst_demo -- "
+# demo_binary = "cargo run --release --example sst_demo -- "
 # show timings
 demo_binary = "time -p target/release/examples/sst_demo "
+
 
 def main():
     args = parse()
@@ -46,15 +47,24 @@ def parse():
     )
 
     parser.add_argument(
-        "--se", dest="se", type=int, help="number of signing entities (power of 2)"
+        "--se",
+        dest="se",
+        type=int,
+        help="number of signing entities (power of 2)",
+        required=True,
     )
     parser.add_argument(
-        "--keyname", dest="keyname", type=ascii, help="keyname for storing files"
+        "--keyname",
+        dest="keyname",
+        type=ascii,
+        help="keyname for storing files",
+        required=True,
     )
     parser.add_argument(
         "--hss",
         dest="hss",
         help="HSS parameters; e.g. 10/2,15/4 [LMS-height/Winternitz-param.]",
+        required=True,
     )
     parser.add_argument(
         "--auxsize",
@@ -62,6 +72,7 @@ def parse():
         nargs="?",
         default="0",
         help="Max AUX data file, size in bytes",
+        required=True,
     )
 
     args = parser.parse_args()
@@ -79,6 +90,7 @@ def genkey1(number_of_signing_entities, hss_params, auxsize, keyname):
     init_tree_ident = True
 
     for signing_entity in range(1, number_of_signing_entities + 1):
+        print("GenKey1 for signing entity: ", signing_entity)
         seed = os.urandom(32).hex()
 
         cmd = (
@@ -103,9 +115,7 @@ def genkey2(number_of_signing_entities, keyname):
     # 2. read other intermediate node values and create public key
 
     for signing_entity in range(1, number_of_signing_entities + 1):
-        cmd = (
-            f"{demo_binary} finalize_keygen {keyname} {signing_entity}"
-        )
+        cmd = f"{demo_binary} finalize_keygen {keyname} {signing_entity}"
         result = subprocess.run(
             shlex.split(cmd), shell=False, capture_output=True, text=True
         )

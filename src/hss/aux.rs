@@ -80,7 +80,7 @@ pub fn hss_optimal_aux_level<H: HashChain>(
 
     max_length -= min_length;
 
-    let h0 = lms_parameter.get_tree_height().into();
+    let h0 = lms_parameter.get_tree_height();
 
     for level in (min_top_level..=h0).rev().step_by(MIN_SUBTREE) {
         let len_this_level = size_hash << level;

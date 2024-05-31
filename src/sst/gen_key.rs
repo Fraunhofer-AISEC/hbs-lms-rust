@@ -1,6 +1,6 @@
 use crate::signature::Error;
 use crate::{
-    constants::{MAX_HASH_SIZE, MAX_SSTS_SIGNING_ENTITIES, ILEN},
+    constants::{ILEN, MAX_HASH_SIZE, MAX_SSTS_SIGNING_ENTITIES},
     hasher::HashChain,
     hss::{
         aux::{hss_finalize_aux_data, hss_is_aux_data_used},
@@ -56,14 +56,17 @@ pub fn prepare_sst_keygen<H: HashChain>(
         sst_param.get_hss_parameters()[0]
             .get_lms_parameter()
             .get_tree_height(),
-        sst_param.get_top_div_height());
+        sst_param.get_top_div_height(),
+    );
 
     let mut seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
 
     if tree_identifier.iter().all(|&byte| byte == 0) {
         tree_identifier.clone_from_slice(&seed_and_lms_tree_ident.lms_tree_identifier);
     } else {
-        seed_and_lms_tree_ident.lms_tree_identifier.clone_from_slice(tree_identifier);
+        seed_and_lms_tree_ident
+            .lms_tree_identifier
+            .clone_from_slice(tree_identifier);
     }
 
     let sst_ext = SstExtension {

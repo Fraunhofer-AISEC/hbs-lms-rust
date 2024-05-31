@@ -35,7 +35,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
         used_leafs_index: u32,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
-        sst_ext: Option<SstExtension>
+        sst_ext: Option<SstExtension>,
     ) -> Self {
         LmsPrivateKey {
             seed,
@@ -90,7 +90,7 @@ impl<H: HashChain> LmsPublicKey<H> {
         private_key: &LmsPrivateKey<H>,
         aux_data: &mut Option<MutableExpandedAuxData>,
     ) -> Self {
-        let public_key = get_tree_element(1 as usize, private_key, aux_data);
+        let public_key = get_tree_element(1_usize, private_key, aux_data);
 
         Self {
             key: public_key,

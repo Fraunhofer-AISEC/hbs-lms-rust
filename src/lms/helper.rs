@@ -12,6 +12,7 @@ pub fn get_tree_element<H: HashChain>(
     private_key: &LmsPrivateKey<H>,
     aux_data: &mut Option<MutableExpandedAuxData>,
 ) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+    // TODO/Rework: use "Node" struct as return value?
     // Check if we already have the value cached
     if let Some(aux_data) = aux_data {
         if let Some(result) = hss_extract_aux_data::<H>(aux_data, index) {

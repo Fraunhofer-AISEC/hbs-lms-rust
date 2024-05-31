@@ -551,15 +551,15 @@ fn parse_genkey1_parameter(hss_params: &str, ssts_params: &str, auxsize: &str) -
         .parse()
         .expect("Total number of signing instances invalid");
 
-    let top_div_height = (total_num_si as f32).log2();
-    if top_div_height.fract() != 0.0 {
+    let l0_top_div = (total_num_si as f32).log2();
+    if l0_top_div.fract() != 0.0 {
         panic!("Provided number of signing instances is not a power of 2");
     }
-    let top_div_height = top_div_height as u8;
+    let l0_top_div = l0_top_div as u8;
 
     // @TODO how do I know whether this "vec_hss_params" is a move, and if not, how to achieve (avoid implicit "Copy")?
     // ArrayVec implements trait "Clone", but I'm not sure about "Copy" (implicit)
-    let param = SstsParameter::new(vec_hss_params, top_div_height, si_idx);
+    let param = SstsParameter::new(vec_hss_params, l0_top_div, si_idx);
     // this here shouldn't be possible in case of "move", because then we don't have ownership anymore:
     //let vec_hss_param_test: HssParameter<Sha256_256> = HssParameter::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
     //vec_hss_params.push(vec_hss_param_test);

@@ -24,7 +24,7 @@ pub fn prepare_sst_keygen<H: HashChain>(
     aux_data: Option<&mut &mut [u8]>,
     tree_identifier: &mut [u8; ILEN],
 ) -> Result<(SigningKey<H>, ArrayVec<[u8; MAX_HASH_SIZE]>), Error> {
-    if sst_param.get_signing_entity_idx() == 0 || sst_param.get_top_div_height() == 0 {
+    if sst_param.get_signing_entity_idx() == 0 || sst_param.get_l0_top_div() == 0 {
         return Err(Error::new());
     }
 
@@ -56,7 +56,7 @@ pub fn prepare_sst_keygen<H: HashChain>(
         sst_param.get_hss_parameters()[0]
             .get_lms_parameter()
             .get_tree_height(),
-        sst_param.get_top_div_height(),
+        sst_param.get_l0_top_div(),
     );
 
     let mut seed_and_lms_tree_ident = rfc_private_key.generate_root_seed_and_lms_tree_identifier();
@@ -71,7 +71,7 @@ pub fn prepare_sst_keygen<H: HashChain>(
 
     let sst_ext = SstExtension {
         signing_entity_idx: rfc_private_key.sst_ext.signing_entity_idx,
-        top_div_height: rfc_private_key.sst_ext.top_div_height,
+        l0_top_div: rfc_private_key.sst_ext.l0_top_div,
     };
 
     let sst_ext_option = Some(sst_ext);
@@ -81,7 +81,7 @@ pub fn prepare_sst_keygen<H: HashChain>(
         sst_param.get_hss_parameters()[0]
             .get_lms_parameter()
             .get_tree_height(),
-        sst_param.get_top_div_height(),
+        sst_param.get_l0_top_div(),
     );
 
     let lms_private_key = LmsPrivateKey::<H>::new(
@@ -109,7 +109,7 @@ pub fn get_num_signing_entities<H: HashChain>(private_key: &[u8]) -> Result<u32,
     let rfc_private_key = ReferenceImplPrivateKey::<H>::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
 
-    let num_signing_entities = 2u32.pow(rfc_private_key.sst_ext.top_div_height as u32);
+    let num_signing_entities = 2u32.pow(rfc_private_key.sst_ext.l0_top_div as u32);
 
     Ok(num_signing_entities)
 }

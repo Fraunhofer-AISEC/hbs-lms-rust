@@ -47,10 +47,10 @@ pub const HSS_COMPRESSED_USED_LEAFS_SIZE: usize = size_of::<u64>();
 pub const REF_IMPL_MAX_ALLOWED_HSS_LEVELS: usize = 8;
 
 pub const REF_IMPL_SSTS_EXT_SIGNING_ENTITY_IDX_SIZE: usize = size_of::<u8>();
-pub const REF_IMPL_SSTS_EXT_TOP_DIV_HEIGHT_SIZE: usize = size_of::<u8>();
+pub const REF_IMPL_SSTS_EXT_L0_TOP_DIV_SIZE: usize = size_of::<u8>();
 
 pub const REF_IMPL_SSTS_EXT_SIZE: usize =
-    REF_IMPL_SSTS_EXT_SIGNING_ENTITY_IDX_SIZE + REF_IMPL_SSTS_EXT_TOP_DIV_HEIGHT_SIZE;
+    REF_IMPL_SSTS_EXT_SIGNING_ENTITY_IDX_SIZE + REF_IMPL_SSTS_EXT_L0_TOP_DIV_SIZE;
 
 pub const REF_IMPL_MAX_PRIVATE_KEY_SIZE: usize = REF_IMPL_SSTS_EXT_SIZE
     + HSS_COMPRESSED_USED_LEAFS_SIZE
@@ -78,8 +78,8 @@ pub const MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH: usize =
     hss_signed_public_key_length(MAX_HASH_SIZE, MAX_NUM_WINTERNITZ_CHAINS, MAX_TREE_HEIGHT);
 pub const MAX_HSS_SIGNATURE_LENGTH: usize = get_hss_signature_length();
 
-pub const MAX_SSTS_TOP_DIV_HEIGHT: u32 = 8; // top division height for Single-Subtree-scheme
-pub const MAX_SSTS_SIGNING_ENTITIES: usize = 2usize.pow(MAX_SSTS_TOP_DIV_HEIGHT);
+pub const MAX_SSTS_L0_TOP_DIV: u32 = 8; // top division height for Single-Subtree-scheme
+pub const MAX_SSTS_SIGNING_ENTITIES: usize = 2usize.pow(MAX_SSTS_L0_TOP_DIV);
 
 /// Calculated using the formula from RFC 8554 Appendix B
 /// https://datatracker.ietf.org/doc/html/rfc8554#appendix-B

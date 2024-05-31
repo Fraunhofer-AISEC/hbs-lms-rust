@@ -6,9 +6,9 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 #[derive(Clone, PartialEq, Eq)]
 pub struct SstsParameter<H: HashChain> {
     hss_parameters: ArrayVec<[HssParameter<H>; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]>,
-    // TODO use SstExtension here?
-    top_div_height: u8,
-    signing_entity_idx: u8, // starting with 1
+    // TODO/Rework: use SstExtension?
+    l0_top_div: u8,
+    signing_entity_idx: u8,
 }
 
 impl<H: HashChain> Copy for SstsParameter<H> {}
@@ -16,12 +16,12 @@ impl<H: HashChain> Copy for SstsParameter<H> {}
 impl<H: HashChain> SstsParameter<H> {
     pub fn new(
         hss_params: ArrayVec<[HssParameter<H>; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]>,
-        top_div_height: u8,
+        l0_top_div: u8,
         signing_entity_idx: u8,
     ) -> Self {
         SstsParameter {
             hss_parameters: hss_params,
-            top_div_height, // e.g. LMS height of 5 and top_div_height 3: division top/bottom is 3/2 which would result in 2^3 = 8 signing entities
+            l0_top_div,
             signing_entity_idx,
         }
     }
@@ -32,8 +32,8 @@ impl<H: HashChain> SstsParameter<H> {
         &self.hss_parameters
     }
 
-    pub fn get_top_div_height(&self) -> u8 {
-        self.top_div_height
+    pub fn get_l0_top_div(&self) -> u8 {
+        self.l0_top_div
     }
 
     pub fn get_signing_entity_idx(&self) -> u8 {
@@ -43,11 +43,14 @@ impl<H: HashChain> SstsParameter<H> {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct SstExtension {
-    pub signing_entity_idx: u8,
-    pub top_div_height: u8,
+    pub signing_entity_idx: u8, // from 1 to (2^l0_top_div)
+    pub l0_top_div: u8, // e.g. L-0 LMS height of 5 and l0_top_div = 3: division top/bottom is 3/2 -> 2^3 = 8 signing entities
 }
 
 impl SstExtension {
+    // TODO/Review: unlike in all other locations, clippy reports
+    //   "this returns a `Result<_, ()>`" and "use a custom `Error` type instead"
+    //   see "Result<Self, ()>" in "hss/reference_impl_private_key.rs" -> CompressedParameterSet
     pub fn from_slice(data: &[u8]) -> Result<Self, ()> {
         if data.len() != constants::REF_IMPL_SSTS_EXT_SIZE {
             return Err(());
@@ -55,7 +58,7 @@ impl SstExtension {
 
         Ok(SstExtension {
             signing_entity_idx: data[0],
-            top_div_height: data[1],
+            l0_top_div: data[1],
         })
     }
 }

@@ -105,18 +105,18 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
     pub fn generate(parameters: &SstsParameter<H>, seed: &Seed<H>) -> Result<Self, ()> {
         let sst_ext = SstExtension {
             signing_entity_idx: parameters.get_signing_entity_idx(),
-            top_div_height: parameters.get_top_div_height(),
+            l0_top_div: parameters.get_l0_top_div(),
         };
 
         let hss_params = parameters.get_hss_parameters();
         let top_lms_parameter = hss_params[0].get_lms_parameter();
 
         let mut used_leafs_index: u32 = 0;
-        if parameters.get_top_div_height() != 0 {
+        if parameters.get_l0_top_div() != 0 {
             used_leafs_index = helper::get_sst_first_leaf_idx(
                 sst_ext.signing_entity_idx,
                 top_lms_parameter.get_tree_height(),
-                sst_ext.top_div_height,
+                sst_ext.l0_top_div,
             );
         }
 
@@ -137,7 +137,7 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         let mut result = ArrayVec::new();
 
         result.extend_from_slice(&self.sst_ext.signing_entity_idx.to_be_bytes());
-        result.extend_from_slice(&self.sst_ext.top_div_height.to_be_bytes());
+        result.extend_from_slice(&self.sst_ext.l0_top_div.to_be_bytes());
         result.extend_from_slice(&self.compressed_used_leafs_indexes.count.to_be_bytes());
         result.extend_from_slice(&self.compressed_parameter.0);
         result.extend_from_slice(self.seed.as_slice());
@@ -147,6 +147,7 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
 
     pub fn from_binary_representation(data: &[u8]) -> Result<Self, ()> {
         if data.len() != REF_IMPL_MAX_PRIVATE_KEY_SIZE - MAX_SEED_LEN + H::OUTPUT_SIZE as usize {
+            // TODO/Review: why don't we just use REF_IMPL_MAX_PRIVATE_KEY_SIZE? (as in "SigningKey")?
             return Err(());
         }
 
@@ -200,8 +201,9 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         hash_preimage[TOPSEED_WHICH] = 0x02;
         hasher.update(&hash_preimage);
 
-        // TODO/Rework: maybe provide the LmsTreeIdentifier as an Option-argument for this function
         // The root LmsTreeIdentifier needs to be the same for all signing entities for signing and verification
+        // TODO/Rework: maybe provide the LmsTreeIdentifier as an Option-argument for this function
+        //   instead of replacing it after calling the function
         let mut lms_tree_identifier = LmsTreeIdentifier::default();
         lms_tree_identifier.copy_from_slice(&hasher.finalize_reset()[..ILEN]);
 

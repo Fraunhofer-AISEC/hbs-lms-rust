@@ -35,7 +35,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
         used_leafs_index: u32,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
-        sst_ext: Option<SstExtension>,
+        sst_ext: Option<SstExtension>, // TODO/Review: probably better as non-option?!
     ) -> Self {
         LmsPrivateKey {
             seed,
@@ -54,7 +54,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
                 1 + get_sst_last_leaf_idx(
                     my_sst_ext.signing_entity_idx,
                     self.lms_parameter.get_tree_height(),
-                    my_sst_ext.top_div_height,
+                    my_sst_ext.l0_top_div,
                 )
             } else {
                 self.lms_parameter.number_of_lm_ots_keys() as u32
@@ -71,6 +71,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
             self.seed.clone(),
             self.lmots_parameter,
         );
+
         self.used_leafs_index += 1;
 
         Ok(key)

@@ -41,7 +41,7 @@ pub fn hss_optimal_aux_level<H: HashChain>(
     mut max_length: usize,
     lms_parameter: LmsParameter<H>,
     actual_len: Option<&mut usize>,
-    top_div_height: Option<u8>,
+    l0_top_div: Option<u8>,
 ) -> AuxLevel {
     let mut aux_level = AuxLevel::default();
 
@@ -53,23 +53,23 @@ pub fn hss_optimal_aux_level<H: HashChain>(
 
     // if SST is used, leave space for signing entity node values depending on their level!
     let mut size_for_signing_entity_nodes: usize = 0;
-    if let Some(top_div_height) = top_div_height {
-        size_for_signing_entity_nodes = 2usize.pow(top_div_height as u32) * size_hash;
+    if let Some(l0_top_div) = l0_top_div {
+        size_for_signing_entity_nodes = 2usize.pow(l0_top_div as u32) * size_hash;
 
         // don't populate levels above the "intermediate node" values in first keygen step (those would be wrong)
         // TODO/Rework: maybe populate the levels above intermed. node values in the second keygen step
         //   -> given the max. of 256 signing entities, that should result in a minor performance improvement
-        min_top_level = top_div_height + 1;
+        min_top_level = l0_top_div + 1;
         // add level to level bit, later abort if max_length too small
-        aux_level |= 0x80000000 | (1 << top_div_height);
+        aux_level |= 0x80000000 | (1 << l0_top_div);
     }
 
     let min_length = AUX_DATA_HASHES + size_hash + size_for_signing_entity_nodes;
 
     if max_length < min_length {
-        if let Some(top_div_height) = top_div_height {
-            panic!("AUX data size = {} too small to store intermediate node values for dist. state mgmt with top_div_height {}.",
-                orig_max_length, top_div_height);
+        if let Some(l0_top_div) = l0_top_div {
+            panic!("AUX data size = {} too small to store intermediate node values for dist. state mgmt with l0_top_div {}.",
+                orig_max_length, l0_top_div);
         } else {
             if let Some(actual_len) = actual_len {
                 *actual_len = 1; // ??
@@ -161,11 +161,11 @@ pub fn hss_expand_aux_data<'a, H: HashChain>(
 pub fn hss_get_aux_data_len<H: HashChain>(
     max_length: usize,
     lms_parameter: LmsParameter<H>,
-    top_div_height: Option<u8>,
+    l0_top_div: Option<u8>,
 ) -> usize {
     let mut len = 0;
 
-    if hss_optimal_aux_level(max_length, lms_parameter, Some(&mut len), top_div_height) == 0 {
+    if hss_optimal_aux_level(max_length, lms_parameter, Some(&mut len), l0_top_div) == 0 {
         return 1;
     }
 

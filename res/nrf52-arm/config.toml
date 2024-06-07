@@ -1,0 +1,24 @@
+[env]
+HBS_LMS_MAX_HASH_OPTIMIZATIONS = "10000"
+HBS_LMS_THREADS = "1"
+HBS_LMS_MAX_ALLOWED_HSS_LEVELS = "8"
+HBS_LMS_TREE_HEIGHTS = "25, 25, 25, 25, 25, 25, 25, 25"
+HBS_LMS_WINTERNITZ_PARAMETERS = "1, 1, 1, 1, 1, 1, 1, 1"
+RUST_MIN_STACK = "8000000"
+
+[profile.release]
+overflow-checks = true
+
+[target.thumbv7em-none-eabihf]
+# set custom cargo runner to flash & run on embedded target when we call `cargo run`
+# for more information, check out https://github.com/probe-rs
+runner = "probe-rs run --chip nRF52840_xxAA"
+rustflags = [
+  "-C", "link-arg=-Tlink.x", # use the cortex-m-rt linker script
+  "-C", "linker=flip-link", # adds stack overflow protection
+  "-C", "link-arg=-Tdefmt.x", # defmt support
+]
+
+[build]
+# cross-compile to this target
+target = "thumbv7em-none-eabihf" # = ARM Cortex-M4 with FPU

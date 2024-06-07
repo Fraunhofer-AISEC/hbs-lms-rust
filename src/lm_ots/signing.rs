@@ -1,5 +1,5 @@
 use crate::{
-    constants::{D_MESG, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE, MAX_LMOTS_SIGNATURE_LENGTH},
+    constants::{D_MESG, MAX_HASH_SIZE, MAX_LMOTS_SIGNATURE_LENGTH, MAX_NUM_WINTERNITZ_CHAINS},
     hasher::HashChain,
     lm_ots::parameters::LmotsAlgorithm,
     util::{coef::coef, helper::read_and_advance},
@@ -24,7 +24,7 @@ use super::parameters::LmotsParameter;
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct LmotsSignature<H: HashChain> {
     pub signature_randomizer: ArrayVec<[u8; MAX_HASH_SIZE]>,
-    pub signature_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]>,
+    pub signature_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_NUM_WINTERNITZ_CHAINS]>,
     pub lmots_parameter: LmotsParameter<H>,
     pub hash_iterations: u16,
 }
@@ -113,15 +113,15 @@ impl<H: HashChain> LmotsSignature<H> {
     fn calculate_signature(
         private_key: &LmotsPrivateKey<H>,
         message_hash_with_checksum: &ArrayVec<[u8; MAX_HASH_SIZE + 2]>,
-    ) -> ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]> {
+    ) -> ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_NUM_WINTERNITZ_CHAINS]> {
         let lmots_parameter = private_key.lmots_parameter;
 
         let mut hasher = lmots_parameter.get_hasher();
 
         let mut signature_data = ArrayVec::new();
 
-        for i in 0..lmots_parameter.get_hash_chain_count() {
-            let a = coef(
+        for i in 0..lmots_parameter.get_num_winternitz_chains() {
+            let num_hash_chain_iterations = coef(
                 message_hash_with_checksum.as_slice(),
                 i,
                 lmots_parameter.get_winternitz(),
@@ -131,7 +131,13 @@ impl<H: HashChain> LmotsSignature<H> {
                 &private_key.lms_tree_identifier,
                 &private_key.lms_leaf_identifier,
             );
-            let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial.as_slice(), 0, a);
+            let result = hasher.do_hash_chain(
+                &mut hash_chain_data,
+                i,
+                initial.as_slice(),
+                0,
+                num_hash_chain_iterations,
+            );
 
             signature_data.push(result);
         }
@@ -179,7 +185,7 @@ impl<H: HashChain> LmotsSignature<H> {
         let signature_data =
             LmotsSignature::<H>::calculate_signature(private_key, &message_hash_with_checksum);
 
-        let hash_iterations = (0..lmots_parameter.get_hash_chain_count()).fold(0, |sum, i| {
+        let hash_iterations = (0..lmots_parameter.get_num_winternitz_chains()).fold(0, |sum, i| {
             sum + coef(
                 message_hash_with_checksum.as_slice(),
                 i,
@@ -228,7 +234,7 @@ impl<'a, H: HashChain> InMemoryLmotsSignature<'a, H> {
 
         let signature_data = read_and_advance(
             data,
-            (H::OUTPUT_SIZE * lmots_parameter.get_hash_chain_count()) as usize,
+            (H::OUTPUT_SIZE * lmots_parameter.get_num_winternitz_chains()) as usize,
             &mut index,
         );
 
@@ -338,7 +344,7 @@ mod tests {
     use tinyvec::ArrayVec;
 
     use crate::{
-        constants::{MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
+        constants::{MAX_HASH_SIZE, MAX_NUM_WINTERNITZ_CHAINS},
         hasher::{
             sha256::{Sha256_128, Sha256_192, Sha256_256},
             shake256::{Shake256_128, Shake256_192, Shake256_256},
@@ -356,14 +362,14 @@ mod tests {
 
                 let mut signature_randomizer = ArrayVec::new();
                 let mut signature_data: ArrayVec<
-                    [ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT],
+                    [ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_NUM_WINTERNITZ_CHAINS],
                 > = ArrayVec::new();
 
                 for i in 0..lmots_parameter.get_hash_function_output_size() as usize {
                     signature_randomizer.push(i as u8);
                 }
 
-                for i in 0..lmots_parameter.get_hash_chain_count() as usize {
+                for i in 0..lmots_parameter.get_num_winternitz_chains() as usize {
                     signature_data.push(ArrayVec::new());
                     for j in 0..lmots_parameter.get_hash_function_output_size() as usize {
                         signature_data[i].push(j as u8);
@@ -381,8 +387,11 @@ mod tests {
 
                 // check signature len
                 let output_size = lmots_parameter.get_hash_function_output_size() as usize;
-                let hash_chain_count = lmots_parameter.get_hash_chain_count() as usize;
-                assert_eq!(binary_rep.len(), 4 + output_size * (hash_chain_count + 1));
+                let num_winternitz_chains = lmots_parameter.get_num_winternitz_chains() as usize;
+                assert_eq!(
+                    binary_rep.len(),
+                    4 + output_size * (num_winternitz_chains + 1)
+                );
 
                 let deserialized_signature = InMemoryLmotsSignature::new(binary_rep.as_slice())
                     .expect("Deserialization must succeed.");

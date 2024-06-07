@@ -7,6 +7,7 @@ use std::{
     io::{Read, Write},
     process::exit,
 };
+use tinyvec::ArrayVec;
 
 const GENKEY_COMMAND: &str = "genkey";
 const VERIFY_COMMAND: &str = "verify";
@@ -42,15 +43,15 @@ impl DemoError {
 type Hasher = Sha256_256;
 
 struct GenKeyParameter {
-    parameter: Vec<HssParameter<Hasher>>,
+    ssts_param: SstsParameter<Hasher>,
     aux_data: usize,
 }
 
 impl GenKeyParameter {
-    pub fn new(parameter: Vec<HssParameter<Hasher>>, aux_data: Option<usize>) -> Self {
+    pub fn new(ssts_param: SstsParameter<Hasher>, aux_data: Option<usize>) -> Self {
         let aux_data = aux_data.unwrap_or(AUX_DATA_DEFAULT_SIZE);
         Self {
-            parameter,
+            ssts_param,
             aux_data,
         }
     }
@@ -95,7 +96,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(args) = matches.subcommand_matches(VERIFY_COMMAND) {
         let result = verify(args);
         if result {
-            println!("Successful!");
+            println!("Verification successful!");
             exit(0);
         } else {
             println!("Wrong signature");
@@ -146,12 +147,14 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
             &private_key_data,
             &mut private_key_update_function,
             Some(aux_slice),
+            None,
         )
     } else {
         hbs_lms::sign::<Hasher>(
             &message_data,
             &private_key_data,
             &mut private_key_update_function,
+            None,
             None,
         )
     };
@@ -287,7 +290,7 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let keyname: String = get_parameter(KEYNAME_PARAMETER, args);
 
     let genkey_parameter = parse_genkey_parameter(&get_parameter(PARAMETER_PARAMETER, args));
-    let parameter = genkey_parameter.parameter;
+    let parameter = genkey_parameter.ssts_param;
 
     let seed: Seed<Hasher> = if let Some(seed) = args.value_of(SEED_PARAMETER) {
         let decoded = hex::decode(seed)?;
@@ -325,7 +328,7 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
-    let mut result = Vec::new();
+    let mut result: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
 
     let mut aux_data_size: Option<usize> = None;
 
@@ -384,7 +387,8 @@ fn parse_genkey_parameter(parameter: &str) -> GenKeyParameter {
         result.push(parameter);
     }
 
-    GenKeyParameter::new(result, aux_data_size)
+    let ssts_param = SstsParameter::new(result, 0, 0);
+    GenKeyParameter::new(ssts_param, aux_data_size)
 }
 
 fn write(filename: &str, content: &[u8]) -> Result<(), std::io::Error> {

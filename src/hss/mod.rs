@@ -10,15 +10,15 @@ use core::{convert::TryFrom, marker::PhantomData};
 use tinyvec::ArrayVec;
 
 use crate::{
-    constants::{MAX_HSS_PUBLIC_KEY_LENGTH, REF_IMPL_MAX_PRIVATE_KEY_SIZE},
+    constants::{ILEN, MAX_HSS_PUBLIC_KEY_LENGTH, REF_IMPL_MAX_PRIVATE_KEY_SIZE},
     hss::{aux::hss_is_aux_data_used, reference_impl_private_key::Seed},
     signature::{Error, SignerMut, Verifier},
+    sst::parameters::SstsParameter,
     HashChain, Signature, VerifierSignature,
 };
 
 use self::{
     definitions::{HssPrivateKey, HssPublicKey, InMemoryHssPublicKey},
-    parameter::HssParameter,
     reference_impl_private_key::ReferenceImplPrivateKey,
     signing::{HssSignature, InMemoryHssSignature},
 };
@@ -54,7 +54,8 @@ impl<H: HashChain> SigningKey<H> {
         let rfc_sk = ReferenceImplPrivateKey::from_binary_representation(self.bytes.as_slice())
             .map_err(|_| Error::new())?;
 
-        let parsed_sk = HssPrivateKey::<H>::from(&rfc_sk, &mut None).map_err(|_| Error::new())?;
+        let parsed_sk =
+            HssPrivateKey::<H>::from(&rfc_sk, &mut None, None).map_err(|_| Error::new())?;
 
         Ok(parsed_sk.get_lifetime())
     }
@@ -63,6 +64,7 @@ impl<H: HashChain> SigningKey<H> {
         &mut self,
         msg: &[u8],
         aux_data: Option<&mut &mut [u8]>,
+        tree_ident: Option<&[u8; ILEN]>,
     ) -> Result<Signature, Error> {
         let private_key = self.bytes;
         let mut private_key_update_function = |new_key: &[u8]| {
@@ -75,13 +77,14 @@ impl<H: HashChain> SigningKey<H> {
             private_key.as_slice(),
             &mut private_key_update_function,
             aux_data,
+            tree_ident,
         )
     }
 }
 
 impl<H: HashChain> SignerMut<Signature> for SigningKey<H> {
     fn try_sign(&mut self, msg: &[u8]) -> Result<Signature, Error> {
-        self.try_sign_with_aux(msg, None)
+        self.try_sign_with_aux(msg, None, None)
     }
 }
 
@@ -157,6 +160,7 @@ pub fn hss_sign<H: HashChain>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
+    tree_identifier: Option<&[u8; ILEN]>,
 ) -> Result<Signature, Error> {
     hss_sign_core::<H>(
         Some(message),
@@ -164,6 +168,7 @@ pub fn hss_sign<H: HashChain>(
         private_key,
         private_key_update_function,
         aux_data,
+        tree_identifier,
     )
 }
 
@@ -189,6 +194,7 @@ pub fn hss_sign_mut<H: HashChain>(
         private_key,
         private_key_update_function,
         aux_data,
+        None,
     )
 }
 
@@ -198,6 +204,7 @@ fn hss_sign_core<H: HashChain>(
     private_key: &[u8],
     private_key_update_function: &mut dyn FnMut(&[u8]) -> Result<(), ()>,
     aux_data: Option<&mut &mut [u8]>,
+    tree_identifier: Option<&[u8; ILEN]>,
 ) -> Result<Signature, Error> {
     let mut rfc_private_key = ReferenceImplPrivateKey::from_binary_representation(private_key)
         .map_err(|_| Error::new())?;
@@ -219,8 +226,9 @@ fn hss_sign_core<H: HashChain>(
         is_aux_data_used,
     );
 
-    let mut private_key = HssPrivateKey::<H>::from(&rfc_private_key, &mut expanded_aux_data)
-        .map_err(|_| Error::new())?;
+    let mut private_key =
+        HssPrivateKey::<H>::from(&rfc_private_key, &mut expanded_aux_data, tree_identifier)
+            .map_err(|_| Error::new())?;
 
     let hss_signature = HssSignature::sign(
         &mut private_key,
@@ -259,23 +267,22 @@ fn hss_sign_core<H: HashChain>(
  * ```
  * use rand::{rngs::OsRng, RngCore};
  * use tinyvec::ArrayVec;
- * use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256_256, HashChain, Seed};
- *
- * let parameters = [
- *      HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5),
- *      HssParameter::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5),
- * ];
+ * use hbs_lms::{keygen, HssParameter, SstsParameter, LmotsAlgorithm, LmsAlgorithm, Sha256_256, HashChain, Seed};
+ * let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+ * vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW4, LmsAlgorithm::LmsH5));
+ * vec_hss_params.push(HssParameter::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5));
+ * let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
  * let mut aux_data = vec![0u8; 10_000];
  * let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
  * let mut seed = Seed::default();
  * OsRng.fill_bytes(seed.as_mut_slice());
  *
  * let (signing_key, verifying_key) =
- *      keygen::<Sha256_256>(&parameters, &seed, Some(aux_slice)).unwrap();
+ *      keygen::<Sha256_256>(&sst_param, &seed, Some(aux_slice)).unwrap();
  * ```
  */
 pub fn hss_keygen<H: HashChain>(
-    parameters: &[HssParameter<H>],
+    parameters: &SstsParameter<H>,
     seed: &Seed<H>,
     aux_data: Option<&mut &mut [u8]>,
 ) -> Result<(SigningKey<H>, VerifyingKey<H>), Error> {
@@ -291,9 +298,13 @@ pub fn hss_keygen<H: HashChain>(
 
 #[cfg(test)]
 mod tests {
+    use super::parameter::HssParameter;
     use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
-        constants::{LMS_LEAF_IDENTIFIERS_SIZE, MAX_HASH_SIZE},
+        constants::{
+            HSS_COMPRESSED_USED_LEAFS_SIZE, MAX_HASH_SIZE, REF_IMPL_MAX_ALLOWED_HSS_LEVELS,
+            REF_IMPL_SSTS_EXT_SIZE,
+        },
         hasher::{
             sha256::{Sha256_128, Sha256_192, Sha256_256},
             shake256::{Shake256_128, Shake256_192, Shake256_256},
@@ -314,10 +325,12 @@ mod tests {
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH5;
-        let parameters = [HssParameter::new(lmots, lms)];
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::new(lmots, lms));
+        let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
 
         let (mut signing_key, verifying_key) =
-            hss_keygen::<H>(&parameters, &seed, None).expect("Should generate HSS keys");
+            hss_keygen::<H>(&sst_param, &seed, None).expect("Should generate HSS keys");
 
         let signing_key_const = signing_key.clone();
 
@@ -331,15 +344,21 @@ mod tests {
             signing_key_const.as_slice(),
             &mut update_private_key,
             None,
+            None,
         )
         .expect("Signing should complete without error.");
 
         assert!(hss_verify::<H>(&message, signature.as_ref(), verifying_key.as_slice()).is_ok());
 
         assert_ne!(signing_key.as_slice(), signing_key_const.as_slice());
+
         assert_eq!(
-            signing_key.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..],
-            signing_key_const.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..]
+            signing_key.as_slice()[..REF_IMPL_SSTS_EXT_SIZE],
+            signing_key_const.as_slice()[..REF_IMPL_SSTS_EXT_SIZE]
+        );
+        assert_eq!(
+            signing_key.as_slice()[REF_IMPL_SSTS_EXT_SIZE + HSS_COMPRESSED_USED_LEAFS_SIZE..],
+            signing_key_const.as_slice()[REF_IMPL_SSTS_EXT_SIZE + HSS_COMPRESSED_USED_LEAFS_SIZE..]
         );
     }
 
@@ -353,10 +372,14 @@ mod tests {
 
         let lmots = LmotsAlgorithm::LmotsW2;
         let lms = LmsAlgorithm::LmsH2;
-        let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
+
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::new(lmots, lms));
+        vec_hss_params.push(HssParameter::new(lmots, lms));
+        let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
 
         let (mut signing_key, verifying_key) =
-            hss_keygen::<H>(&parameters, &seed, None).expect("Should generate HSS keys");
+            hss_keygen::<H>(&sst_param, &seed, None).expect("Should generate HSS keys");
         let keypair_lifetime = signing_key.get_lifetime().unwrap();
 
         assert_ne!(
@@ -366,7 +389,8 @@ mod tests {
 
         for index in 0..keypair_lifetime {
             assert_eq!(
-                signing_key.as_slice()[..LMS_LEAF_IDENTIFIERS_SIZE],
+                signing_key.as_slice()[REF_IMPL_SSTS_EXT_SIZE
+                    ..HSS_COMPRESSED_USED_LEAFS_SIZE + REF_IMPL_SSTS_EXT_SIZE],
                 index.to_be_bytes(),
             );
             assert_eq!(
@@ -385,6 +409,7 @@ mod tests {
                 &message,
                 signing_key_const.as_slice(),
                 &mut update_private_key,
+                None,
                 None,
             )
             .expect("Signing should complete without error.");
@@ -410,10 +435,14 @@ mod tests {
 
         let lmots = LmotsAlgorithm::LmotsW2;
         let lms = LmsAlgorithm::LmsH2;
-        let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
+
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::new(lmots, lms));
+        vec_hss_params.push(HssParameter::new(lmots, lms));
+        let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
 
         let (mut signing_key, verifying_key) =
-            hss_keygen::<H>(&parameters, &seed, None).expect("Should generate HSS keys");
+            hss_keygen::<H>(&sst_param, &seed, None).expect("Should generate HSS keys");
         let keypair_lifetime = signing_key.get_lifetime().unwrap();
 
         for index in 0..(1u64 + keypair_lifetime) {
@@ -428,6 +457,7 @@ mod tests {
                 &message,
                 signing_key_const.as_slice(),
                 &mut update_private_key,
+                None,
                 None,
             )
             .unwrap_or_else(|_| {
@@ -452,18 +482,22 @@ mod tests {
 
         let lmots = LmotsAlgorithm::LmotsW2;
         let lms = LmsAlgorithm::LmsH5;
-        let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
+
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::new(lmots, lms));
+        vec_hss_params.push(HssParameter::new(lmots, lms));
+        let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
 
         let mut aux_data = [0u8; 1_000];
         let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
         let (sk1, vk1) =
-            hss_keygen::<H>(&parameters, &seed, Some(aux_slice)).expect("Should generate HSS keys");
+            hss_keygen::<H>(&sst_param, &seed, Some(aux_slice)).expect("Should generate HSS keys");
 
         aux_slice[2 * MAX_HASH_SIZE - 1] ^= 0x1;
 
         let (sk2, vk2) =
-            hss_keygen::<H>(&parameters, &seed, Some(aux_slice)).expect("Should generate HSS keys");
+            hss_keygen::<H>(&sst_param, &seed, Some(aux_slice)).expect("Should generate HSS keys");
 
         assert_eq!(sk1, sk2);
         assert_eq!(vk1, vk2);
@@ -501,16 +535,15 @@ mod tests {
 
     fn test_signing_core<H: HashChain>() {
         let seed = gen_random_seed::<H>();
-        let (mut signing_key, verifying_key) = hss_keygen::<H>(
-            &[
-                HssParameter::construct_default_parameters(),
-                HssParameter::construct_default_parameters(),
-                HssParameter::construct_default_parameters(),
-            ],
-            &seed,
-            None,
-        )
-        .expect("Should generate HSS keys");
+
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
+
+        let (mut signing_key, verifying_key) =
+            hss_keygen::<H>(&sst_param, &seed, None).expect("Should generate HSS keys");
 
         let message_values = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
@@ -530,6 +563,7 @@ mod tests {
             signing_key_const.as_slice(),
             &mut update_private_key,
             None,
+            None,
         )
         .expect("Signing should complete without error.");
 
@@ -546,16 +580,14 @@ mod tests {
         type H = Sha256_256;
         let seed = gen_random_seed::<H>();
 
-        let (mut signing_key, verifying_key) = hss_keygen::<H>(
-            &[
-                HssParameter::construct_default_parameters(),
-                HssParameter::construct_default_parameters(),
-                HssParameter::construct_default_parameters(),
-            ],
-            &seed,
-            None,
-        )
-        .expect("Should generate HSS keys");
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        let sst_param = SstsParameter::<H>::new(vec_hss_params, 0, 0);
+
+        let (mut signing_key, verifying_key) =
+            hss_keygen::<H>(&sst_param, &seed, None).expect("Should generate HSS keys");
 
         let message_values = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,

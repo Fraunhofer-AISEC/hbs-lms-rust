@@ -1,11 +1,16 @@
 use crate::{
     constants::{
-        LmsTreeIdentifier, D_TOPSEED, ILEN, LMS_LEAF_IDENTIFIERS_SIZE, MAX_ALLOWED_HSS_LEVELS,
-        MAX_HASH_SIZE, MAX_SEED_LEN, REF_IMPL_MAX_PRIVATE_KEY_SIZE, SEED_CHILD_SEED,
-        SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
+        LmsTreeIdentifier, D_TOPSEED, HSS_COMPRESSED_USED_LEAFS_SIZE, ILEN, MAX_ALLOWED_HSS_LEVELS,
+        MAX_HASH_SIZE, MAX_SEED_LEN, REF_IMPL_MAX_PRIVATE_KEY_SIZE, REF_IMPL_SSTS_EXT_SIZE,
+        SEED_CHILD_SEED, SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED,
+        TOPSEED_WHICH,
     },
     hasher::HashChain,
     hss::{definitions::HssPrivateKey, seed_derive::SeedDerive},
+    sst::{
+        helper,
+        parameters::{SstExtension, SstsParameter},
+    },
     util::{helper::read_and_advance, ArrayVecZeroize},
     HssParameter, LmotsAlgorithm, LmsAlgorithm,
 };
@@ -39,7 +44,7 @@ impl<H: HashChain> From<[u8; MAX_SEED_LEN]> for Seed<H> {
     fn from(data: [u8; MAX_SEED_LEN]) -> Self {
         Seed {
             data: ArrayVecZeroize(ArrayVec::from_array_len(data, MAX_SEED_LEN)),
-            phantom: PhantomData::default(),
+            phantom: PhantomData,
         }
     }
 }
@@ -51,7 +56,7 @@ impl<H: HashChain> TryFrom<ArrayVec<[u8; MAX_SEED_LEN]>> for Seed<H> {
         if value.len() == H::OUTPUT_SIZE as usize {
             Ok(Seed {
                 data: ArrayVecZeroize(value),
-                phantom: PhantomData::default(),
+                phantom: PhantomData,
             })
         } else {
             Err("Can only construct seed from data of the HashChain output length")
@@ -86,6 +91,7 @@ impl<H: HashChain> SeedAndLmsTreeIdentifier<H> {
 pub struct ReferenceImplPrivateKey<H: HashChain> {
     pub compressed_used_leafs_indexes: CompressedUsedLeafsIndexes,
     pub compressed_parameter: CompressedParameterSet,
+    pub sst_ext: SstExtension,
     pub seed: Seed<H>,
 }
 
@@ -96,10 +102,31 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         self.compressed_used_leafs_indexes = CompressedUsedLeafsIndexes::new(0);
     }
 
-    pub fn generate(parameters: &[HssParameter<H>], seed: &Seed<H>) -> Result<Self, ()> {
+    pub fn generate(parameters: &SstsParameter<H>, seed: &Seed<H>) -> Result<Self, ()> {
+        let sst_ext = SstExtension {
+            signing_entity_idx: parameters.get_signing_entity_idx(),
+            l0_top_div: parameters.get_l0_top_div(),
+        };
+
+        let hss_params = parameters.get_hss_parameters();
+        let top_lms_parameter = hss_params[0].get_lms_parameter();
+
+        let mut used_leafs_index: u32 = 0;
+        if parameters.get_l0_top_div() != 0 {
+            used_leafs_index = helper::get_sst_first_leaf_idx(
+                sst_ext.signing_entity_idx,
+                top_lms_parameter.get_tree_height(),
+                sst_ext.l0_top_div,
+            );
+        }
+
+        let mut arr: [u32; MAX_ALLOWED_HSS_LEVELS] = [0; MAX_ALLOWED_HSS_LEVELS];
+        arr[0] = used_leafs_index;
+
         let private_key: ReferenceImplPrivateKey<H> = ReferenceImplPrivateKey {
-            compressed_used_leafs_indexes: CompressedUsedLeafsIndexes::new(0),
-            compressed_parameter: CompressedParameterSet::from(parameters)?,
+            compressed_used_leafs_indexes: CompressedUsedLeafsIndexes::from(&arr, hss_params),
+            compressed_parameter: CompressedParameterSet::from(parameters.get_hss_parameters())?,
+            sst_ext,
             seed: seed.clone(),
         };
 
@@ -109,6 +136,8 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; REF_IMPL_MAX_PRIVATE_KEY_SIZE]> {
         let mut result = ArrayVec::new();
 
+        result.extend_from_slice(&self.sst_ext.signing_entity_idx.to_be_bytes());
+        result.extend_from_slice(&self.sst_ext.l0_top_div.to_be_bytes());
         result.extend_from_slice(&self.compressed_used_leafs_indexes.count.to_be_bytes());
         result.extend_from_slice(&self.compressed_parameter.0);
         result.extend_from_slice(self.seed.as_slice());
@@ -118,14 +147,18 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
 
     pub fn from_binary_representation(data: &[u8]) -> Result<Self, ()> {
         if data.len() != REF_IMPL_MAX_PRIVATE_KEY_SIZE - MAX_SEED_LEN + H::OUTPUT_SIZE as usize {
+            // TODO/Review: why don't we just use REF_IMPL_MAX_PRIVATE_KEY_SIZE? (as in "SigningKey")?
             return Err(());
         }
 
         let mut result = Self::default();
         let mut index = 0;
 
+        let ssts_ext = read_and_advance(data, REF_IMPL_SSTS_EXT_SIZE, &mut index);
+        result.sst_ext = SstExtension::from_slice(ssts_ext)?;
+
         let compressed_used_leafs_indexes =
-            read_and_advance(data, LMS_LEAF_IDENTIFIERS_SIZE, &mut index);
+            read_and_advance(data, HSS_COMPRESSED_USED_LEAFS_SIZE, &mut index);
         result.compressed_used_leafs_indexes =
             CompressedUsedLeafsIndexes::from_slice(compressed_used_leafs_indexes);
 
@@ -168,6 +201,9 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         hash_preimage[TOPSEED_WHICH] = 0x02;
         hasher.update(&hash_preimage);
 
+        // The root LmsTreeIdentifier needs to be the same for all signing entities for signing and verification
+        // TODO/Rework: maybe provide the LmsTreeIdentifier as an Option-argument for this function
+        //   instead of replacing it after calling the function
         let mut lms_tree_identifier = LmsTreeIdentifier::default();
         lms_tree_identifier.copy_from_slice(&hasher.finalize_reset()[..ILEN]);
 
@@ -298,6 +334,24 @@ impl CompressedUsedLeafsIndexes {
         }
     }
 
+    pub fn from<H: HashChain>(
+        used_leafs_array: &[u32; MAX_ALLOWED_HSS_LEVELS],
+        hss_params: &ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>,
+    ) -> Self {
+        let mut compressed_used_leafs_indexes: u64 = 0;
+
+        for (i, parameter) in hss_params.iter().enumerate() {
+            let shift: u32 = parameter.get_lms_parameter().get_tree_height().into();
+            compressed_used_leafs_indexes <<= shift;
+            compressed_used_leafs_indexes |= used_leafs_array[i] as u64;
+        }
+
+        CompressedUsedLeafsIndexes {
+            count: compressed_used_leafs_indexes,
+        }
+    }
+
+    // this works because we limit the total num of signatures / leafs to 2^64 (see RFC)
     pub fn to<H: HashChain>(
         &self,
         parameters: &ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>,
@@ -311,6 +365,7 @@ impl CompressedUsedLeafsIndexes {
                 (compressed_used_leafs_indexes & (2u32.pow(tree_height) - 1) as u64) as u32;
             compressed_used_leafs_indexes >>= tree_height;
         }
+
         lms_leaf_identifier_set
     }
 
@@ -332,12 +387,12 @@ impl CompressedUsedLeafsIndexes {
 #[cfg(test)]
 mod tests {
     use super::{CompressedParameterSet, ReferenceImplPrivateKey};
-    use crate::{
-        constants::MAX_ALLOWED_HSS_LEVELS, hss::definitions::HssPrivateKey, HssParameter,
-        LmotsAlgorithm, LmsAlgorithm, Sha256_256,
-    };
-
     use crate::util::helper::test_helper::gen_random_seed;
+    use crate::SstsParameter;
+    use crate::{
+        constants::MAX_ALLOWED_HSS_LEVELS, constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS,
+        hss::definitions::HssPrivateKey, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256_256,
+    };
     use tinyvec::ArrayVec;
 
     type Hasher = Sha256_256;
@@ -346,16 +401,20 @@ mod tests {
     fn exhaust_state() {
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH5;
-        let parameters = [HssParameter::<Hasher>::new(lmots, lms)];
+
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::new(lmots, lms));
+        let sst_param = SstsParameter::<Hasher>::new(vec_hss_params, 0, 0);
 
         let seed = gen_random_seed::<Hasher>();
-        let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
+        let mut rfc_private_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
 
-        let hss_private_key = HssPrivateKey::from(&rfc_private_key, &mut None).unwrap();
+        let hss_private_key = HssPrivateKey::from(&rfc_private_key, &mut None, None).unwrap();
 
         let seed = rfc_private_key.seed.clone();
 
-        let tree_heights = parameters
+        let hss_params = sst_param.get_hss_parameters();
+        let tree_heights = hss_params
             .iter()
             .map(|parameter| parameter.get_lms_parameter().get_tree_height())
             .collect::<ArrayVec<[u8; MAX_ALLOWED_HSS_LEVELS]>>();
@@ -373,12 +432,14 @@ mod tests {
     fn parse_exhausted_state() {
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH5;
-        let parameters = [HssParameter::<Hasher>::new(lmots, lms)];
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::new(lmots, lms));
+        let sst_param = SstsParameter::<Hasher>::new(vec_hss_params, 0, 0);
 
         let seed = gen_random_seed::<Hasher>();
-        let mut rfc_private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
+        let mut rfc_private_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
 
-        let hss_private_key = HssPrivateKey::from(&rfc_private_key, &mut None).unwrap();
+        let hss_private_key = HssPrivateKey::from(&rfc_private_key, &mut None, None).unwrap();
         let keypair_lifetime = hss_private_key.get_lifetime();
 
         for _ in 0..keypair_lifetime {
@@ -419,13 +480,13 @@ mod tests {
 
     #[test]
     fn test_binary_representation_rfc_private_key() {
-        let parameters = [
-            HssParameter::construct_default_parameters(),
-            HssParameter::construct_default_parameters(),
-        ];
+        let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        vec_hss_params.push(HssParameter::construct_default_parameters());
+        let sst_param = SstsParameter::<Hasher>::new(vec_hss_params, 0, 0);
 
         let seed = gen_random_seed::<Hasher>();
-        let key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
+        let key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
 
         let binary_representation = key.to_binary_representation();
         let deserialized = ReferenceImplPrivateKey::<Hasher>::from_binary_representation(

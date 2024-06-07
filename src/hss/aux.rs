@@ -33,26 +33,56 @@ pub struct MutableExpandedAuxData<'a> {
     pub hmac: &'a mut [u8],
 }
 
+// TODO/Rework:
+//   Improve: for SST with e.g. 8 signing entities, each level below intermediate nodes
+//   would need only ~1/8 of space that's needed w/o SST
+//   (obviously it doesn't make sense to save lower-level nodes of other signing entities)
 pub fn hss_optimal_aux_level<H: HashChain>(
     mut max_length: usize,
     lms_parameter: LmsParameter<H>,
     actual_len: Option<&mut usize>,
+    l0_top_div: Option<u8>,
 ) -> AuxLevel {
     let mut aux_level = AuxLevel::default();
 
+    // HMAC has size of hash
     let size_hash = lms_parameter.get_hash_function_output_size();
     let orig_max_length = max_length;
 
-    if max_length < AUX_DATA_HASHES + size_hash {
-        if let Some(actual_len) = actual_len {
-            *actual_len = 1;
-        }
-        return 0;
-    }
-    max_length -= AUX_DATA_HASHES + size_hash;
+    let mut min_top_level = 1;
 
-    let h0 = lms_parameter.get_tree_height().into();
-    for level in (1..=h0).rev().step_by(MIN_SUBTREE) {
+    // if SST is used, leave space for signing entity node values depending on their level!
+    let mut size_for_signing_entity_nodes: usize = 0;
+    if let Some(l0_top_div) = l0_top_div {
+        size_for_signing_entity_nodes = 2usize.pow(l0_top_div as u32) * size_hash;
+
+        // don't populate levels above the "intermediate node" values in first keygen step (those would be wrong)
+        // TODO/Rework: maybe populate the levels above intermed. node values in the second keygen step
+        //   -> given the max. of 256 signing entities, that should result in a minor performance improvement
+        min_top_level = l0_top_div + 1;
+        // add level to level bit, later abort if max_length too small
+        aux_level |= 0x80000000 | (1 << l0_top_div);
+    }
+
+    let min_length = AUX_DATA_HASHES + size_hash + size_for_signing_entity_nodes;
+
+    if max_length < min_length {
+        if let Some(l0_top_div) = l0_top_div {
+            panic!("AUX data size = {} too small to store intermediate node values for dist. state mgmt with l0_top_div {}.",
+                orig_max_length, l0_top_div);
+        } else {
+            if let Some(actual_len) = actual_len {
+                *actual_len = 1; // ??
+            }
+            return 0; // no AUX data used, but w/o SST we can live with that
+        }
+    }
+
+    max_length -= min_length;
+
+    let h0 = lms_parameter.get_tree_height();
+
+    for level in (min_top_level..=h0).rev().step_by(MIN_SUBTREE) {
         let len_this_level = size_hash << level;
 
         if max_length >= len_this_level {
@@ -131,10 +161,11 @@ pub fn hss_expand_aux_data<'a, H: HashChain>(
 pub fn hss_get_aux_data_len<H: HashChain>(
     max_length: usize,
     lms_parameter: LmsParameter<H>,
+    l0_top_div: Option<u8>,
 ) -> usize {
     let mut len = 0;
 
-    if hss_optimal_aux_level(max_length, lms_parameter, Some(&mut len)) == 0 {
+    if hss_optimal_aux_level(max_length, lms_parameter, Some(&mut len), l0_top_div) == 0 {
         return 1;
     }
 
@@ -154,6 +185,7 @@ pub fn hss_is_aux_data_used(aux_data: &[u8]) -> bool {
     aux_data[AUX_DATA_MARKER] != NO_AUX_DATA
 }
 
+// saves a single node value to AUX data
 pub fn hss_save_aux_data<H: HashChain>(
     data: &mut MutableExpandedAuxData,
     index: usize,
@@ -165,6 +197,9 @@ pub fn hss_save_aux_data<H: HashChain>(
         return;
     }
 
+    // For SSTS keygen preparation, that's the nodes of the signing entity's sub-tree within the L0-tree.
+    // Omit saving values that will be replaced anyway by intermed. values of the other signing entities
+    // during keygen finalization
     let lms_leaf_identifier: usize = index - 2u32.pow(level as u32) as usize;
     let start_index = lms_leaf_identifier * H::OUTPUT_SIZE as usize;
     let end_index = start_index + H::OUTPUT_SIZE as usize;
@@ -262,13 +297,16 @@ fn compute_hmac<H: HashChain>(key: &[u8], data: &[u8]) -> ArrayVec<[u8; MAX_HASH
 
 #[cfg(test)]
 mod tests {
+    use crate::constants;
     use crate::hasher::sha256::Sha256_256;
     use crate::util::helper::test_helper::gen_random_seed;
+    use crate::SstsParameter;
     use crate::{
         constants::MAX_HASH_SIZE,
         hss::{aux::hss_expand_aux_data, hss_keygen},
         HssParameter, LmotsAlgorithm, LmsAlgorithm,
     };
+    use tinyvec::ArrayVec;
 
     #[test]
     #[should_panic(expected = "expand_aux_data should return None!")]
@@ -278,13 +316,18 @@ mod tests {
 
         let lmots = LmotsAlgorithm::LmotsW2;
         let lms = LmsAlgorithm::LmsH5;
-        let parameters = [HssParameter::new(lmots, lms), HssParameter::new(lmots, lms)];
+
+        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
 
         let mut aux_data = [0u8; 1_000];
         let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
         let _ =
-            hss_keygen::<H>(&parameters, &seed, Some(aux_slice)).expect("Should generate HSS keys");
+            hss_keygen::<H>(&sst_param, &seed, Some(aux_slice)).expect("Should generate HSS keys");
 
         aux_slice[2 * MAX_HASH_SIZE - 1] ^= 1;
 

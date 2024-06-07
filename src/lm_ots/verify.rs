@@ -9,14 +9,18 @@ use super::{definitions::LmotsPublicKey, signing::InMemoryLmotsSignature};
 
 #[derive(Default)]
 struct HashChainArray<H: HashChain> {
-    pub array_w1:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(1, MAX_HASH_SIZE)]>>,
-    pub array_w2:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(2, MAX_HASH_SIZE)]>>,
-    pub array_w4:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(4, MAX_HASH_SIZE)]>>,
-    pub array_w8:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(8, MAX_HASH_SIZE)]>>,
+    pub array_w1: Option<
+        ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(1, MAX_HASH_SIZE)]>,
+    >,
+    pub array_w2: Option<
+        ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(2, MAX_HASH_SIZE)]>,
+    >,
+    pub array_w4: Option<
+        ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(4, MAX_HASH_SIZE)]>,
+    >,
+    pub array_w8: Option<
+        ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(8, MAX_HASH_SIZE)]>,
+    >,
     phantom_data: PhantomData<H>,
 }
 
@@ -25,19 +29,19 @@ impl<H: HashChain> HashChainArray<H> {
         let mut hash_chain_array = HashChainArray::<H>::default();
         if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW8 {
             hash_chain_array.array_w8 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(8, MAX_HASH_SIZE)],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(8, MAX_HASH_SIZE)],
             >::default());
         } else if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW4 {
             hash_chain_array.array_w4 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(4, MAX_HASH_SIZE)],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(4, MAX_HASH_SIZE)],
             >::default());
         } else if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW2 {
             hash_chain_array.array_w2 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(2, MAX_HASH_SIZE)],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(2, MAX_HASH_SIZE)],
             >::default());
         } else {
             hash_chain_array.array_w1 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(1, MAX_HASH_SIZE)],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(1, MAX_HASH_SIZE)],
             >::default());
         }
         hash_chain_array
@@ -78,7 +82,7 @@ pub fn verify_signature_inmemory<H: HashChain>(
         return false;
     }
 
-    let public_key_candidate = generate_public_key_candiate(
+    let public_key_candidate = generate_public_key_candidate(
         signature,
         &public_key.lms_tree_identifier,
         u32::from_be_bytes(public_key.lms_leaf_identifier),
@@ -88,7 +92,7 @@ pub fn verify_signature_inmemory<H: HashChain>(
     public_key_candidate == public_key.key
 }
 
-pub fn generate_public_key_candiate<H: HashChain>(
+pub fn generate_public_key_candidate<H: HashChain>(
     signature: &InMemoryLmotsSignature<'_, H>,
     lms_tree_identifier: &[u8],
     lms_leaf_identifier: u32,
@@ -111,8 +115,8 @@ pub fn generate_public_key_candiate<H: HashChain>(
     let mut hash_chain_array = HashChainArray::new(&lmots_parameter);
     let max_w = 2usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
 
-    for i in 0..lmots_parameter.get_hash_chain_count() {
-        let a = coef(
+    for i in 0..lmots_parameter.get_num_winternitz_chains() {
+        let hash_chain_iterations_from = coef(
             message_hash_with_checksum.as_slice(),
             i,
             lmots_parameter.get_winternitz(),
@@ -121,7 +125,13 @@ pub fn generate_public_key_candiate<H: HashChain>(
         let initial = signature.get_signature_data(i as usize);
         let mut hash_chain_data =
             H::prepare_hash_chain_data(lms_tree_identifier, &lms_leaf_identifier);
-        let result = hasher.do_hash_chain(&mut hash_chain_data, i, initial, a, max_w);
+        let result = hasher.do_hash_chain(
+            &mut hash_chain_data,
+            i,
+            initial,
+            hash_chain_iterations_from,
+            max_w,
+        );
 
         hash_chain_array.push(&result);
     }

@@ -3,27 +3,30 @@ use core::convert::TryInto;
 use tinyvec::ArrayVec;
 
 use crate::{
-    constants::{MAX_ALLOWED_HSS_LEVELS, MAX_HSS_PUBLIC_KEY_LENGTH},
+    constants::{
+        ILEN, MAX_ALLOWED_HSS_LEVELS, MAX_HASH_SIZE, MAX_HSS_PUBLIC_KEY_LENGTH,
+        MAX_SSTS_SIGNING_ENTITIES,
+    },
     hasher::HashChain,
     hss::aux::{
-        hss_expand_aux_data, hss_finalize_aux_data, hss_optimal_aux_level, hss_store_aux_marker,
+        hss_expand_aux_data, hss_finalize_aux_data, hss_get_aux_data_len, hss_is_aux_data_used,
+        hss_optimal_aux_level, hss_save_aux_data, hss_store_aux_marker, MutableExpandedAuxData,
     },
     lms::{
         self,
         definitions::{InMemoryLmsPublicKey, LmsPrivateKey, LmsPublicKey},
         generate_key_pair,
         parameters::LmsParameter,
+        signing::LmsSignature,
     },
+    sst::helper::get_subtree_node_idx,
+    sst::parameters::SstExtension,
     util::helper::read_and_advance,
 };
-use crate::{hss::aux::hss_get_aux_data_len, lms::signing::LmsSignature};
 
-use super::{
-    aux::{hss_is_aux_data_used, MutableExpandedAuxData},
-    reference_impl_private_key::{
-        generate_child_seed_and_lms_tree_identifier, generate_signature_randomizer,
-        ReferenceImplPrivateKey,
-    },
+use super::reference_impl_private_key::{
+    generate_child_seed_and_lms_tree_identifier, generate_signature_randomizer,
+    ReferenceImplPrivateKey,
 };
 
 #[derive(Debug, Default, PartialEq)]
@@ -41,12 +44,29 @@ impl<H: HashChain> HssPrivateKey<H> {
     pub fn from(
         private_key: &ReferenceImplPrivateKey<H>,
         aux_data: &mut Option<MutableExpandedAuxData>,
+        tree_identifier: Option<&[u8; ILEN]>,
     ) -> Result<Self, ()> {
         let mut hss_private_key: HssPrivateKey<H> = Default::default();
 
         let mut current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
+
+        if let Some(tree_identifier) = tree_identifier {
+            current_seed
+                .lms_tree_identifier
+                .clone_from_slice(tree_identifier);
+        }
+
         let parameters = private_key.compressed_parameter.to::<H>()?;
         let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
+
+        let mut sst_ext_option = None;
+        let sst_ext = SstExtension {
+            signing_entity_idx: private_key.sst_ext.signing_entity_idx,
+            l0_top_div: private_key.sst_ext.l0_top_div,
+        };
+        if private_key.sst_ext.signing_entity_idx != 0 {
+            sst_ext_option = Some(sst_ext);
+        }
 
         let lms_private_key = LmsPrivateKey {
             seed: current_seed.seed.clone(),
@@ -54,6 +74,7 @@ impl<H: HashChain> HssPrivateKey<H> {
             lmots_parameter: *parameters[0].get_lmots_parameter(),
             lms_parameter: *parameters[0].get_lms_parameter(),
             used_leafs_index: used_leafs_indexes[0],
+            sst_ext: sst_ext_option,
         };
         hss_private_key.private_key.push(lms_private_key);
 
@@ -67,8 +88,13 @@ impl<H: HashChain> HssPrivateKey<H> {
             let signature_randomizer =
                 generate_signature_randomizer::<H>(&current_seed, &parent_used_leafs_index);
 
-            let lms_keypair =
-                generate_key_pair(&current_seed, parameter, &used_leafs_indexes[i], &mut None);
+            let lms_keypair = generate_key_pair(
+                &current_seed,
+                parameter,
+                &used_leafs_indexes[i],
+                &mut None,
+                None,
+            );
 
             let signature = lms::signing::LmsSignature::sign(
                 &mut hss_private_key.private_key[i - 1],
@@ -95,15 +121,23 @@ impl<H: HashChain> HssPrivateKey<H> {
         let aux_data = aux_data?;
 
         if is_aux_data_used {
+            // has been created, shrinked, populated and provided with HMAC before
             return hss_expand_aux_data::<H>(Some(aux_data), Some(private_key.seed.as_slice()));
         }
 
+        let l0_top_div = private_key.sst_ext.l0_top_div;
+        let opt_l0_top_div = if 0 == l0_top_div {
+            None
+        } else {
+            Some(l0_top_div)
+        };
+
         // Shrink input slice
-        let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter);
+        let aux_len = hss_get_aux_data_len(aux_data.len(), *top_lms_parameter, opt_l0_top_div);
         let moved = core::mem::take(aux_data);
         *aux_data = &mut moved[..aux_len];
 
-        let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None);
+        let aux_level = hss_optimal_aux_level(aux_len, *top_lms_parameter, None, opt_l0_top_div);
         hss_store_aux_marker(aux_data, aux_level);
 
         hss_expand_aux_data::<H>(Some(aux_data), None)
@@ -181,6 +215,7 @@ impl<H: HashChain> HssPublicKey<H> {
             &parameters[0],
             &used_leafs_indexes[0],
             &mut expanded_aux_data,
+            None,
         );
 
         if let Some(expanded_aux_data) = expanded_aux_data.as_mut() {
@@ -194,6 +229,86 @@ impl<H: HashChain> HssPublicKey<H> {
             level: levels,
         })
     }
+
+    // same as "from()" above, but to keep the original function's signature, we add a variant for SSTS
+    pub fn from_with_sst(
+        private_key: &ReferenceImplPrivateKey<H>,
+        aux_data: Option<&mut &mut [u8]>,
+        intermed_nodes: &ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_SSTS_SIGNING_ENTITIES]>,
+        tree_identifier: &[u8; ILEN],
+    ) -> Result<Self, ()> {
+        if private_key.sst_ext.signing_entity_idx == 0 || private_key.sst_ext.l0_top_div == 0 {
+            return Err(());
+        };
+
+        let parameters = private_key.compressed_parameter.to::<H>()?;
+        let levels = parameters.len();
+        let used_leafs_indexes = private_key.compressed_used_leafs_indexes.to(&parameters);
+
+        let top_lms_parameter = parameters[0].get_lms_parameter();
+
+        let is_aux_data_used = if let Some(ref aux_data) = aux_data {
+            hss_is_aux_data_used(aux_data)
+        } else {
+            false
+        };
+
+        let mut opt_expanded_aux_data = HssPrivateKey::get_expanded_aux_data(
+            aux_data,
+            private_key,
+            top_lms_parameter,
+            is_aux_data_used,
+        );
+
+        if opt_expanded_aux_data.as_mut().is_none() {
+            return Err(());
+        };
+
+        let mut current_seed = private_key.generate_root_seed_and_lms_tree_identifier();
+        current_seed
+            .lms_tree_identifier
+            .copy_from_slice(tree_identifier);
+
+        // TODO/Rework: how do we get rid of those repeated "if let Some"?
+        // Additions for SSTS: add "intermediate node values" from other signing entities to AUX data
+        if let Some(expanded_aux_data) = opt_expanded_aux_data.as_mut() {
+            let num_signing_entities = 2usize.pow(private_key.sst_ext.l0_top_div as u32);
+            for si in 1..=num_signing_entities as u8 {
+                // node index of SI intermed node in whole tree:
+                let idx: usize = get_subtree_node_idx(
+                    si,
+                    top_lms_parameter.get_tree_height(),
+                    private_key.sst_ext.l0_top_div,
+                ) as usize;
+                hss_save_aux_data::<H>(
+                    expanded_aux_data,
+                    idx,
+                    intermed_nodes[(si - 1) as usize].as_slice(),
+                );
+            }
+        }
+
+        // here we will calc. the final public key (due to intermediate nodes being present in AUX data) and add more data to aux
+        let lms_keypair = generate_key_pair(
+            &current_seed,
+            &parameters[0],
+            &used_leafs_indexes[0],
+            &mut opt_expanded_aux_data,
+            None,
+        );
+
+        // calc. new AUX HMAC
+        // TODO/Rework: how do we get rid of those repeated "if let Some"?
+        if let Some(expanded_aux_data) = opt_expanded_aux_data.as_mut() {
+            hss_finalize_aux_data::<H>(expanded_aux_data, private_key.seed.as_slice());
+        }
+
+        Ok(Self {
+            public_key: lms_keypair.public_key,
+            level: levels,
+        })
+    }
+
     pub fn to_binary_representation(&self) -> ArrayVec<[u8; MAX_HSS_PUBLIC_KEY_LENGTH]> {
         let mut result = ArrayVec::new();
 
@@ -227,17 +342,20 @@ mod tests {
     use rand::{rngs::OsRng, RngCore};
 
     use crate::util::helper::test_helper::gen_random_seed;
+    use crate::SstsParameter;
     use crate::{
         hasher::sha256::Sha256_256,
         hss::{
             definitions::InMemoryHssPublicKey,
             reference_impl_private_key::{ReferenceImplPrivateKey, SeedAndLmsTreeIdentifier},
-            HashChain, HssParameter,
+            HashChain,
         },
-        lms, LmotsAlgorithm, LmsAlgorithm,
+        lms, HssParameter, LmotsAlgorithm, LmsAlgorithm,
     };
 
     use super::{HssPrivateKey, HssPublicKey};
+    use crate::constants;
+    use tinyvec::ArrayVec;
 
     #[test]
     fn child_tree_lms_leaf_update() {
@@ -306,22 +424,23 @@ mod tests {
     ) -> (HssPrivateKey<H>, HssPrivateKey<H>) {
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
-        let parameters = [
-            HssParameter::<H>::new(lmots, lms),
-            HssParameter::<H>::new(lmots, lms),
-            HssParameter::<H>::new(lmots, lms),
-        ];
+        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
 
         let seed = gen_random_seed::<H>();
-        let mut rfc_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
+        let mut rfc_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
 
-        let hss_key_before = HssPrivateKey::from(&rfc_key, &mut None).unwrap();
+        let hss_key_before = HssPrivateKey::from(&rfc_key, &mut None, None).unwrap();
 
         for _ in 0..increment_by {
             rfc_key.increment(&hss_key_before);
         }
 
-        let hss_key_after = HssPrivateKey::from(&rfc_key, &mut None).unwrap();
+        let hss_key_after = HssPrivateKey::from(&rfc_key, &mut None, None).unwrap();
 
         (hss_key_before, hss_key_after)
     }
@@ -332,15 +451,17 @@ mod tests {
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
-        let parameters = [
-            HssParameter::<H>::new(lmots, lms),
-            HssParameter::<H>::new(lmots, lms),
-            HssParameter::<H>::new(lmots, lms),
-        ];
+
+        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
 
         let seed = gen_random_seed::<H>();
-        let mut private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
-        let hss_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
+        let mut private_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
+        let hss_key = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
 
         let tree_heights = hss_key
             .private_key
@@ -352,7 +473,7 @@ mod tests {
 
         const STEP_BY: usize = 27;
         for index in (0..total_ots_count).step_by(STEP_BY) {
-            let hss_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
+            let hss_key = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
 
             assert_eq!(hss_key.get_lifetime(), total_ots_count - index,);
 
@@ -368,16 +489,17 @@ mod tests {
 
         let lmots = LmotsAlgorithm::LmotsW4;
         let lms = LmsAlgorithm::LmsH2;
-        let parameters = [
-            HssParameter::<H>::new(lmots, lms),
-            HssParameter::<H>::new(lmots, lms),
-        ];
+        let mut vec_hss_params: ArrayVec<[_; constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        vec_hss_params.push(HssParameter::<H>::new(lmots, lms));
+        let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
 
         let seed = gen_random_seed::<H>();
-        let private_key = ReferenceImplPrivateKey::generate(&parameters, &seed).unwrap();
+        let private_key = ReferenceImplPrivateKey::generate(&sst_param, &seed).unwrap();
 
-        let hss_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
-        let hss_key_second = HssPrivateKey::from(&private_key, &mut None).unwrap();
+        let hss_key = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
+        let hss_key_second = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
         assert_eq!(hss_key, hss_key_second);
     }
 
@@ -390,6 +512,7 @@ mod tests {
             &HssParameter::construct_default_parameters(),
             &0,
             &mut None,
+            None,
         );
         let public_key: HssPublicKey<Sha256_256> = HssPublicKey {
             level: 18,

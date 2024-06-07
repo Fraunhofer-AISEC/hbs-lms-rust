@@ -5,7 +5,9 @@ extern crate test;
 mod tests {
     use rand::{rngs::OsRng, RngCore};
     use test::Bencher;
+    use tinyvec::ArrayVec;
 
+    use hbs_lms::SstsParameter;
     use hbs_lms::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256_256};
     use hbs_lms::{
         signature::{SignerMut, Verifier},
@@ -23,7 +25,15 @@ mod tests {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
 
-        let (signing_key, _) = keygen::<Sha256_256>(hss_parameter, &seed, aux_data).unwrap();
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        for i in 0..hss_parameter.len() {
+            vec_hss_params.push(hss_parameter[i]);
+        }
+
+        let sst_param = SstsParameter::<Sha256_256>::new(vec_hss_params, 0, 0);
+
+        let (signing_key, _) = keygen::<Sha256_256>(&sst_param, &seed, aux_data).unwrap();
 
         signing_key
     }
@@ -31,15 +41,17 @@ mod tests {
     fn generate_verifying_key_and_signature() -> (VerifyingKey<Sha256_256>, Signature) {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
-        let (mut signing_key, verifying_key) = keygen::<Sha256_256>(
-            &[HssParameter::new(
-                LmotsAlgorithm::LmotsW2,
-                LmsAlgorithm::LmsH5,
-            )],
-            &seed,
-            None,
-        )
-        .unwrap();
+
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
+        let sst_param = SstsParameter::<Sha256_256>::new(vec_hss_params, 0, 0);
+
+        let (mut signing_key, verifying_key) =
+            keygen::<Sha256_256>(&sst_param, &seed, None).unwrap();
 
         let signature = signing_key.try_sign(&MESSAGE).unwrap();
 
@@ -50,13 +62,16 @@ mod tests {
     fn keygen_h5w2(b: &mut Bencher) {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
-        let hss_parameter = [HssParameter::new(
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::new(
             LmotsAlgorithm::LmotsW2,
             LmsAlgorithm::LmsH5,
-        )];
+        ));
+        let sst_param = SstsParameter::<Sha256_256>::new(vec_hss_params, 0, 0);
 
         b.iter(|| {
-            let _ = keygen::<Sha256_256>(&hss_parameter, &seed, None);
+            let _ = keygen::<Sha256_256>(&sst_param, &seed, None);
         });
     }
 
@@ -64,16 +79,20 @@ mod tests {
     fn keygen_with_aux_h5w2(b: &mut Bencher) {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
-        let hss_parameter = [HssParameter::new(
+
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::new(
             LmotsAlgorithm::LmotsW2,
             LmsAlgorithm::LmsH5,
-        )];
+        ));
+        let sst_param = SstsParameter::<Sha256_256>::new(vec_hss_params, 0, 0);
 
         b.iter(|| {
             let mut aux_data = vec![0u8; 100_000];
             let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-            let _ = keygen::<Sha256_256>(&hss_parameter, &seed, Some(aux_slice));
+            let _ = keygen::<Sha256_256>(&sst_param, &seed, Some(aux_slice));
         });
     }
 
@@ -81,13 +100,21 @@ mod tests {
     fn keygen_h5w2_h5w2(b: &mut Bencher) {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
-        let hss_parameter = [
-            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
-            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
-        ];
+
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
+        let sst_param = SstsParameter::<Sha256_256>::new(vec_hss_params, 0, 0);
 
         b.iter(|| {
-            let _ = keygen::<Sha256_256>(&hss_parameter, &seed, None);
+            let _ = keygen::<Sha256_256>(&sst_param, &seed, None);
         });
     }
 
@@ -95,16 +122,24 @@ mod tests {
     fn keygen_with_aux_h5w2_h5w2(b: &mut Bencher) {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
-        let hss_parameter = [
-            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
-            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
-        ];
+
+        let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+            Default::default();
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
+        vec_hss_params.push(HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        ));
+        let sst_param = SstsParameter::<Sha256_256>::new(vec_hss_params, 0, 0);
 
         b.iter(|| {
             let mut aux_data = vec![0u8; 100_000];
             let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];
 
-            let _ = keygen::<Sha256_256>(&hss_parameter, &seed, Some(aux_slice));
+            let _ = keygen::<Sha256_256>(&sst_param, &seed, Some(aux_slice));
         });
     }
 
@@ -135,7 +170,7 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }
@@ -153,7 +188,7 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }
@@ -171,7 +206,7 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }
@@ -203,7 +238,7 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }

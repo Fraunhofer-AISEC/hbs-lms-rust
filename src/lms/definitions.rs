@@ -5,6 +5,8 @@ use crate::lm_ots::parameters::{LmotsAlgorithm, LmotsParameter};
 use crate::lms::helper::get_tree_element;
 use crate::lms::parameters::LmsAlgorithm;
 use crate::lms::MutableExpandedAuxData;
+use crate::sst::helper::get_sst_last_leaf_idx;
+use crate::sst::parameters::SstExtension;
 use crate::util::helper::read_and_advance;
 use crate::{lm_ots, Seed};
 
@@ -23,6 +25,7 @@ pub struct LmsPrivateKey<H: HashChain> {
     pub lmots_parameter: LmotsParameter<H>,
     #[zeroize(skip)]
     pub lms_parameter: LmsParameter<H>,
+    pub sst_ext: Option<SstExtension>,
 }
 
 impl<H: HashChain> LmsPrivateKey<H> {
@@ -32,6 +35,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
         used_leafs_index: u32,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
+        sst_ext: Option<SstExtension>, // TODO/Review: probably better as non-option?!
     ) -> Self {
         LmsPrivateKey {
             seed,
@@ -39,13 +43,25 @@ impl<H: HashChain> LmsPrivateKey<H> {
             used_leafs_index,
             lmots_parameter,
             lms_parameter,
+            sst_ext,
         }
     }
 
     pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey<H>, ()> {
-        let number_of_lm_ots_keys = self.lms_parameter.number_of_lm_ots_keys();
+        let number_of_lm_ots_keys = {
+            if let Some(my_sst_ext) = &self.sst_ext {
+                // our last leafs function returns 0..total_num-1, but here we need 1..total_num
+                1 + get_sst_last_leaf_idx(
+                    my_sst_ext.signing_entity_idx,
+                    self.lms_parameter.get_tree_height(),
+                    my_sst_ext.l0_top_div,
+                )
+            } else {
+                self.lms_parameter.number_of_lm_ots_keys() as u32
+            }
+        };
 
-        if self.used_leafs_index as usize >= number_of_lm_ots_keys {
+        if self.used_leafs_index >= number_of_lm_ots_keys {
             return Err(());
         }
 
@@ -55,6 +71,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
             self.seed.clone(),
             self.lmots_parameter,
         );
+
         self.used_leafs_index += 1;
 
         Ok(key)
@@ -74,7 +91,7 @@ impl<H: HashChain> LmsPublicKey<H> {
         private_key: &LmsPrivateKey<H>,
         aux_data: &mut Option<MutableExpandedAuxData>,
     ) -> Self {
-        let public_key = get_tree_element(1, private_key, aux_data);
+        let public_key = get_tree_element(1_usize, private_key, aux_data);
 
         Self {
             key: public_key,
@@ -119,7 +136,7 @@ impl<'a, H: HashChain> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H
 
 impl<'a, H: HashChain> InMemoryLmsPublicKey<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
-        // Parsing like desribed in 5.4.2
+        // Parsing like described in 5.4.2
         let mut data_index = 0;
 
         let lms_parameter = LmsAlgorithm::get_from_type(u32::from_be_bytes(
@@ -172,6 +189,7 @@ mod tests {
             0,
             LmotsAlgorithm::construct_default_parameter(),
             LmsAlgorithm::construct_default_parameter(),
+            None,
         );
 
         let public_key = LmsPublicKey::new(&private_key, &mut None);

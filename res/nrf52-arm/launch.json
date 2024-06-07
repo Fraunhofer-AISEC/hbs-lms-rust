@@ -1,0 +1,50 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // see https://probe.rs/docs/tools/debugger/ for more info
+      "type": "probe-rs-debug",
+      "request": "launch",
+      "name": "probe_rs",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "cargo build",
+      "runtimeExecutable": "/home/sn/.cargo/bin/probe-rs", //!MODIFY
+      "runtimeArgs": ["dap-server"],
+      "chip": "nRF52840_xxAA", //!MODIFY
+      "flashingConfig": {
+        "flashingEnabled": true,
+        "haltAfterReset": false,
+        "formatOptions": {
+          "format": "elf" //Valid values are: 'bin', 'hex', 'elf'(default), 'idf'
+        }
+      },
+      "coreConfigs": [
+        {
+          "coreIndex": 0,
+          "programBinary": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/examples/lms_demo_nrf52", //!MODIFY
+          "svdFile": "${workspaceFolder}/res/nrf52840.svd", //!MODIFY , required for register view
+          "rttEnabled": true,
+          "rttChannelFormats": [
+            {
+              "channelNumber": 0,
+              // Format RTT data as String data
+              "dataFormat": "String",
+              // Include host-side timestamps for every line of data transferred from the target RTT output
+              "showTimestamps": true
+            },
+            {
+              "channelNumber": 1,
+              // Treat data as raw binary data, and do not format in any way
+              "dataFormat": "BinaryLE"
+            }
+          ]
+        }
+      ],
+      "env": {
+        //!MODIFY (or remove)
+        "RUST_LOG": "info" // If you set this variable, check the VSCode console log window for the location of the log file.
+      },
+      "consoleLogLevel": "Console" //Info, Debug
+    }
+  ]
+}

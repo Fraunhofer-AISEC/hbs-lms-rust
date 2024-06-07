@@ -4,8 +4,12 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
+use tinyvec::ArrayVec;
 
-use hbs_lms::{HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256_256};
+use hbs_lms::{
+    HssParameter, LmotsAlgorithm, LmsAlgorithm, Seed, Sha256_256, SstsParameter,
+    REF_IMPL_MAX_ALLOWED_HSS_LEVELS,
+};
 use tempfile::TempDir;
 
 const MESSAGE_FILE_NAME: &str = "message.txt";
@@ -51,15 +55,15 @@ fn create_signature_with_own_implementation() {
 
     let mut seed = Seed::default();
     OsRng.fill_bytes(seed.as_mut_slice());
-    let (mut signing_key, verifying_key) = hbs_lms::keygen::<Sha256_256>(
-        &[
-            HssParameter::construct_default_parameters(),
-            HssParameter::construct_default_parameters(),
-        ],
-        &seed,
-        Some(aux_slice),
-    )
-    .expect("Should create HSS keys");
+
+    let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+    vec_hss_params.push(HssParameter::construct_default_parameters());
+    vec_hss_params.push(HssParameter::construct_default_parameters());
+    let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
+
+    let (mut signing_key, verifying_key) =
+        hbs_lms::keygen::<Sha256_256>(&sst_param, &seed, Some(aux_slice))
+            .expect("Should create HSS keys");
 
     save_file(
         path.join(PUBLIC_KEY_NAME).to_str().unwrap(),
@@ -120,7 +124,12 @@ fn should_produce_same_private_key() {
 
     let parameters = HssParameter::<H>::new(LmotsAlgorithm::LmotsW1, LmsAlgorithm::LmsH5);
 
-    let (sk, vk) = hbs_lms::keygen(&[parameters, parameters], &seed, None).unwrap();
+    let mut vec_hss_params: ArrayVec<[_; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+    vec_hss_params.push(parameters);
+    vec_hss_params.push(parameters);
+    let sst_param = SstsParameter::new(vec_hss_params, 0, 0);
+
+    let (sk, vk) = hbs_lms::keygen(&sst_param, &seed, None).unwrap();
 
     let ref_signing_key = read_private_key(path);
     let ref_verifying_key = read_public_key(path);
@@ -182,6 +191,7 @@ fn own_signing(
         &private_key_before,
         &mut update_private_key,
         Some(aux_slice),
+        None,
     )
     .expect("Signing should succed.");
     save_file(

@@ -116,7 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    Ok(())
+    DemoError::raise("No arguments given. Add --help for options".to_string())
 }
 
 fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {

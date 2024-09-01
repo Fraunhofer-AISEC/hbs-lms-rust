@@ -52,7 +52,7 @@ The following table shows the mapping between the RFC and the library naming inc
 | m          | hash_function_output_size | Number of bytes that the lms hash functions generates         |
 
 ## Minimum Supported Rust Version
-The crate in this repository supports Rust **1.57** or higher.
+The crate in this repository supports Rust **1.63** or higher.
 
 Minimum supported Rust version can be changed in the future, but it will be done with a minor version bump.
 
@@ -69,6 +69,6 @@ Any contribution intentionally submitted for inclusion in the work by you, as de
 [docs-image]: https://docs.rs/hbs-lms/badge.svg
 [docs-link]: https://docs.rs/hbs-lms/
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.57+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.63+-blue.svg
 [build-image]: https://github.com/Fraunhofer-AISEC/hbs-lms-rust/workflows/lms/badge.svg?branch=master
 [build-link]: https://github.com/Fraunhofer-AISEC/hbs-lms-rust/actions?query=workflow%3Alms

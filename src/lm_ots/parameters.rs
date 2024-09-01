@@ -12,19 +12,14 @@ use crate::{
 use crate::util::coef::coef_helper;
 
 /// Specifies the used Winternitz parameter.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub enum LmotsAlgorithm {
+    #[default]
     LmotsReserved = 0,
     LmotsW1 = 1,
     LmotsW2 = 2,
     LmotsW4 = 3,
     LmotsW8 = 4,
-}
-
-impl Default for LmotsAlgorithm {
-    fn default() -> Self {
-        LmotsAlgorithm::LmotsReserved
-    }
 }
 
 impl From<u32> for LmotsAlgorithm {

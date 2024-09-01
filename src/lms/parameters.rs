@@ -3,8 +3,9 @@ use core::marker::PhantomData;
 use crate::hasher::{sha256::Sha256_256, HashChain};
 
 /// Specifies the used Tree height.
-#[derive(Clone, Copy)]
+#[derive(Default, Clone, Copy)]
 pub enum LmsAlgorithm {
+    #[default]
     LmsReserved = 0,
     #[cfg(test)]
     LmsH2 = 1,
@@ -13,12 +14,6 @@ pub enum LmsAlgorithm {
     LmsH15 = 7,
     LmsH20 = 8,
     LmsH25 = 9,
-}
-
-impl Default for LmsAlgorithm {
-    fn default() -> Self {
-        LmsAlgorithm::LmsReserved
-    }
 }
 
 impl From<u32> for LmsAlgorithm {

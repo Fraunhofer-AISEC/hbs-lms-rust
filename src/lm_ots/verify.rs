@@ -1,4 +1,4 @@
-use core::{marker::PhantomData, usize};
+use core::marker::PhantomData;
 
 use tinyvec::ArrayVec;
 

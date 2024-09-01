@@ -39,7 +39,7 @@ impl<H: HashChain> From<[u8; MAX_SEED_LEN]> for Seed<H> {
     fn from(data: [u8; MAX_SEED_LEN]) -> Self {
         Seed {
             data: ArrayVecZeroize(ArrayVec::from_array_len(data, MAX_SEED_LEN)),
-            phantom: PhantomData::default(),
+            phantom: PhantomData,
         }
     }
 }
@@ -51,7 +51,7 @@ impl<H: HashChain> TryFrom<ArrayVec<[u8; MAX_SEED_LEN]>> for Seed<H> {
         if value.len() == H::OUTPUT_SIZE as usize {
             Ok(Seed {
                 data: ArrayVecZeroize(value),
-                phantom: PhantomData::default(),
+                phantom: PhantomData,
             })
         } else {
             Err("Can only construct seed from data of the HashChain output length")

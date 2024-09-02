@@ -16,7 +16,7 @@ pub fn generate_private_key<H: HashChain>(
 
     let mut hasher = lmots_parameter.get_hasher();
 
-    for index in 0..lmots_parameter.get_hash_chain_count() {
+    for index in 0..lmots_parameter.get_num_winternitz_chains() {
         hasher.update(&lms_tree_identifier);
         hasher.update(&lms_leaf_identifier);
         hasher.update(&index.to_be_bytes());
@@ -44,7 +44,7 @@ pub fn generate_public_key<H: HashChain>(private_key: &LmotsPrivateKey<H>) -> Lm
     let mut public_key_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_NUM_WINTERNITZ_CHAINS]> =
         ArrayVec::new();
 
-    for i in 0..lmots_parameter.get_hash_chain_count() as usize {
+    for i in 0..lmots_parameter.get_num_winternitz_chains() as usize {
         let mut hash_chain_data = H::prepare_hash_chain_data(
             &private_key.lms_tree_identifier,
             &private_key.lms_leaf_identifier,

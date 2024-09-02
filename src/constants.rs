@@ -54,7 +54,7 @@ pub const MAX_HASH_BLOCK_SIZE: usize = 64;
 pub const PRNG_MAX_LEN: usize = prng_len(MAX_HASH_SIZE);
 
 pub const MAX_NUM_WINTERNITZ_CHAINS: usize =
-    get_hash_chain_count(MIN_WINTERNITZ_PARAMETER, MAX_HASH_SIZE);
+    get_num_winternitz_chains(MIN_WINTERNITZ_PARAMETER, MAX_HASH_SIZE);
 
 pub const MAX_LMOTS_SIGNATURE_LENGTH: usize =
     lmots_signature_length(MAX_HASH_SIZE, MAX_NUM_WINTERNITZ_CHAINS);
@@ -73,7 +73,7 @@ pub const MAX_HSS_SIGNATURE_LENGTH: usize = get_hss_signature_length();
 /// https://datatracker.ietf.org/doc/html/rfc8554#appendix-B
 const HASH_CHAIN_COUNTS: [usize; 12] = [136, 200, 265, 68, 101, 133, 35, 51, 67, 18, 26, 34];
 
-pub const fn get_hash_chain_count(winternitz_parameter: usize, output_size: usize) -> usize {
+pub const fn get_num_winternitz_chains(winternitz_parameter: usize, output_size: usize) -> usize {
     let w_i = match winternitz_parameter {
         1 => 0usize,
         2 => 1usize,
@@ -132,7 +132,7 @@ pub const fn get_hss_signature_length() -> usize {
     while level > 0 {
         length += hss_signed_public_key_length(
             MAX_HASH_SIZE,
-            get_hash_chain_count(WINTERNITZ_PARAMETERS[level], MAX_HASH_SIZE),
+            get_num_winternitz_chains(WINTERNITZ_PARAMETERS[level], MAX_HASH_SIZE),
             TREE_HEIGHTS[level],
         );
         level -= 1;
@@ -141,7 +141,7 @@ pub const fn get_hss_signature_length() -> usize {
     length
         + lms_signature_length(
             MAX_HASH_SIZE,
-            get_hash_chain_count(WINTERNITZ_PARAMETERS[0], MAX_HASH_SIZE),
+            get_num_winternitz_chains(WINTERNITZ_PARAMETERS[0], MAX_HASH_SIZE),
             TREE_HEIGHTS[0],
         )
 }
@@ -170,21 +170,21 @@ pub mod winternitz_chain {
 
 #[cfg(test)]
 mod tests {
-    use crate::constants::get_hash_chain_count;
+    use crate::constants::get_num_winternitz_chains;
 
     #[test]
-    fn test_get_hash_chain_count() {
-        assert_eq!(get_hash_chain_count(1, 32), 265);
-        assert_eq!(get_hash_chain_count(2, 32), 133);
-        assert_eq!(get_hash_chain_count(4, 32), 67);
-        assert_eq!(get_hash_chain_count(8, 32), 34);
-        assert_eq!(get_hash_chain_count(1, 24), 200);
-        assert_eq!(get_hash_chain_count(2, 24), 101);
-        assert_eq!(get_hash_chain_count(4, 24), 51);
-        assert_eq!(get_hash_chain_count(8, 24), 26);
-        assert_eq!(get_hash_chain_count(1, 16), 136);
-        assert_eq!(get_hash_chain_count(2, 16), 68);
-        assert_eq!(get_hash_chain_count(4, 16), 35);
-        assert_eq!(get_hash_chain_count(8, 16), 18);
+    fn test_get_num_winternitz_chains() {
+        assert_eq!(get_num_winternitz_chains(1, 32), 265);
+        assert_eq!(get_num_winternitz_chains(2, 32), 133);
+        assert_eq!(get_num_winternitz_chains(4, 32), 67);
+        assert_eq!(get_num_winternitz_chains(8, 32), 34);
+        assert_eq!(get_num_winternitz_chains(1, 24), 200);
+        assert_eq!(get_num_winternitz_chains(2, 24), 101);
+        assert_eq!(get_num_winternitz_chains(4, 24), 51);
+        assert_eq!(get_num_winternitz_chains(8, 24), 26);
+        assert_eq!(get_num_winternitz_chains(1, 16), 136);
+        assert_eq!(get_num_winternitz_chains(2, 16), 68);
+        assert_eq!(get_num_winternitz_chains(4, 16), 35);
+        assert_eq!(get_num_winternitz_chains(8, 16), 18);
     }
 }

@@ -71,7 +71,7 @@ mod tests {
                 let parameter = $parameter.construct_parameter::<$hash_chain>().unwrap();
                 assert_eq!(parameter.get_hash_function_output_size(), $n);
                 assert_eq!(parameter.get_winternitz(), $w);
-                assert_eq!(parameter.get_hash_chain_count(), $p);
+                assert_eq!(parameter.get_num_winternitz_chains(), $p);
                 assert_eq!(parameter.get_checksum_left_shift(), $ls);
                 assert_eq!(parameter.get_type_id(), $type);
             }

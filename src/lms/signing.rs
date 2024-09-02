@@ -174,7 +174,7 @@ impl<'a, H: HashChain> InMemoryLmsSignature<'a, H> {
         .unwrap();
         let lmots_signature = lm_ots::signing::InMemoryLmotsSignature::new(read_and_advance(
             data,
-            (4 + H::OUTPUT_SIZE * (1 + lmots_parameter.get_hash_chain_count())) as usize,
+            (4 + H::OUTPUT_SIZE * (1 + lmots_parameter.get_num_winternitz_chains())) as usize,
             &mut index,
         ))
         .unwrap();

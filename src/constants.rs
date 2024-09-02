@@ -39,10 +39,10 @@ pub const fn prng_len(seed_len: usize) -> usize {
     23 + seed_len
 }
 
-pub const LMS_LEAF_IDENTIFIERS_SIZE: usize = 8;
+pub const HSS_COMPRESSED_USED_LEAFS_SIZE: usize = 8;
 pub const REF_IMPL_MAX_ALLOWED_HSS_LEVELS: usize = 8;
 pub const REF_IMPL_MAX_PRIVATE_KEY_SIZE: usize =
-    LMS_LEAF_IDENTIFIERS_SIZE + REF_IMPL_MAX_ALLOWED_HSS_LEVELS + MAX_SEED_LEN;
+    HSS_COMPRESSED_USED_LEAFS_SIZE + REF_IMPL_MAX_ALLOWED_HSS_LEVELS + MAX_SEED_LEN;
 
 pub const MAX_HASH_SIZE: usize = 32;
 pub const MAX_HASH_BLOCK_SIZE: usize = 64;

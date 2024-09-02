@@ -120,7 +120,7 @@ impl<H: HashChain> LmotsSignature<H> {
 
         let mut signature_data = ArrayVec::new();
 
-        for i in 0..lmots_parameter.get_hash_chain_count() {
+        for i in 0..lmots_parameter.get_num_winternitz_chains() {
             let a = coef(
                 message_hash_with_checksum.as_slice(),
                 i,
@@ -179,7 +179,7 @@ impl<H: HashChain> LmotsSignature<H> {
         let signature_data =
             LmotsSignature::<H>::calculate_signature(private_key, &message_hash_with_checksum);
 
-        let hash_iterations = (0..lmots_parameter.get_hash_chain_count()).fold(0, |sum, i| {
+        let hash_iterations = (0..lmots_parameter.get_num_winternitz_chains()).fold(0, |sum, i| {
             sum + coef(
                 message_hash_with_checksum.as_slice(),
                 i,
@@ -228,7 +228,7 @@ impl<'a, H: HashChain> InMemoryLmotsSignature<'a, H> {
 
         let signature_data = read_and_advance(
             data,
-            (H::OUTPUT_SIZE * lmots_parameter.get_hash_chain_count()) as usize,
+            (H::OUTPUT_SIZE * lmots_parameter.get_num_winternitz_chains()) as usize,
             &mut index,
         );
 
@@ -363,7 +363,7 @@ mod tests {
                     signature_randomizer.push(i as u8);
                 }
 
-                for i in 0..lmots_parameter.get_hash_chain_count() as usize {
+                for i in 0..lmots_parameter.get_num_winternitz_chains() as usize {
                     signature_data.push(ArrayVec::new());
                     for j in 0..lmots_parameter.get_hash_function_output_size() as usize {
                         signature_data[i].push(j as u8);
@@ -381,7 +381,7 @@ mod tests {
 
                 // check signature len
                 let output_size = lmots_parameter.get_hash_function_output_size() as usize;
-                let hash_chain_count = lmots_parameter.get_hash_chain_count() as usize;
+                let hash_chain_count = lmots_parameter.get_num_winternitz_chains() as usize;
                 assert_eq!(binary_rep.len(), 4 + output_size * (hash_chain_count + 1));
 
                 let deserialized_signature = InMemoryLmotsSignature::new(binary_rep.as_slice())

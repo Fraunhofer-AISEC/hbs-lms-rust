@@ -9,14 +9,18 @@ use super::{definitions::LmotsPublicKey, signing::InMemoryLmotsSignature};
 
 #[derive(Default)]
 struct HashChainArray<H: HashChain> {
-    pub array_w1:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(1, MAX_HASH_SIZE)]>>,
-    pub array_w2:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(2, MAX_HASH_SIZE)]>>,
-    pub array_w4:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(4, MAX_HASH_SIZE)]>>,
-    pub array_w8:
-        Option<ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(8, MAX_HASH_SIZE)]>>,
+    pub array_w1: Option<
+        ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(1, MAX_HASH_SIZE)]>,
+    >,
+    pub array_w2: Option<
+        ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(2, MAX_HASH_SIZE)]>,
+    >,
+    pub array_w4: Option<
+        ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(4, MAX_HASH_SIZE)]>,
+    >,
+    pub array_w8: Option<
+        ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(8, MAX_HASH_SIZE)]>,
+    >,
     phantom_data: PhantomData<H>,
 }
 
@@ -25,19 +29,19 @@ impl<H: HashChain> HashChainArray<H> {
         let mut hash_chain_array = HashChainArray::<H>::default();
         if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW8 {
             hash_chain_array.array_w8 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(8, MAX_HASH_SIZE)],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(8, MAX_HASH_SIZE)],
             >::default());
         } else if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW4 {
             hash_chain_array.array_w4 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(4, MAX_HASH_SIZE)],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(4, MAX_HASH_SIZE)],
             >::default());
         } else if LmotsAlgorithm::from(lmots_parameter.get_type_id()) == LmotsAlgorithm::LmotsW2 {
             hash_chain_array.array_w2 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(2, MAX_HASH_SIZE)],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(2, MAX_HASH_SIZE)],
             >::default());
         } else {
             hash_chain_array.array_w1 = Some(ArrayVec::<
-                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_hash_chain_count(1, MAX_HASH_SIZE)],
+                [ArrayVec<[u8; MAX_HASH_SIZE]>; get_num_winternitz_chains(1, MAX_HASH_SIZE)],
             >::default());
         }
         hash_chain_array
@@ -111,7 +115,7 @@ pub fn generate_public_key_candidate<H: HashChain>(
     let mut hash_chain_array = HashChainArray::new(&lmots_parameter);
     let max_w = 2usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
 
-    for i in 0..lmots_parameter.get_hash_chain_count() {
+    for i in 0..lmots_parameter.get_num_winternitz_chains() {
         let a = coef(
             message_hash_with_checksum.as_slice(),
             i,

@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 
 use tinyvec::ArrayVec;
 
-use crate::constants::get_hash_chain_count;
+use crate::constants::get_num_winternitz_chains;
 use crate::{
     constants::{FastVerifyCached, MAX_HASH_SIZE},
     hasher::HashChain,
@@ -45,25 +45,25 @@ impl LmotsAlgorithm {
             LmotsAlgorithm::LmotsW1 => Some(LmotsParameter::new(
                 1,
                 1,
-                get_hash_chain_count(1, H::OUTPUT_SIZE as usize) as u16,
+                get_num_winternitz_chains(1, H::OUTPUT_SIZE as usize) as u16,
                 7,
             )),
             LmotsAlgorithm::LmotsW2 => Some(LmotsParameter::new(
                 2,
                 2,
-                get_hash_chain_count(2, H::OUTPUT_SIZE as usize) as u16,
+                get_num_winternitz_chains(2, H::OUTPUT_SIZE as usize) as u16,
                 6,
             )),
             LmotsAlgorithm::LmotsW4 => Some(LmotsParameter::new(
                 3,
                 4,
-                get_hash_chain_count(4, H::OUTPUT_SIZE as usize) as u16,
+                get_num_winternitz_chains(4, H::OUTPUT_SIZE as usize) as u16,
                 4,
             )),
             LmotsAlgorithm::LmotsW8 => Some(LmotsParameter::new(
                 4,
                 8,
-                get_hash_chain_count(8, H::OUTPUT_SIZE as usize) as u16,
+                get_num_winternitz_chains(8, H::OUTPUT_SIZE as usize) as u16,
                 0,
             )),
         }
@@ -119,7 +119,7 @@ impl<H: HashChain> LmotsParameter<H> {
         self.winternitz
     }
 
-    pub fn get_hash_chain_count(&self) -> u16 {
+    pub fn get_num_winternitz_chains(&self) -> u16 {
         self.hash_chain_count
     }
 
@@ -138,7 +138,7 @@ impl<H: HashChain> LmotsParameter<H> {
         let sum = max * max_word_size;
 
         let mut coef = ArrayVec::new();
-        for i in 0..self.get_hash_chain_count() {
+        for i in 0..self.get_num_winternitz_chains() {
             coef.push(coef_helper(i, self.get_winternitz()));
         }
 
@@ -163,7 +163,7 @@ impl<H: HashChain> LmotsParameter<H> {
         checksum <<= self.get_checksum_left_shift();
         let checksum = [(checksum >> 8 & 0xff) as u8, (checksum & 0xff) as u8];
 
-        for i in *max..self.get_hash_chain_count() {
+        for i in *max..self.get_num_winternitz_chains() {
             let (index, shift, mask) = coef[i as usize];
             let hash_chain_length = ((checksum[index - 32] as u64 >> shift) & mask) as u16;
             total_hash_chain_iterations += hash_chain_length;

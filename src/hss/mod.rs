@@ -293,7 +293,7 @@ pub fn hss_keygen<H: HashChain>(
 mod tests {
     use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
-        constants::{LMS_LEAF_IDENTIFIERS_SIZE, MAX_HASH_SIZE},
+        constants::{HSS_COMPRESSED_USED_LEAFS_SIZE, MAX_HASH_SIZE},
         hasher::{
             sha256::{Sha256_128, Sha256_192, Sha256_256},
             shake256::{Shake256_128, Shake256_192, Shake256_256},
@@ -338,8 +338,8 @@ mod tests {
 
         assert_ne!(signing_key.as_slice(), signing_key_const.as_slice());
         assert_eq!(
-            signing_key.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..],
-            signing_key_const.as_slice()[LMS_LEAF_IDENTIFIERS_SIZE..]
+            signing_key.as_slice()[HSS_COMPRESSED_USED_LEAFS_SIZE..],
+            signing_key_const.as_slice()[HSS_COMPRESSED_USED_LEAFS_SIZE..]
         );
     }
 
@@ -366,7 +366,7 @@ mod tests {
 
         for index in 0..keypair_lifetime {
             assert_eq!(
-                signing_key.as_slice()[..LMS_LEAF_IDENTIFIERS_SIZE],
+                signing_key.as_slice()[..HSS_COMPRESSED_USED_LEAFS_SIZE],
                 index.to_be_bytes(),
             );
             assert_eq!(

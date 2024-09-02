@@ -1,6 +1,6 @@
 use crate::{
     constants::{
-        LmsTreeIdentifier, D_TOPSEED, ILEN, LMS_LEAF_IDENTIFIERS_SIZE, MAX_ALLOWED_HSS_LEVELS,
+        LmsTreeIdentifier, D_TOPSEED, HSS_COMPRESSED_USED_LEAFS_SIZE, ILEN, MAX_ALLOWED_HSS_LEVELS,
         MAX_HASH_SIZE, MAX_SEED_LEN, REF_IMPL_MAX_PRIVATE_KEY_SIZE, SEED_CHILD_SEED,
         SEED_SIGNATURE_RANDOMIZER_SEED, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED, TOPSEED_WHICH,
     },
@@ -125,7 +125,7 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         let mut index = 0;
 
         let compressed_used_leafs_indexes =
-            read_and_advance(data, LMS_LEAF_IDENTIFIERS_SIZE, &mut index);
+            read_and_advance(data, HSS_COMPRESSED_USED_LEAFS_SIZE, &mut index);
         result.compressed_used_leafs_indexes =
             CompressedUsedLeafsIndexes::from_slice(compressed_used_leafs_indexes);
 

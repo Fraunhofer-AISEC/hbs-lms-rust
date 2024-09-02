@@ -13,7 +13,11 @@ pub type LmsLeafIdentifier = [u8; 4];
 type FvcMax = u16;
 type FvcSum = u16;
 type FvcCoef = (usize, u16, u64); // (index, shift, mask)
-pub type FastVerifyCached = (FvcMax, FvcSum, ArrayVec<[FvcCoef; MAX_HASH_CHAIN_COUNT]>);
+pub type FastVerifyCached = (
+    FvcMax,
+    FvcSum,
+    ArrayVec<[FvcCoef; MAX_NUM_WINTERNITZ_CHAINS]>,
+);
 
 pub const D_PBLC: [u8; 2] = [0x80, 0x80];
 pub const D_MESG: [u8; 2] = [0x81, 0x81];
@@ -49,20 +53,20 @@ pub const MAX_HASH_BLOCK_SIZE: usize = 64;
 
 pub const PRNG_MAX_LEN: usize = prng_len(MAX_HASH_SIZE);
 
-pub const MAX_HASH_CHAIN_COUNT: usize =
+pub const MAX_NUM_WINTERNITZ_CHAINS: usize =
     get_hash_chain_count(MIN_WINTERNITZ_PARAMETER, MAX_HASH_SIZE);
 
 pub const MAX_LMOTS_SIGNATURE_LENGTH: usize =
-    lmots_signature_length(MAX_HASH_SIZE, MAX_HASH_CHAIN_COUNT);
+    lmots_signature_length(MAX_HASH_SIZE, MAX_NUM_WINTERNITZ_CHAINS);
 
 pub const MAX_LMS_PUBLIC_KEY_LENGTH: usize = lms_public_key_length(MAX_HASH_SIZE);
 pub const MAX_LMS_SIGNATURE_LENGTH: usize =
-    lms_signature_length(MAX_HASH_SIZE, MAX_HASH_CHAIN_COUNT, MAX_TREE_HEIGHT);
+    lms_signature_length(MAX_HASH_SIZE, MAX_NUM_WINTERNITZ_CHAINS, MAX_TREE_HEIGHT);
 
 pub const MAX_HSS_PUBLIC_KEY_LENGTH: usize = size_of::<u32>()       // HSS Level
         + lms_public_key_length(MAX_HASH_SIZE); // Root LMS PublicKey
 pub const MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH: usize =
-    hss_signed_public_key_length(MAX_HASH_SIZE, MAX_HASH_CHAIN_COUNT, MAX_TREE_HEIGHT);
+    hss_signed_public_key_length(MAX_HASH_SIZE, MAX_NUM_WINTERNITZ_CHAINS, MAX_TREE_HEIGHT);
 pub const MAX_HSS_SIGNATURE_LENGTH: usize = get_hss_signature_length();
 
 /// Calculated using the formula from RFC 8554 Appendix B

@@ -1,5 +1,5 @@
 use crate::{
-    constants::{D_MESG, MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE, MAX_LMOTS_SIGNATURE_LENGTH},
+    constants::{D_MESG, MAX_HASH_SIZE, MAX_LMOTS_SIGNATURE_LENGTH, MAX_NUM_WINTERNITZ_CHAINS},
     hasher::HashChain,
     lm_ots::parameters::LmotsAlgorithm,
     util::{coef::coef, helper::read_and_advance},
@@ -24,7 +24,7 @@ use super::parameters::LmotsParameter;
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct LmotsSignature<H: HashChain> {
     pub signature_randomizer: ArrayVec<[u8; MAX_HASH_SIZE]>,
-    pub signature_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]>,
+    pub signature_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_NUM_WINTERNITZ_CHAINS]>,
     pub lmots_parameter: LmotsParameter<H>,
     pub hash_iterations: u16,
 }
@@ -113,7 +113,7 @@ impl<H: HashChain> LmotsSignature<H> {
     fn calculate_signature(
         private_key: &LmotsPrivateKey<H>,
         message_hash_with_checksum: &ArrayVec<[u8; MAX_HASH_SIZE + 2]>,
-    ) -> ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT]> {
+    ) -> ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_NUM_WINTERNITZ_CHAINS]> {
         let lmots_parameter = private_key.lmots_parameter;
 
         let mut hasher = lmots_parameter.get_hasher();
@@ -338,7 +338,7 @@ mod tests {
     use tinyvec::ArrayVec;
 
     use crate::{
-        constants::{MAX_HASH_CHAIN_COUNT, MAX_HASH_SIZE},
+        constants::{MAX_HASH_SIZE, MAX_NUM_WINTERNITZ_CHAINS},
         hasher::{
             sha256::{Sha256_128, Sha256_192, Sha256_256},
             shake256::{Shake256_128, Shake256_192, Shake256_256},
@@ -356,7 +356,7 @@ mod tests {
 
                 let mut signature_randomizer = ArrayVec::new();
                 let mut signature_data: ArrayVec<
-                    [ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_HASH_CHAIN_COUNT],
+                    [ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_NUM_WINTERNITZ_CHAINS],
                 > = ArrayVec::new();
 
                 for i in 0..lmots_parameter.get_hash_function_output_size() as usize {

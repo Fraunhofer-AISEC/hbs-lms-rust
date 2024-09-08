@@ -205,7 +205,7 @@ pub fn hss_extract_aux_data<H: HashChain>(
     let start_index = lms_leaf_identifier as usize * hash_size;
     let end_index = start_index + hash_size;
 
-    if src[start_index..end_index] == [0u8; MAX_HASH_SIZE] {
+    if src[start_index..end_index].iter().all(|&b| b == 0u8) {
         return None;
     }
 

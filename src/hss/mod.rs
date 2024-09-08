@@ -471,35 +471,41 @@ mod tests {
 
     #[test]
     fn test_signing_sha256_128() {
-        test_signing_core::<Sha256_128>();
+        test_signing_core_sha_x::<Sha256_128>();
     }
 
     #[test]
     fn test_signing_sha256_192() {
-        test_signing_core::<Sha256_192>();
+        test_signing_core_sha_x::<Sha256_192>();
     }
 
     #[test]
     fn test_signing_sha256_256() {
-        test_signing_core::<Sha256_256>();
+        test_signing_core_sha_x::<Sha256_256>();
     }
 
     #[test]
     fn test_signing_shake256_128() {
-        test_signing_core::<Shake256_128>();
+        test_signing_core_sha_x::<Shake256_128>();
     }
 
     #[test]
     fn test_signing_shake256_192() {
-        test_signing_core::<Shake256_192>();
+        test_signing_core_sha_x::<Shake256_192>();
     }
 
     #[test]
     fn test_signing_shake256_256() {
-        test_signing_core::<Shake256_256>();
+        test_signing_core_sha_x::<Shake256_256>();
     }
 
-    fn test_signing_core<H: HashChain>() {
+    fn test_signing_core_sha_x<H: HashChain>() {
+        test_signing_core::<H>(&mut None);
+        let mut aux_data = [0u8; 1_000];
+        test_signing_core::<H>(&mut Some(&mut aux_data));
+    }
+
+    fn test_signing_core<H: HashChain>(aux_data: &mut Option<&mut [u8]>) {
         let seed = gen_random_seed::<H>();
         let (mut signing_key, verifying_key) = hss_keygen::<H>(
             &[
@@ -508,7 +514,7 @@ mod tests {
                 HssParameter::construct_default_parameters(),
             ],
             &seed,
-            None,
+            aux_data.as_mut(),
         )
         .expect("Should generate HSS keys");
 
@@ -529,7 +535,7 @@ mod tests {
             &message,
             signing_key_const.as_slice(),
             &mut update_private_key,
-            None,
+            aux_data.as_mut(),
         )
         .expect("Signing should complete without error.");
 

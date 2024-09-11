@@ -125,8 +125,8 @@ fn should_produce_same_private_key() {
     let ref_signing_key = read_private_key(path);
     let ref_verifying_key = read_public_key(path);
 
-    assert!(ref_signing_key == sk.as_slice());
-    assert!(ref_verifying_key == vk.as_slice());
+    assert_eq!(ref_signing_key, sk.as_slice());
+    assert_eq!(ref_verifying_key, vk.as_slice());
 }
 
 fn read_private_key(path: &Path) -> Vec<u8> {
@@ -182,6 +182,7 @@ fn own_signing(
         &private_key_before,
         &mut update_private_key,
         Some(aux_slice),
+        None,
     )
     .expect("Signing should succed.");
     save_file(

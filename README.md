@@ -34,6 +34,41 @@ HBS_LMS_MAX_HASH_OPTIMIZATIONS=1000 HBS_LMS_THREADS=2 cargo run --release --exam
 cargo run --release --example lms-demo -- verify mykey message.txt
 ```
 
+The SST extension can be used as follows:
+
+```
+# Key generation: prepare
+# Generates intermediate node, generates or reads the tree identifier (init_tree_ident 1/0), and uses "mykey" as filename base.
+# One dedicated signing entity has to create the common L-0 tree identifier (--init_tree_ident=1) before other signing entities
+# can generate their subtrees.
+#
+# The following example uses two HSS levels, first with tree height = 10 / Winternitz = 8, second with 5 / 2.
+# First, a signing entity (here: 1 of 8) creates the tree identifier
+cargo run --release --example sst-demo -- prepare_keygen mykey 10/8,5/2 --ssts=1/8 --auxsize=2048 \
+  --seed=c912a74bc8c5fc1b2a73b96e6ce1eb2317dc9aa49806b30e --init_tree_ident
+# The signing instance index is 3 of total 8, and this signing entity will use the tree identifier and use another secret seed.
+# This will use "mykey.5.prv" and "mykey.5.aux" for private key and aux data, and "mykey_treeident.bin" to write the tree identifier
+seq 2 8 | xargs -i{} cargo run --release --example sst-demo -- prepare_keygen mykey 10/8,5/2 --ssts={}/8 --auxsize=2048 \
+  --seed=1eb2317dc9aa49806b30e578436d0f659b1f5c912a74bc8c
+
+# Key generation: finalize
+# After all signing entities have created their intermediate node values, the public key can be generated.
+# This will use mykey.5.pub to write the public key for signing entity index 5.
+cargo run --release --example sst-demo -- finalize_keygen mykey 5
+
+# Signing
+# Generates `message.txt.sig` using mykey.5.prv
+cargo run --release --example sst-demo -- sign mykey.5 message.txt
+
+# Verification
+# Verifies `message.txt` with `message.txt.sig` against `mykey.5.pub`
+cargo run --release --example sst-demo -- verify mykey.5 message.txt
+
+# Verification can as well performed with lms-demo
+# Verifies `message.txt` with `message.txt.sig` against `mykey.5.pub`
+cargo run --release --example lms-demo -- verify mykey.5 message.txt
+```
+
 ## Naming conventions wrt to the IETF RFC
 The naming in the RFC is done by using a single character.
 To allow for a better understanding of the implementation, we have decided to use more descriptive designations.

@@ -39,7 +39,7 @@ impl DemoError {
     }
 }
 
-type Hasher = Sha256_256;
+type Hasher = Sha256_192;
 
 struct GenKeyParameter {
     parameter: Vec<HssParameter<Hasher>>,
@@ -95,7 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(args) = matches.subcommand_matches(VERIFY_COMMAND) {
         let result = verify(args);
         if result {
-            println!("Successful!");
+            println!("Verification successful!");
             exit(0);
         } else {
             println!("Wrong signature");
@@ -146,12 +146,14 @@ fn sign(args: &ArgMatches) -> Result<(), std::io::Error> {
             &private_key_data,
             &mut private_key_update_function,
             Some(aux_slice),
+            None,
         )
     } else {
         hbs_lms::sign::<Hasher>(
             &message_data,
             &private_key_data,
             &mut private_key_update_function,
+            None,
             None,
         )
     };

@@ -135,7 +135,7 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }
@@ -153,7 +153,7 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }
@@ -171,7 +171,7 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }
@@ -203,7 +203,7 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }

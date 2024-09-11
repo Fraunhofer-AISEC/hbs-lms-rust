@@ -41,15 +41,15 @@ The following table shows the mapping between the RFC and the library naming inc
 
 | RFC Naming | Library Naming       | Meaning                                                   |
 |------------|----------------------|-----------------------------------------------------------|
-| I          | lms_tree_identifier  | 16-byte random value to identify a single LMS tree        |
-| q          | lms_leaf_identifier  | 4-byte value to identify all leafs in a single LMS tree   |
-| C          | signature_randomizer | 32-byte random value added to every signature             |
-| Q          | message_hash         | Output of hashed message together with I, q, D_MESG and C |
-| y          | signature_data       | The actual data of the signature                          |
-| p          | hash_chain_count     | The number of hash chains for a certain W parameter       |
-| ls         | checksum_left_shift  | How many bits the checksum is shifted into the coef-value |
-| n          | hash_function_output_size | Number of bytes that the lm_ots hash functions generates         |
-| m          | hash_function_output_size | Number of bytes that the lms hash functions generates         |
+| I          | lms_tree_identifier       | 16-byte random value to identify a single LMS tree        |
+| q          | lms_leaf_identifier       | 4-byte value to identify all leafs in a single LMS tree   |
+| C          | signature_randomizer      | 32-byte random value added to every signature             |
+| Q          | message_hash              | Output of hashed message together with I, q, D_MESG and C |
+| y          | signature_data            | The actual data of the signature                          |
+| p          | num_winternitz_chains     | The number of hash chains for a certain W parameter       |
+| ls         | checksum_left_shift       | How many bits the checksum is shifted into the coef-value |
+| n          | hash_function_output_size | Number of bytes that the lm_ots hash functions generates  |
+| m          | hash_function_output_size | Number of bytes that the lms hash functions generates     |
 
 ## Minimum Supported Rust Version
 The crate in this repository supports Rust **1.63** or higher.

@@ -84,7 +84,7 @@ impl LmotsAlgorithm {
 pub struct LmotsParameter<H: HashChain> {
     type_id: u32,
     winternitz: u8,
-    hash_chain_count: u16,
+    num_winternitz_chains: u16,
     checksum_left_shift: u8,
     phantom_data: PhantomData<H>,
 }
@@ -99,13 +99,13 @@ impl<H: HashChain> LmotsParameter<H> {
     pub fn new(
         type_id: u32,
         winternitz: u8,
-        hash_chain_count: u16,
+        num_winternitz_chains: u16,
         checksum_left_shift: u8,
     ) -> Self {
         Self {
             type_id,
             winternitz,
-            hash_chain_count,
+            num_winternitz_chains,
             checksum_left_shift,
             phantom_data: PhantomData,
         }
@@ -120,7 +120,7 @@ impl<H: HashChain> LmotsParameter<H> {
     }
 
     pub fn get_num_winternitz_chains(&self) -> u16 {
-        self.hash_chain_count
+        self.num_winternitz_chains
     }
 
     pub fn get_checksum_left_shift(&self) -> u8 {

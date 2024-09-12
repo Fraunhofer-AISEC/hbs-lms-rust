@@ -144,3 +144,49 @@ jobs:
           package: ${{ github.workflow }}
           target: ${{ matrix.target }}
           features: ${{ matrix.features }}
+
+  # Demo scripts
+  demo-lms:
+    needs: set-msrv
+    strategy:
+      matrix:
+        rust:
+          - stable
+        features:
+          - default
+
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+      # Cross mounts only current package, i.e. by default it ignores workspace's Cargo.toml
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: RustCrypto/actions/cargo-cache@master
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: sh scripts/lms-demo.sh
+
+  # Demo scripts
+  demo-sst:
+    needs: set-msrv
+    strategy:
+      matrix:
+        rust:
+          - stable
+        features:
+          - default
+
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+      # Cross mounts only current package, i.e. by default it ignores workspace's Cargo.toml
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: RustCrypto/actions/cargo-cache@master
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: sh scripts/sst-demo.sh

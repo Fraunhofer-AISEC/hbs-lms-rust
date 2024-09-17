@@ -38,7 +38,7 @@ pub fn generate_public_key<H: HashChain>(private_key: &LmotsPrivateKey<H>) -> Lm
     let lmots_parameter = &private_key.lmots_parameter;
     let mut hasher = lmots_parameter.get_hasher();
 
-    let hash_chain_count: usize = 2_usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
+    let num_winternitz_chains: usize = 2_usize.pow(lmots_parameter.get_winternitz() as u32) - 1;
     let key = &private_key.key;
 
     let mut public_key_data: ArrayVec<[ArrayVec<[u8; MAX_HASH_SIZE]>; MAX_NUM_WINTERNITZ_CHAINS]> =
@@ -54,7 +54,7 @@ pub fn generate_public_key<H: HashChain>(private_key: &LmotsPrivateKey<H>) -> Lm
             i as u16,
             key[i].as_slice(),
             0,
-            hash_chain_count,
+            num_winternitz_chains,
         );
 
         public_key_data.push(result);

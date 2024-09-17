@@ -43,10 +43,19 @@ pub const fn prng_len(seed_len: usize) -> usize {
     23 + seed_len
 }
 
-pub const HSS_COMPRESSED_USED_LEAFS_SIZE: usize = 8;
+pub const HSS_COMPRESSED_USED_LEAFS_SIZE: usize = size_of::<u64>();
 pub const REF_IMPL_MAX_ALLOWED_HSS_LEVELS: usize = 8;
+
+pub const SST_SIGNING_ENTITY_IDX_SIZE: usize = size_of::<u8>();
+pub const SST_L0_TOP_DIV_SIZE: usize = size_of::<u8>();
+pub const SST_SIZE: usize = SST_SIGNING_ENTITY_IDX_SIZE + SST_L0_TOP_DIV_SIZE;
+
+pub const SST_IMPL_MAX_PRIVATE_KEY_SIZE: usize =
+    SST_SIZE + HSS_COMPRESSED_USED_LEAFS_SIZE + REF_IMPL_MAX_ALLOWED_HSS_LEVELS + MAX_SEED_LEN;
 pub const REF_IMPL_MAX_PRIVATE_KEY_SIZE: usize =
     HSS_COMPRESSED_USED_LEAFS_SIZE + REF_IMPL_MAX_ALLOWED_HSS_LEVELS + MAX_SEED_LEN;
+// TODO Rework if `const_trait_impl` is in stable
+pub const IMPL_MAX_PRIVATE_KEY_SIZE: usize = SST_IMPL_MAX_PRIVATE_KEY_SIZE;
 
 pub const MAX_HASH_SIZE: usize = 32;
 pub const MAX_HASH_BLOCK_SIZE: usize = 64;
@@ -69,10 +78,14 @@ pub const MAX_HSS_SIGNED_PUBLIC_KEY_LENGTH: usize =
     hss_signed_public_key_length(MAX_HASH_SIZE, MAX_NUM_WINTERNITZ_CHAINS, MAX_TREE_HEIGHT);
 pub const MAX_HSS_SIGNATURE_LENGTH: usize = get_hss_signature_length();
 
+pub const MAX_SSTS_L0_TOP_DIV: u32 = 8; // top division height for Single-Subtree-scheme
+pub const MAX_SSTS_SIGNING_ENTITIES: usize = 2usize.pow(MAX_SSTS_L0_TOP_DIV);
+
 /// Calculated using the formula from RFC 8554 Appendix B
 /// https://datatracker.ietf.org/doc/html/rfc8554#appendix-B
-const HASH_CHAIN_COUNTS: [usize; 12] = [136, 200, 265, 68, 101, 133, 35, 51, 67, 18, 26, 34];
+const NUM_WINTERNITZ_CHAINS: [usize; 12] = [136, 200, 265, 68, 101, 133, 35, 51, 67, 18, 26, 34];
 
+// RFC 8554: "p"; see terminology: "single Winternitz chain", "number of independent Winternitz chains"
 pub const fn get_num_winternitz_chains(winternitz_parameter: usize, output_size: usize) -> usize {
     let w_i = match winternitz_parameter {
         1 => 0usize,
@@ -89,13 +102,13 @@ pub const fn get_num_winternitz_chains(winternitz_parameter: usize, output_size:
         _ => panic!("Invalid Output Size. Allowed is: 16, 24 or 32"),
     };
 
-    HASH_CHAIN_COUNTS[w_i * 3 + o_i]
+    NUM_WINTERNITZ_CHAINS[w_i * 3 + o_i]
 }
 
-pub const fn lmots_signature_length(hash_size: usize, hash_chain_count: usize) -> usize {
+pub const fn lmots_signature_length(hash_size: usize, num_winternitz_chains: usize) -> usize {
     size_of::<u32>()                                                // LMOTS Parameter TypeId
         + hash_size                                                 // Signature Randomizer
-        + (hash_size * hash_chain_count) // Signature Data
+        + (hash_size * num_winternitz_chains) // Signature Data
 }
 
 pub const fn lms_public_key_length(hash_size: usize) -> usize {
@@ -107,21 +120,21 @@ pub const fn lms_public_key_length(hash_size: usize) -> usize {
 
 pub const fn lms_signature_length(
     hash_size: usize,
-    hash_chain_count: usize,
+    num_winternitz_chains: usize,
     tree_height: usize,
 ) -> usize {
     size_of::<u32>()                                                // LMS Leaf Identifier
-        + lmots_signature_length(hash_size, hash_chain_count)       // LMOTS Signature
+        + lmots_signature_length(hash_size, num_winternitz_chains)       // LMOTS Signature
         + size_of::<u32>()                                          // LMS Parameter TypeId
         + (hash_size * tree_height) // Authentication Path
 }
 
 pub const fn hss_signed_public_key_length(
     hash_size: usize,
-    hash_chain_count: usize,
+    num_winternitz_chains: usize,
     tree_height: usize,
 ) -> usize {
-    lms_signature_length(hash_size, hash_chain_count, tree_height)  // LMS Signature
+    lms_signature_length(hash_size, num_winternitz_chains, tree_height)  // LMS Signature
         + MAX_LMS_PUBLIC_KEY_LENGTH // LMS PublicKey
 }
 

@@ -30,6 +30,8 @@ pub fn verify<'a, H: HashChain>(
 
 #[cfg(test)]
 mod tests {
+
+    use crate::util::helper::test_helper::gen_random_seed;
     use crate::{
         hasher::{sha256::Sha256_256, HashChain},
         hss::{
@@ -41,22 +43,22 @@ mod tests {
         HssParameter,
     };
 
-    use crate::util::helper::test_helper::gen_random_seed;
-
     #[test]
     fn test_hss_verify() {
         type H = Sha256_256;
         let seed = gen_random_seed::<H>();
+
         let rfc_key = ReferenceImplPrivateKey::<H>::generate(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
             ],
             &seed,
+            None,
         )
         .unwrap();
 
-        let mut private_key = HssPrivateKey::from(&rfc_key, &mut None).unwrap();
+        let mut private_key = HssPrivateKey::from(&rfc_key, &mut None, None).unwrap();
         let public_key = HssPublicKey::from(&rfc_key, None).unwrap();
 
         let message_values = [42, 57, 20, 59, 33, 1, 49, 3, 99, 130, 50, 20];

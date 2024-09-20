@@ -18,7 +18,7 @@
 //!     Signature, signature::{SignerMut, Verifier},
 //!     Sha256_256, HashChain, Seed,
 //! };
-//! use hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
+//! use hbs_lms::MAX_ALLOWED_HSS_LEVELS;
 //!
 //! let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32];
 //!
@@ -132,7 +132,7 @@ use core::convert::TryFrom;
 use signature::Error;
 use tinyvec::ArrayVec;
 
-pub use crate::constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
+pub use crate::constants::MAX_ALLOWED_HSS_LEVELS;
 use constants::MAX_HSS_SIGNATURE_LENGTH;
 
 /**

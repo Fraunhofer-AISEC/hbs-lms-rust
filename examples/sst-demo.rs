@@ -41,14 +41,14 @@ impl Error for DemoError {}
 type Hasher = Sha256_192;
 
 struct GenKeyParameter {
-    hss_parameters: ArrayVec<[HssParameter<Hasher>; hbs_lms::MAX_ALLOWED_HSS_LEVELS]>,
+    hss_parameters: ArrayVec<[HssParameter<Hasher>; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]>,
     sst_extension: SstExtension,
     aux_data: usize,
 }
 
 impl GenKeyParameter {
     pub fn new(
-        hss_parameters: ArrayVec<[HssParameter<Hasher>; hbs_lms::MAX_ALLOWED_HSS_LEVELS]>,
+        hss_parameters: ArrayVec<[HssParameter<Hasher>; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]>,
         sst_extension: SstExtension,
         aux_data: Option<usize>,
     ) -> Self {
@@ -355,7 +355,8 @@ fn finalize_keygen(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
 }
 
 fn parse_genkey1_parameter(hss_params: &str, ssts_params: &str, auxsize: &str) -> GenKeyParameter {
-    let mut vec_hss_params: ArrayVec<[_; hbs_lms::MAX_ALLOWED_HSS_LEVELS]> = Default::default();
+    let mut vec_hss_params: ArrayVec<[_; hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS]> =
+        Default::default();
 
     let auxsize: usize = auxsize.parse().expect("Could not parse aux data size");
     let aux_data_size = (auxsize != 0).then_some(auxsize);

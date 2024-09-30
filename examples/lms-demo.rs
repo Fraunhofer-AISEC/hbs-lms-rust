@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .arg(Arg::new(PARAMETER_PARAMETER).required(false).help(
                     "Specify LMS parameters (e.g. 15/4 (Treeheight 15 and Winternitz parameter 4))",
                 ).default_value("5/1"))
-                .arg(Arg::new(SEED_PARAMETER).long(SEED_PARAMETER).required(true).takes_value(true).value_name("seed")),
+                .arg(Arg::new(SEED_PARAMETER).long(SEED_PARAMETER).required(true).value_name("seed")),
         )
         .subcommand(
             Command::new(VERIFY_COMMAND)
@@ -267,7 +267,7 @@ fn get_aux_name(keyname: &str) -> String {
 }
 
 fn get_parameter(name: &str, args: &ArgMatches) -> String {
-    args.value_of(name)
+    args.get_one::<String>(name)
         .expect("Parameter must be present.")
         .into()
 }
@@ -289,7 +289,7 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let genkey_parameter = parse_genkey_parameter(&get_parameter(PARAMETER_PARAMETER, args));
     let parameter = genkey_parameter.parameter;
 
-    let seed: Seed<Hasher> = if let Some(seed) = args.value_of(SEED_PARAMETER) {
+    let seed: Seed<Hasher> = if let Some(seed) = args.get_one::<String>(SEED_PARAMETER) {
         let decoded = hex::decode(seed)?;
         if decoded.len() < Hasher::OUTPUT_SIZE as usize {
             let error = format!(

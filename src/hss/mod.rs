@@ -313,6 +313,55 @@ mod tests {
     use super::*;
 
     #[test]
+    fn keypair_with_8_levels() {
+        let message = [
+            32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,
+        ];
+        type H = Sha256_256;
+        let seed = gen_random_seed::<H>();
+
+        let lmots = LmotsAlgorithm::LmotsW2;
+        let lms = LmsAlgorithm::LmsH2;
+        let parameters = [
+            HssParameter::new(lmots, lms),
+            HssParameter::new(lmots, lms),
+            HssParameter::new(lmots, lms),
+            HssParameter::new(lmots, lms),
+            HssParameter::new(lmots, lms),
+            HssParameter::new(lmots, lms),
+            HssParameter::new(lmots, lms),
+            HssParameter::new(lmots, lms),
+        ];
+
+        let (mut signing_key, verifying_key) =
+            hss_keygen::<H>(&parameters, &seed, None).expect("Should generate HSS keys");
+
+        let signing_key_const = signing_key.clone();
+
+        let mut update_private_key = |new_key: &[u8]| {
+            signing_key.as_mut_slice().copy_from_slice(new_key);
+            Ok(())
+        };
+
+        let signature = hss_sign::<H>(
+            &message,
+            signing_key_const.as_slice(),
+            &mut update_private_key,
+            None,
+            None,
+        )
+        .expect("Signing should complete without error.");
+
+        assert!(hss_verify::<H>(&message, signature.as_ref(), verifying_key.as_slice()).is_ok());
+
+        assert_ne!(signing_key.as_slice(), signing_key_const.as_slice());
+        assert_eq!(
+            signing_key.as_slice()[HSS_COMPRESSED_USED_LEAFS_SIZE..],
+            signing_key_const.as_slice()[HSS_COMPRESSED_USED_LEAFS_SIZE..]
+        );
+    }
+
+    #[test]
     fn update_keypair() {
         let message = [
             32u8, 48, 2, 1, 48, 58, 20, 57, 9, 83, 99, 255, 0, 34, 2, 1, 0,

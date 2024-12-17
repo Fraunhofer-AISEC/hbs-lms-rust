@@ -291,22 +291,19 @@ fn genkey(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let genkey_parameter = parse_genkey_parameter(&get_parameter(PARAMETER_PARAMETER, args));
     let parameter = genkey_parameter.parameter;
 
-    let seed: Seed<Hasher> = if let Some(seed) = args.value_of(SEED_PARAMETER) {
-        let decoded = hex::decode(seed)?;
-        if decoded.len() < Hasher::OUTPUT_SIZE as usize {
-            let error = format!(
-                "Seed is too short ({} of {} required bytes)",
-                decoded.len(),
-                Hasher::OUTPUT_SIZE
-            );
-            return DemoError::raise(error);
-        }
-        let mut seed = Seed::default();
-        seed.as_mut_slice().copy_from_slice(&decoded[..]);
-        seed
-    } else {
-        return DemoError::raise("Seed was not given".to_string());
-    };
+    let encoded_seed = args
+        .value_of(SEED_PARAMETER)
+        .ok_or(DemoError("No seed given".to_string()))?;
+    let decoded_seed = hex::decode(encoded_seed)?;
+    (decoded_seed.len() == Hasher::OUTPUT_SIZE.into())
+        .then_some(())
+        .ok_or(DemoError(format!(
+            "Seed length is {} bytes, but length of {} bytes is expected",
+            decoded_seed.len(),
+            Hasher::OUTPUT_SIZE
+        )))?;
+    let mut seed = Seed::<Hasher>::default();
+    seed.as_mut_slice().copy_from_slice(&decoded_seed[..]);
 
     let mut aux_data = vec![0u8; genkey_parameter.aux_data];
     let aux_slice: &mut &mut [u8] = &mut &mut aux_data[..];

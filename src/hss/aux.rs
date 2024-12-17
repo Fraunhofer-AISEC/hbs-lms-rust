@@ -5,7 +5,6 @@ use tinyvec::ArrayVec;
 use crate::{
     constants::{
         DAUX_D, DAUX_PREFIX_LEN, D_DAUX, MAX_HASH_BLOCK_SIZE, MAX_HASH_SIZE, MAX_TREE_HEIGHT,
-        MIN_SUBTREE,
     },
     hasher::HashChain,
     lms::parameters::LmsParameter,
@@ -65,13 +64,29 @@ pub fn hss_optimal_aux_level<H: HashChain>(
 
     // If SST is used, exclude SST root node layer, else include leaf node layer, i.e. height + 1
     let h0 = opt_l0_top_div.unwrap_or(lms_parameter.get_tree_height() + 1);
-    for level in (1..h0).rev().step_by(MIN_SUBTREE) {
-        let len_this_level = size_hash << level;
-
-        if max_length >= len_this_level {
-            max_length -= len_this_level;
-            aux_level |= 0x80000000 | (1 << level);
+    let mut len_level_iter = (1..h0).rev().map(|l| (l, size_hash << l));
+    while let Some((level, len_level)) = len_level_iter.next() {
+        if max_length < len_level {
+            continue;
         }
+        max_length -= len_level;
+        aux_level |= 0x80000000 | (1 << level);
+        _ = len_level_iter.next();
+    }
+    let mut skip_next_node_layer = false;
+    for level in (1..h0).rev() {
+        if skip_next_node_layer {
+            skip_next_node_layer = false;
+            continue;
+        }
+
+        let len_this_level = size_hash << level;
+        if max_length < len_this_level {
+            continue;
+        }
+        max_length -= len_this_level;
+        aux_level |= 0x80000000 | (1 << level);
+        skip_next_node_layer = true;
     }
 
     if let Some(actual_len) = actual_len {

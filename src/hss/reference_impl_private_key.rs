@@ -4,7 +4,7 @@ use crate::{
         IMPL_MAX_PRIVATE_KEY_SIZE, MAX_ALLOWED_HSS_LEVELS, MAX_HASH_SIZE, MAX_SEED_LEN,
         REF_IMPL_MAX_PRIVATE_KEY_SIZE, SEED_CHILD_SEED, SEED_SIGNATURE_RANDOMIZER_SEED,
         SST_IMPL_MAX_PRIVATE_KEY_SIZE, SST_SIZE, TOPSEED_D, TOPSEED_LEN, TOPSEED_SEED,
-        TOPSEED_WHICH,
+        TOPSEED_WHICH, REF_IMPL_MAX_ALLOWED_HSS_LEVELS
     },
     hasher::HashChain,
     hss::{definitions::HssPrivateKey, seed_derive::SeedDerive},
@@ -166,7 +166,7 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         result.compressed_used_leafs_indexes =
             CompressedUsedLeafsIndexes::from_slice(compressed_used_leafs_indexes);
 
-        let compressed_parameter = read_and_advance(data, MAX_ALLOWED_HSS_LEVELS, &mut index);
+        let compressed_parameter = read_and_advance(data, REF_IMPL_MAX_ALLOWED_HSS_LEVELS, &mut index);
         result.compressed_parameter = CompressedParameterSet::from_slice(compressed_parameter)?;
 
         let seed_len = result.seed.len();
@@ -253,17 +253,17 @@ pub fn generate_signature_randomizer<H: HashChain>(
 const PARAM_SET_END: u8 = 0xff; // Marker for end of parameter set
 
 #[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
-pub struct CompressedParameterSet([u8; MAX_ALLOWED_HSS_LEVELS]);
+pub struct CompressedParameterSet([u8; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]);
 
 impl Default for CompressedParameterSet {
     fn default() -> Self {
-        Self([PARAM_SET_END; MAX_ALLOWED_HSS_LEVELS])
+        Self([PARAM_SET_END; REF_IMPL_MAX_ALLOWED_HSS_LEVELS])
     }
 }
 
 impl CompressedParameterSet {
     pub fn from_slice(data: &[u8]) -> Result<Self, ()> {
-        if data.len() != MAX_ALLOWED_HSS_LEVELS {
+        if data.len() != REF_IMPL_MAX_ALLOWED_HSS_LEVELS {
             return Err(());
         }
 
@@ -291,7 +291,7 @@ impl CompressedParameterSet {
 
     pub fn to<H: HashChain>(
         &self,
-    ) -> Result<ArrayVec<[HssParameter<H>; MAX_ALLOWED_HSS_LEVELS]>, ()> {
+    ) -> Result<ArrayVec<[HssParameter<H>; REF_IMPL_MAX_ALLOWED_HSS_LEVELS]>, ()> {
         let mut result = ArrayVec::new();
 
         for level in 0..MAX_ALLOWED_HSS_LEVELS {

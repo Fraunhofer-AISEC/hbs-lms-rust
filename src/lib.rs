@@ -1,4 +1,4 @@
-#![forbid(unsafe_code)]
+//#![forbid(unsafe_code)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 //! This library implements the Leighton-Micali-Signature scheme, as defined in the
@@ -105,6 +105,7 @@ pub use crate::hasher::{
     sha256::{Sha256_128, Sha256_192, Sha256_256},
     shake256::{Shake256_128, Shake256_192, Shake256_256},
     HashChain, HashChainData,
+    FINALIZED_CTR,
 };
 
 pub use crate::hss::parameter::HssParameter;

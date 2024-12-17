@@ -159,8 +159,6 @@ pub const fn get_hss_signature_length() -> usize {
         )
 }
 
-pub const MIN_SUBTREE: usize = 2; /* All subtrees (other than the root subtree) have at least 2 levels */
-
 pub const DAUX_D: usize = 20;
 pub const DAUX_PREFIX_LEN: usize = 22; /* Not counting the seed value */
 pub const D_DAUX: u16 = 0xfdfd;

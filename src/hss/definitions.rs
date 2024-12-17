@@ -33,7 +33,7 @@ use super::reference_impl_private_key::{
 pub struct HssPrivateKey<H: HashChain> {
     pub private_key: ArrayVec<[LmsPrivateKey<H>; MAX_ALLOWED_HSS_LEVELS]>,
     pub public_key: ArrayVec<[LmsPublicKey<H>; MAX_ALLOWED_HSS_LEVELS - 1]>,
-    pub signatures: ArrayVec<[LmsSignature<H>; MAX_ALLOWED_HSS_LEVELS - 1]>, // Only L - 1 signatures needed
+    pub signatures: ArrayVec<[LmsSignature<H>; MAX_ALLOWED_HSS_LEVELS]>,
 }
 
 impl<H: HashChain> HssPrivateKey<H> {

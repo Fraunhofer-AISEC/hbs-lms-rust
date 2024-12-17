@@ -7,6 +7,7 @@ use sha2::{
 };
 
 use crate::constants::MAX_HASH_SIZE;
+use crate::hasher::FINALIZED_CTR;
 
 use super::HashChain;
 
@@ -25,11 +26,17 @@ macro_rules! define_sha {
             const BLOCK_SIZE: u16 = 64;
 
             fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+                unsafe {
+                    FINALIZED_CTR = Some(FINALIZED_CTR.map_or(1, |c| c + 1));
+                }
                 ArrayVec::try_from(&self.hasher.finalize_fixed()[..(Self::OUTPUT_SIZE as usize)])
                     .unwrap()
             }
 
             fn finalize_reset(&mut self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+                unsafe {
+                    FINALIZED_CTR = Some(FINALIZED_CTR.map_or(1, |c| c + 1));
+                }
                 ArrayVec::try_from(
                     &self.hasher.finalize_fixed_reset()[..(Self::OUTPUT_SIZE as usize)],
                 )

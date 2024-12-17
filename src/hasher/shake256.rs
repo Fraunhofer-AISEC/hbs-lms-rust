@@ -9,6 +9,7 @@ use sha3::{
 };
 
 use crate::constants::MAX_HASH_SIZE;
+use crate::hasher::FINALIZED_CTR;
 
 use super::HashChain;
 
@@ -27,12 +28,18 @@ macro_rules! define_shake {
             const BLOCK_SIZE: u16 = 64;
 
             fn finalize(self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+                unsafe {
+                    FINALIZED_CTR = Some(FINALIZED_CTR.map_or(1, |c| c + 1));
+                }
                 let mut digest = [0u8; MAX_HASH_SIZE];
                 self.hasher.finalize_xof().read(&mut digest);
                 ArrayVec::from_array_len(digest, Self::OUTPUT_SIZE as usize)
             }
 
             fn finalize_reset(&mut self) -> ArrayVec<[u8; MAX_HASH_SIZE]> {
+                unsafe {
+                    FINALIZED_CTR = Some(FINALIZED_CTR.map_or(1, |c| c + 1));
+                }
                 let mut digest = [0u8; MAX_HASH_SIZE];
                 self.hasher.finalize_xof_reset().read(&mut digest);
                 ArrayVec::from_array_len(digest, Self::OUTPUT_SIZE as usize)

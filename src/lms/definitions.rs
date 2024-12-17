@@ -5,6 +5,8 @@ use crate::lm_ots::parameters::{LmotsAlgorithm, LmotsParameter};
 use crate::lms::helper::get_tree_element;
 use crate::lms::parameters::LmsAlgorithm;
 use crate::lms::MutableExpandedAuxData;
+use crate::sst::helper::get_sst_last_leaf_idx;
+use crate::sst::parameters::SstExtension;
 use crate::util::helper::read_and_advance;
 use crate::{lm_ots, Seed};
 
@@ -23,6 +25,7 @@ pub struct LmsPrivateKey<H: HashChain> {
     pub lmots_parameter: LmotsParameter<H>,
     #[zeroize(skip)]
     pub lms_parameter: LmsParameter<H>,
+    pub sst_option: Option<SstExtension>,
 }
 
 impl<H: HashChain> LmsPrivateKey<H> {
@@ -32,6 +35,7 @@ impl<H: HashChain> LmsPrivateKey<H> {
         used_leafs_index: u32,
         lmots_parameter: LmotsParameter<H>,
         lms_parameter: LmsParameter<H>,
+        sst_option: Option<SstExtension>,
     ) -> Self {
         LmsPrivateKey {
             seed,
@@ -39,11 +43,16 @@ impl<H: HashChain> LmsPrivateKey<H> {
             used_leafs_index,
             lmots_parameter,
             lms_parameter,
+            sst_option,
         }
     }
 
     pub fn use_lmots_private_key(&mut self) -> Result<LmotsPrivateKey<H>, ()> {
-        let number_of_lm_ots_keys = self.lms_parameter.number_of_lm_ots_keys();
+        let number_of_lm_ots_keys = self.sst_option.as_ref().map_or_else(
+            || self.lms_parameter.number_of_lm_ots_keys(),
+            // last leaf idx is total_num-1, hence add 1
+            |v| get_sst_last_leaf_idx(&self.lms_parameter, v) as usize + 1,
+        );
 
         if self.used_leafs_index as usize >= number_of_lm_ots_keys {
             return Err(());
@@ -119,7 +128,7 @@ impl<'a, H: HashChain> PartialEq<LmsPublicKey<H>> for InMemoryLmsPublicKey<'a, H
 
 impl<'a, H: HashChain> InMemoryLmsPublicKey<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
-        // Parsing like desribed in 5.4.2
+        // Parsing like described in 5.4.2
         let mut data_index = 0;
 
         let lms_parameter = LmsAlgorithm::get_from_type(u32::from_be_bytes(
@@ -172,6 +181,7 @@ mod tests {
             0,
             LmotsAlgorithm::construct_default_parameter(),
             LmsAlgorithm::construct_default_parameter(),
+            None,
         );
 
         let public_key = LmsPublicKey::new(&private_key, &mut None);

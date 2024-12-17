@@ -1,4 +1,4 @@
-#![forbid(unsafe_code)]
+//#![forbid(unsafe_code)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 //! This library implements the Leighton-Micali-Signature scheme, as defined in the
@@ -18,6 +18,7 @@
 //!     Signature, signature::{SignerMut, Verifier},
 //!     Sha256_256, HashChain, Seed,
 //! };
+//! use hbs_lms::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
 //!
 //! let message: [u8; 7] = [42, 84, 34, 12, 64, 34, 32];
 //!
@@ -89,6 +90,7 @@ mod hasher;
 mod hss;
 mod lm_ots;
 mod lms;
+mod sst;
 mod util;
 
 // Re-export the `signature` crate
@@ -103,6 +105,7 @@ pub use crate::hasher::{
     sha256::{Sha256_128, Sha256_192, Sha256_256},
     shake256::{Shake256_128, Shake256_192, Shake256_256},
     HashChain, HashChainData,
+    FINALIZED_CTR,
 };
 
 pub use crate::hss::parameter::HssParameter;
@@ -116,10 +119,21 @@ pub use crate::hss::hss_sign_mut as sign_mut;
 pub use crate::hss::hss_verify as verify;
 pub use crate::hss::{SigningKey, VerifyingKey};
 
+// TODO/Review: API for distributed state management (SST, SingleSubTree)
+// should not contain anything else, while crate's modules get to use more of "sst"
+pub use crate::constants::LmsTreeIdentifier;
+pub use crate::constants::MAX_SSTS_SIGNING_ENTITIES;
+
+pub use crate::sst::gen_key::finalize_sst_keygen;
+pub use crate::sst::gen_key::prepare_sst_keygen;
+pub use crate::sst::get_num_signing_entities;
+pub use crate::sst::parameters::SstExtension;
+
 use core::convert::TryFrom;
 use signature::Error;
 use tinyvec::ArrayVec;
 
+pub use crate::constants::REF_IMPL_MAX_ALLOWED_HSS_LEVELS;
 use constants::MAX_HSS_SIGNATURE_LENGTH;
 
 /**
@@ -186,13 +200,12 @@ impl<'a> signature::Signature for VerifierSignature<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::util::helper::test_helper::gen_random_seed;
     use crate::{keygen, HssParameter, LmotsAlgorithm, LmsAlgorithm, Sha256_256};
     use crate::{
         signature::{SignerMut, Verifier},
         SigningKey, VerifierSignature, VerifyingKey,
     };
-
-    use crate::util::helper::test_helper::gen_random_seed;
 
     #[test]
     fn get_signing_and_verifying_key() {

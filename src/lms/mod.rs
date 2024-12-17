@@ -4,9 +4,10 @@ use crate::hss::parameter::HssParameter;
 use crate::hss::reference_impl_private_key::SeedAndLmsTreeIdentifier;
 use crate::lms::definitions::LmsPrivateKey;
 use crate::lms::definitions::LmsPublicKey;
+use crate::sst::parameters::SstExtension;
 
 pub mod definitions;
-mod helper;
+pub(crate) mod helper;
 pub mod parameters;
 pub mod signing;
 pub mod verify;
@@ -21,6 +22,7 @@ pub fn generate_key_pair<H: HashChain>(
     parameter: &HssParameter<H>,
     used_leafs_index: &u32,
     aux_data: &mut Option<MutableExpandedAuxData>,
+    sst_option: Option<SstExtension>,
 ) -> LmsKeyPair<H> {
     let lmots_parameter = parameter.get_lmots_parameter();
     let lms_parameter = parameter.get_lms_parameter();
@@ -31,6 +33,7 @@ pub fn generate_key_pair<H: HashChain>(
         *used_leafs_index,
         *lmots_parameter,
         *lms_parameter,
+        sst_option,
     );
     let public_key = LmsPublicKey::new(&private_key, aux_data);
 

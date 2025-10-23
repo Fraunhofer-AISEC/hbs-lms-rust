@@ -210,10 +210,7 @@ impl<'a, H: HashChain> InMemoryHssPublicKey<'a, H> {
 
         let level = u32::from_be_bytes(read_and_advance(data, 4, &mut index).try_into().unwrap());
 
-        let public_key = match InMemoryLmsPublicKey::new(&data[index..]) {
-            None => return None,
-            Some(x) => x,
-        };
+        let public_key = InMemoryLmsPublicKey::new(&data[index..])?;
 
         Some(Self {
             public_key,

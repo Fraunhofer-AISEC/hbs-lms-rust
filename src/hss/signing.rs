@@ -156,10 +156,7 @@ impl<'a, H: HashChain> InMemoryHssSignature<'a, H> {
             signed_public_keys.push(Some(signed_public_key));
         }
 
-        let signature = match InMemoryLmsSignature::<'a, H>::new(&data[index..]) {
-            None => return None,
-            Some(x) => x,
-        };
+        let signature = InMemoryLmsSignature::<'a, H>::new(&data[index..])?;
 
         Some(Self {
             level,
@@ -207,10 +204,7 @@ impl<H: HashChain> HssSignedPublicKey<H> {
 
 impl<'a, H: HashChain> InMemoryHssSignedPublicKey<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
-        let sig = match InMemoryLmsSignature::new(data) {
-            None => return None,
-            Some(x) => x,
-        };
+        let sig = InMemoryLmsSignature::new(data)?;
 
         let sig_size = lms_signature_length(
             sig.lmots_signature
@@ -222,10 +216,7 @@ impl<'a, H: HashChain> InMemoryHssSignedPublicKey<'a, H> {
             sig.lms_parameter.get_tree_height() as usize,
         );
 
-        let public_key = match InMemoryLmsPublicKey::new(&data[sig_size..]) {
-            None => return None,
-            Some(x) => x,
-        };
+        let public_key = InMemoryLmsPublicKey::new(&data[sig_size..])?;
 
         Some(Self { sig, public_key })
     }

@@ -1,3 +1,7 @@
+/**
+The implementation of aux data is mainly copied from the reference implementation in C (https://github.com/cisco/hash-sigs)
+For comments see the original source code.
+*/
 use core::convert::TryInto;
 use subtle::ConstantTimeEq;
 use tinyvec::ArrayVec;
@@ -11,11 +15,6 @@ use crate::{
     lms::parameters::LmsParameter,
     util::helper::read_and_advance,
 };
-
-/**
-The implementation of aux data is mainly copied from the reference implementation in C (https://github.com/cisco/hash-sigs)
-For comments see the original source code.
-*/
 
 type AuxLevel = u32;
 

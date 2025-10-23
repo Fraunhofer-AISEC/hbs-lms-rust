@@ -67,7 +67,7 @@ impl<H: HashChain> HashChainArray<H> {
         } else if let Some(array_w2) = &self.array_w2 {
             array_w2.as_slice()
         } else {
-            return self.array_w1.as_ref().unwrap().as_slice();
+            self.array_w1.as_ref().unwrap().as_slice()
         }
     }
 }

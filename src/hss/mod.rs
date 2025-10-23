@@ -151,7 +151,6 @@ pub fn hss_verify<H: HashChain>(
  * * `private_key_update_function` - The update function that is called with the new private key. This function should save the new private key.
  * * `aux_data` - Auxiliary data to speedup signature generation if available
  */
-
 pub fn hss_sign<H: HashChain>(
     message: &[u8],
     private_key: &[u8],

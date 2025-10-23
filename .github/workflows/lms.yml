@@ -57,7 +57,7 @@ jobs:
       - name: Run msrv
         run: |
             make check-msrv
-            cargo msrv --verify
+            cargo msrv verify
 
   set-msrv:
     runs-on: ubuntu-latest

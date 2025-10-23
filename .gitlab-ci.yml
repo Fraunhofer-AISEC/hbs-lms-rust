@@ -46,7 +46,7 @@ msrv:
     - cargo install cargo-msrv
   script:
     - make check-msrv
-    - cargo msrv --verify
+    - cargo msrv verify
   allow_failure: true
   tags:
     - asprunner

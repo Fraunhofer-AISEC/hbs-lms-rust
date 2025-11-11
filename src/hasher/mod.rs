@@ -29,6 +29,8 @@ impl DerefMut for HashChainData {
     }
 }
 
+pub static mut FINALIZED_CTR: Option<u64> = None;
+
 /**
  *
  * This trait is used inside the library to generate hashes. Default implementations are available with [`sha256::Sha256`] and [`shake256::Shake256`].

@@ -12,27 +12,8 @@ This implementation is binary compatible with the reference implementation found
 This crate does not require the standard library (i.e. no_std capable) and can be easily used for bare-metal programming.
 
 ## Demo
-A demo application is located in the `examples` folder to demonstrate the use of the library.
-This demo application can be used in the console as follows:
-
-```
-# Key generation
-# Generates `mykey.prv`, `mykey.pub` with merkle tree height 10 and winternitz parameter 2
-cargo run --release --example lms-demo -- genkey mykey 10/2 --seed 0123456701234567012345670123456701234567012345670123456701234567
-
-# Signing
-# Generates `message.txt.sig`
-cargo run --release --example lms-demo -- sign mykey message.txt
-
-# Signing (fast_verification)
-# Generates `message.txt_mut`, `message.txt_mut.sig`
-HBS_LMS_MAX_HASH_OPTIMIZATIONS=1000 HBS_LMS_THREADS=2 cargo run --release --example lms-demo \
-    --features fast_verify -- sign_mut mykey message.txt
-
-# Verification
-# Verifies `message.txt` with `message.txt.sig` against `mykey.pub`
-cargo run --release --example lms-demo -- verify mykey message.txt
-```
+Two demo applications are located in the `examples` folder to demonstrate the use of the library.
+The examples are the [lms-demo](scripts/lms-demo.sh) and the [sst-demo](scripts/sst-demo.sh).
 
 ## Naming conventions wrt to the IETF RFC
 The naming in the RFC is done by using a single character.
@@ -41,15 +22,15 @@ The following table shows the mapping between the RFC and the library naming inc
 
 | RFC Naming | Library Naming       | Meaning                                                   |
 |------------|----------------------|-----------------------------------------------------------|
-| I          | lms_tree_identifier  | 16-byte random value to identify a single LMS tree        |
-| q          | lms_leaf_identifier  | 4-byte value to identify all leafs in a single LMS tree   |
-| C          | signature_randomizer | 32-byte random value added to every signature             |
-| Q          | message_hash         | Output of hashed message together with I, q, D_MESG and C |
-| y          | signature_data       | The actual data of the signature                          |
-| p          | hash_chain_count     | The number of hash chains for a certain W parameter       |
-| ls         | checksum_left_shift  | How many bits the checksum is shifted into the coef-value |
-| n          | hash_function_output_size | Number of bytes that the lm_ots hash functions generates         |
-| m          | hash_function_output_size | Number of bytes that the lms hash functions generates         |
+| I          | lms_tree_identifier       | 16-byte random value to identify a single LMS tree        |
+| q          | lms_leaf_identifier       | 4-byte value to identify all leafs in a single LMS tree   |
+| C          | signature_randomizer      | 32-byte random value added to every signature             |
+| Q          | message_hash              | Output of hashed message together with I, q, D_MESG and C |
+| y          | signature_data            | The actual data of the signature                          |
+| p          | num_winternitz_chains     | The number of hash chains for a certain W parameter       |
+| ls         | checksum_left_shift       | How many bits the checksum is shifted into the coef-value |
+| n          | hash_function_output_size | Number of bytes that the lm_ots hash functions generates  |
+| m          | hash_function_output_size | Number of bytes that the lms hash functions generates     |
 
 ## Minimum Supported Rust Version
 The crate in this repository supports Rust **1.70** or higher.

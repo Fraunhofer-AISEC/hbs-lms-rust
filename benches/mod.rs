@@ -28,18 +28,13 @@ mod tests {
         signing_key
     }
 
-    fn generate_verifying_key_and_signature() -> (VerifyingKey<Sha256_256>, Signature) {
+    fn generate_verifying_key_and_signature(
+        hss_parameter: &[HssParameter<Sha256_256>],
+    ) -> (VerifyingKey<Sha256_256>, Signature) {
         let mut seed = Seed::default();
         OsRng.fill_bytes(seed.as_mut_slice());
-        let (mut signing_key, verifying_key) = keygen::<Sha256_256>(
-            &[HssParameter::new(
-                LmotsAlgorithm::LmotsW2,
-                LmsAlgorithm::LmsH5,
-            )],
-            &seed,
-            None,
-        )
-        .unwrap();
+        let (mut signing_key, verifying_key) =
+            keygen::<Sha256_256>(&hss_parameter, &seed, None).unwrap();
 
         let signature = signing_key.try_sign(&MESSAGE).unwrap();
 
@@ -135,7 +130,7 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }
@@ -153,7 +148,7 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }
@@ -171,7 +166,7 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }
@@ -203,14 +198,18 @@ mod tests {
         b.iter(|| {
             let mut signing_key = signing_key.clone();
             signing_key
-                .try_sign_with_aux(&MESSAGE, Some(aux_slice))
+                .try_sign_with_aux(&MESSAGE, Some(aux_slice), None)
                 .unwrap()
         });
     }
 
     #[bench]
-    fn verify(b: &mut Bencher) {
-        let (verifying_key, signature) = generate_verifying_key_and_signature();
+    fn verify_h5w2(b: &mut Bencher) {
+        let hss_parameter = [HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        )];
+        let (verifying_key, signature) = generate_verifying_key_and_signature(&hss_parameter);
 
         b.iter(|| {
             let _ = verifying_key.verify(&MESSAGE, &signature).is_ok();
@@ -218,8 +217,25 @@ mod tests {
     }
 
     #[bench]
-    fn verify_reference(b: &mut Bencher) {
-        let (verifying_key, signature) = generate_verifying_key_and_signature();
+    fn verify_h5w2_h5w2(b: &mut Bencher) {
+        let hss_parameter = [
+            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+            HssParameter::new(LmotsAlgorithm::LmotsW2, LmsAlgorithm::LmsH5),
+        ];
+        let (verifying_key, signature) = generate_verifying_key_and_signature(&hss_parameter);
+
+        b.iter(|| {
+            let _ = verifying_key.verify(&MESSAGE, &signature).is_ok();
+        });
+    }
+
+    #[bench]
+    fn verify_reference_h5w2(b: &mut Bencher) {
+        let hss_parameter = [HssParameter::new(
+            LmotsAlgorithm::LmotsW2,
+            LmsAlgorithm::LmsH5,
+        )];
+        let (verifying_key, signature) = generate_verifying_key_and_signature(&hss_parameter);
         let ref_signature = VerifierSignature::from_ref(signature.as_ref()).unwrap();
 
         b.iter(|| {

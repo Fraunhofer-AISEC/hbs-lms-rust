@@ -55,7 +55,7 @@ impl<H: HashChain> HssSignature<H> {
             },
             &prv[max_level - 1].used_leafs_index,
         );
-        let new_signature = if cfg!(feature = "fast_verify") && message_mut.is_some() {
+        let message_signature = if cfg!(feature = "fast_verify") && message_mut.is_some() {
             #[cfg(feature = "fast_verify")]
             let lms_sig = lms::signing::LmsSignature::sign_fast_verify(
                 &mut prv[max_level - 1],
@@ -75,7 +75,7 @@ impl<H: HashChain> HssSignature<H> {
                 aux_data,
             )
         }?;
-        sig.push(new_signature);
+        sig.push(LmsSignature::default()); // push a default signature object to indicate used key
 
         // Create list of signed keys
         let mut signed_public_keys = ArrayVec::new();
@@ -86,7 +86,7 @@ impl<H: HashChain> HssSignature<H> {
         Ok(HssSignature {
             level: max_level - 1,
             signed_public_keys,
-            signature: sig[max_level - 1].clone(),
+            signature: message_signature,
         })
     }
 
@@ -267,16 +267,18 @@ mod tests {
     #[should_panic(expected = "Signing should panic!")]
     fn reuse_loaded_keypair() {
         let seed = gen_random_seed::<Hasher>();
+
         let private_key = ReferenceImplPrivateKey::<Hasher>::generate(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
             ],
             &seed,
+            None,
         )
         .unwrap();
 
-        let mut private_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
+        let mut private_key = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
 
         let message = [2, 56, 123, 22, 42, 49, 22];
 
@@ -298,6 +300,7 @@ mod tests {
             &HssParameter::construct_default_parameters(),
             &0,
             &mut None,
+            None,
         );
 
         let message = [3, 54, 32, 45, 67, 32, 12, 58, 29, 49];
@@ -327,16 +330,18 @@ mod tests {
     #[test]
     fn test_hss_signature_binary_representation() {
         let seed = gen_random_seed::<Hasher>();
+
         let private_key = ReferenceImplPrivateKey::<Hasher>::generate(
             &[
                 HssParameter::construct_default_parameters(),
                 HssParameter::construct_default_parameters(),
             ],
             &seed,
+            None,
         )
         .unwrap();
 
-        let mut private_key = HssPrivateKey::from(&private_key, &mut None).unwrap();
+        let mut private_key = HssPrivateKey::from(&private_key, &mut None, None).unwrap();
 
         let message_values = [2, 56, 123, 22, 42, 49, 22];
         let mut message = [0u8; 64];

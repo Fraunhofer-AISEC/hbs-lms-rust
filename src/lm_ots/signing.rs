@@ -381,8 +381,11 @@ mod tests {
 
                 // check signature len
                 let output_size = lmots_parameter.get_hash_function_output_size() as usize;
-                let hash_chain_count = lmots_parameter.get_num_winternitz_chains() as usize;
-                assert_eq!(binary_rep.len(), 4 + output_size * (hash_chain_count + 1));
+                let num_winternitz_chains = lmots_parameter.get_num_winternitz_chains() as usize;
+                assert_eq!(
+                    binary_rep.len(),
+                    4 + output_size * (num_winternitz_chains + 1)
+                );
 
                 let deserialized_signature = InMemoryLmotsSignature::new(binary_rep.as_slice())
                     .expect("Deserialization must succeed.");

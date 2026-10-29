@@ -123,17 +123,17 @@ impl<'a, H: HashChain> InMemoryLmsPublicKey<'a, H> {
         let mut data_index = 0;
 
         let lms_parameter = LmsAlgorithm::get_from_type(u32::from_be_bytes(
-            read_and_advance(data, 4, &mut data_index)
+            read_and_advance(data, 4, &mut data_index)?
                 .try_into()
-                .unwrap(),
+                .ok()?,
         ))?;
         let lmots_parameter = LmotsAlgorithm::get_from_type(u32::from_be_bytes(
-            read_and_advance(data, 4, &mut data_index)
+            read_and_advance(data, 4, &mut data_index)?
                 .try_into()
-                .unwrap(),
+                .ok()?,
         ))?;
-        let lms_tree_identifier = read_and_advance(data, 16, &mut data_index);
-        let key = read_and_advance(data, H::OUTPUT_SIZE.into(), &mut data_index);
+        let lms_tree_identifier = read_and_advance(data, 16, &mut data_index)?;
+        let key = read_and_advance(data, H::OUTPUT_SIZE.into(), &mut data_index)?;
 
         Some(Self {
             lmots_parameter,

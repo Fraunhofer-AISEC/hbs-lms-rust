@@ -93,6 +93,9 @@ impl<H: HashChain> HssPrivateKey<H> {
         is_aux_data_used: bool,
     ) -> Option<MutableExpandedAuxData<'a>> {
         let aux_data = aux_data?;
+        if aux_data.is_empty() {
+            return None;
+        }
 
         if is_aux_data_used {
             return hss_expand_aux_data::<H>(Some(aux_data), Some(private_key.seed.as_slice()));
@@ -208,7 +211,7 @@ impl<'a, H: HashChain> InMemoryHssPublicKey<'a, H> {
     pub fn new(data: &'a [u8]) -> Option<Self> {
         let mut index = 0;
 
-        let level = u32::from_be_bytes(read_and_advance(data, 4, &mut index).try_into().unwrap());
+        let level = u32::from_be_bytes(read_and_advance(data, 4, &mut index)?.try_into().ok()?);
 
         let public_key = InMemoryLmsPublicKey::new(&data[index..])?;
 

@@ -125,18 +125,19 @@ impl<H: HashChain> ReferenceImplPrivateKey<H> {
         let mut index = 0;
 
         let compressed_used_leafs_indexes =
-            read_and_advance(data, HSS_COMPRESSED_USED_LEAFS_SIZE, &mut index);
+            read_and_advance(data, HSS_COMPRESSED_USED_LEAFS_SIZE, &mut index).ok_or(())?;
         result.compressed_used_leafs_indexes =
             CompressedUsedLeafsIndexes::from_slice(compressed_used_leafs_indexes);
 
-        let compressed_parameter = read_and_advance(data, MAX_ALLOWED_HSS_LEVELS, &mut index);
+        let compressed_parameter =
+            read_and_advance(data, MAX_ALLOWED_HSS_LEVELS, &mut index).ok_or(())?;
         result.compressed_parameter = CompressedParameterSet::from_slice(compressed_parameter)?;
 
         let seed_len = result.seed.len();
         result
             .seed
             .as_mut_slice()
-            .copy_from_slice(read_and_advance(data, seed_len, &mut index));
+            .copy_from_slice(read_and_advance(data, seed_len, &mut index).ok_or(())?);
 
         Ok(result)
     }

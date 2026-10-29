@@ -146,17 +146,22 @@ impl<'a, H: HashChain> InMemoryHssSignature<'a, H> {
         let mut index = 0;
 
         let level =
-            u32::from_be_bytes(read_and_advance(data, 4, &mut index).try_into().unwrap()) as usize;
+            u32::from_be_bytes(read_and_advance(data, 4, &mut index)?.try_into().ok()?) as usize;
+
+        // An HSS signature holds at most MAX_ALLOWED_HSS_LEVELS - 1 signed public keys.
+        if level >= MAX_ALLOWED_HSS_LEVELS {
+            return None;
+        }
 
         let mut signed_public_keys = ArrayVec::new();
 
         for _ in 0..level {
-            let signed_public_key = InMemoryHssSignedPublicKey::<'a, H>::new(&data[index..])?;
+            let signed_public_key = InMemoryHssSignedPublicKey::<'a, H>::new(data.get(index..)?)?;
             index += signed_public_key.len();
             signed_public_keys.push(Some(signed_public_key));
         }
 
-        let signature = InMemoryLmsSignature::<'a, H>::new(&data[index..])?;
+        let signature = InMemoryLmsSignature::<'a, H>::new(data.get(index..)?)?;
 
         Some(Self {
             level,
@@ -216,7 +221,7 @@ impl<'a, H: HashChain> InMemoryHssSignedPublicKey<'a, H> {
             sig.lms_parameter.get_tree_height() as usize,
         );
 
-        let public_key = InMemoryLmsPublicKey::new(&data[sig_size..])?;
+        let public_key = InMemoryLmsPublicKey::new(data.get(sig_size..)?)?;
 
         Some(Self { sig, public_key })
     }

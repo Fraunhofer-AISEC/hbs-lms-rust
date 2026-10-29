@@ -165,28 +165,26 @@ impl<'a, H: HashChain> InMemoryLmsSignature<'a, H> {
         let mut index = 0;
 
         let lms_leaf_identifier =
-            u32::from_be_bytes(read_and_advance(data, 4, &mut index).try_into().unwrap());
+            u32::from_be_bytes(read_and_advance(data, 4, &mut index)?.try_into().ok()?);
 
         // LMOTS Signature consists of LMOTS parameter, signature randomizer & signature data
         let lmots_parameter = LmotsAlgorithm::get_from_type::<H>(u32::from_be_bytes(
-            read(data, 4, &index).try_into().unwrap(),
-        ))
-        .unwrap();
+            read(data, 4, &index)?.try_into().ok()?,
+        ))?;
         let lmots_signature = lm_ots::signing::InMemoryLmotsSignature::new(read_and_advance(
             data,
             (4 + H::OUTPUT_SIZE * (1 + lmots_parameter.get_num_winternitz_chains())) as usize,
             &mut index,
-        ))
-        .unwrap();
+        )?)?;
 
-        let _type = u32::from_be_bytes(read_and_advance(data, 4, &mut index).try_into().unwrap());
+        let _type = u32::from_be_bytes(read_and_advance(data, 4, &mut index)?.try_into().ok()?);
 
-        let lms_parameter = LmsAlgorithm::get_from_type(_type).unwrap();
+        let lms_parameter = LmsAlgorithm::get_from_type(_type)?;
         let authentication_path = read_and_advance(
             data,
             (H::OUTPUT_SIZE * lms_parameter.get_tree_height() as u16) as usize,
             &mut index,
-        );
+        )?;
 
         if lms_leaf_identifier >= lms_parameter.number_of_lm_ots_keys() as u32 {
             return None;

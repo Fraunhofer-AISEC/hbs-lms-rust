@@ -220,17 +220,16 @@ impl<'a, H: HashChain> InMemoryLmotsSignature<'a, H> {
         let mut index = 0;
 
         let lmots_parameter = LmotsAlgorithm::get_from_type::<H>(u32::from_be_bytes(
-            read_and_advance(data, 4, &mut index).try_into().unwrap(),
-        ))
-        .unwrap();
+            read_and_advance(data, 4, &mut index)?.try_into().ok()?,
+        ))?;
 
-        let signature_randomizer = read_and_advance(data, H::OUTPUT_SIZE as usize, &mut index);
+        let signature_randomizer = read_and_advance(data, H::OUTPUT_SIZE as usize, &mut index)?;
 
         let signature_data = read_and_advance(
             data,
             (H::OUTPUT_SIZE * lmots_parameter.get_num_winternitz_chains()) as usize,
             &mut index,
-        );
+        )?;
 
         Some(Self {
             signature_randomizer,
